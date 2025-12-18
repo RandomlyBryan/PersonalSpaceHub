@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -21,13 +20,8 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { 
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        glass: "rgba(255, 255, 255, 0.95)",
-                        darkGlass: "rgba(30, 41, 59, 0.95)",
-                        sidebar: "rgba(36, 0, 70, 0.85)",
                         jokerPurple: "#3c096c",
                         jokerGreen: "#39ff14"
                     }
@@ -44,8 +38,18 @@
             overflow: hidden; 
             font-family: 'Inter', sans-serif;
         }
-        .dark body {
-             background: linear-gradient(135deg, #10002b, #004b23);
+        .dark body { background: linear-gradient(135deg, #10002b, #004b23); }
+
+        /* Welcome Screen Overlay */
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #240046, #10002b);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s;
         }
 
         .glass-panel {
@@ -59,642 +63,157 @@
             color: #e2e8f0;
             border: 1px solid rgba(57, 255, 20, 0.1);
         }
-        .sidebar {
-            background: rgba(36, 0, 70, 0.7);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255,255,255,0.1);
-        }
-        .dark .sidebar { background: rgba(10, 0, 20, 0.8); }
         
-        .nav-item.active { 
-            background: rgba(255, 255, 255, 0.1); 
-            border-left: 4px solid #39ff14; 
-            color: #39ff14;
-        }
-        .dark .nav-item.active { 
-            background: rgba(255, 255, 255, 0.05); 
-            border-left: 4px solid #9d4edd; 
-            color: #d8b4fe;
-        } 
-
-        .column-body { min-height: 200px; transition: background-color 0.2s; }
-        .column-body.drag-over { background-color: rgba(57, 255, 20, 0.15); border-radius: 0.5rem; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(157, 78, 221, 0.5); border-radius: 3px; }
-
-        .task-card { cursor: grab; }
-        .task-card:active { cursor: grabbing; }
-        .dragging { opacity: 0.5; transform: scale(0.98); }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Calendar Styles */
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            border-top: 1px solid #e2e8f0; 
-            border-left: 1px solid #e2e8f0;
-        }
-        .dark .calendar-grid {
-            border-color: #3c096c;
-        }
-        
-        .calendar-day { 
-            min-height: 80px; 
-            max-height: 110px; 
-            overflow-y: auto;  
-            overflow-x: hidden;
-            display: flex; 
-            flex-direction: column; 
-            align-items: flex-start; 
-            justify-content: flex-start;
-            padding: 4px;
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            position: relative;
-            transition: background 0.2s;
-            border-right: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            background: rgba(255,255,255,0.4);
-        }
-        .calendar-day::-webkit-scrollbar { width: 2px; }
-        .calendar-day::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
-
-        .dark .calendar-day {
-            border-color: #3c096c;
-            background: rgba(30, 41, 59, 0.4);
-        }
-
-        .calendar-day:hover { background: rgba(57, 255, 20, 0.15); }
-        .calendar-day.today { background: #3c096c; color: #39ff14; font-weight: bold; border: 1px solid #39ff14; }
-        .dark .calendar-day.today { background: #240046; color: #39ff14; }
-
-        .calendar-day-number { 
-            margin-bottom: 2px; 
-            position: sticky; 
-            top: 0;
-            z-index: 10;
-            width: 100%;
-            padding: 2px 4px;
-            font-weight: bold;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            background: rgba(255,255,255,0.85); 
-            backdrop-filter: blur(4px);
-        }
-        .dark .calendar-day-number {
-            background: rgba(30, 41, 59, 0.85);
-            border-color: rgba(255,255,255,0.05);
-        }
-
-        .cal-event-item {
-            font-size: 0.65rem;
-            line-height: 1.2;
-            padding: 4px 5px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.6);
-            margin-top: 2px;
-            width: 100%;
-            white-space: normal; 
-            word-break: break-word;
-            text-align: left; 
-            border-left: 3px solid #ccc; 
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            position: relative;
-            color: #334155;
-            padding-right: 2px;
-        }
-        .dark .cal-event-item {
-            background: rgba(15, 23, 42, 0.6);
-            color: #e2e8f0;
-        }
-
-        /* Urgency Colors */
-        .cal-urgency-low { border-left-color: #39ff14 !important; background: rgba(57, 255, 20, 0.1); }
-        .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
-        .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
-
-        .cal-actions-container {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            display: flex;
-            gap: 3px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 20;
-            padding: 2px 4px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .dark .cal-actions-container {
-            background: rgba(30, 41, 59, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .cal-event-item:hover .cal-actions-container { opacity: 1; }
-
-        .cal-action-btn {
-            width: 16px;
-            height: 16px;
-            background: rgba(0,0,0, 0.05);
-            color: #64748b;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .dark .cal-action-btn { background: rgba(255,255,255, 0.1); color: #94a3b8; }
-        
-        .cal-btn-del:hover { background: #ef4444 !important; color: white !important; transform: scale(1.1); }
-        .cal-btn-check:hover { background: #39ff14 !important; color: black !important; transform: scale(1.1); }
-
-        .cal-time { font-weight: 800; opacity: 0.9; font-size: 0.6rem; display: block; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom:1px; margin-bottom:1px;}
-
-        .flag-btn {
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #cbd5e1; 
-        }
-        .dark .flag-btn { color: #475569; }
-        
-        .flag-rating:hover .flag-btn { color: #9d4edd; } 
-        .flag-btn:hover ~ .flag-btn { color: #cbd5e1; } 
-        .dark .flag-rating:hover .flag-btn { color: #9d4edd; }
-        .dark .flag-btn:hover ~ .flag-btn { color: #475569; }
-        .flag-btn.active { color: #9d4edd; }
-        
-        .avatar-container:hover .avatar-overlay { opacity: 1; }
-        
-        .view-btn { transition: all 0.2s; }
-        .view-btn.active { background-color: rgba(57, 255, 20, 0.2); font-weight: bold; border: 1px solid #39ff14; color: #39ff14; }
-
-        .timer-active { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green {
-            0% { text-shadow: 0 0 0 rgba(57, 255, 20, 0); }
-            50% { text-shadow: 0 0 4px rgba(57, 255, 20, 0.5); }
-            100% { text-shadow: 0 0 0 rgba(57, 255, 20, 0); }
-        }
-        
-        .flatpickr-calendar {
-            background: rgba(36, 0, 70, 0.95) !important; 
-            border: 1px solid #39ff14 !important;
-            backdrop-filter: blur(10px) !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
-            z-index: 9999 !important;
-        }
-        .flatpickr-day.selected {
-            background: #39ff14 !important;
-            border-color: #39ff14 !important;
-            color: black !important;
-            font-weight: bold;
-        }
-        
-        /* Helper to hide admin tools */
-        .admin-only { transition: all 0.3s; }
+        .sidebar { background: rgba(36, 0, 70, 0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.1); }
+        .nav-item.active { background: rgba(255, 255, 255, 0.1); border-left: 4px solid #39ff14; color: #39ff14; }
         .admin-only.hidden-tool { display: none !important; }
+        
+        .pin-input {
+            letter-spacing: 1em;
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="text-slate-800 antialiased flex flex-col h-screen w-screen overflow-hidden">
 
-    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg shadow-lg z-50 font-bold opacity-90 border border-t-0 border-green-400" id="connection-status">
-        <i class="fas fa-circle-notch fa-spin mr-1 text-yellow-400"></i> Connecting to Cloud...
+    <div id="welcome-screen">
+        <div class="glass-panel p-8 rounded-3xl w-full max-w-md text-center shadow-2xl border-2 border-green-400">
+            <h1 class="text-4xl font-bold text-white mb-2 tracking-tighter">PersonalSpace</h1>
+            <p class="text-green-400 uppercase text-[10px] font-bold tracking-widest mb-8">Secure Team Hub</p>
+            
+            <div id="login-step-1">
+                <label class="block text-white/70 text-sm mb-2">Select your name to enter</label>
+                <select id="login-user-select" class="w-full bg-purple-900/50 text-white border border-purple-500 rounded-lg p-3 mb-4 outline-none">
+                    <option value="Admin">★ Admin</option>
+                </select>
+                <button onclick="proceedToPin()" class="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-lg transition transform active:scale-95">Next <i class="fas fa-chevron-right ml-2"></i></button>
+            </div>
+
+            <div id="login-step-2" class="hidden">
+                <p id="pin-prompt" class="text-white mb-4">Enter your 4-digit PIN</p>
+                <input type="password" id="login-pin-input" maxlength="4" placeholder="••••" class="pin-input w-full bg-purple-900/50 text-white text-3xl border border-purple-500 rounded-lg p-3 mb-4 outline-none">
+                <div class="flex gap-2">
+                    <button onclick="backToLogin()" class="flex-1 text-white/50 hover:text-white text-sm">Back</button>
+                    <button onclick="attemptLogin()" class="flex-[2] bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-lg transition">Unlock Space</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="handleAvatarFile(this)">
-    <input type="file" id="restore-upload" class="hidden" accept=".json" onchange="handleRestore(this)">
+    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg shadow-lg z-50 font-bold opacity-90 border border-green-400" id="connection-status">
+        <i class="fas fa-circle-notch fa-spin mr-1 text-yellow-400"></i> Connecting...
+    </div>
 
     <div class="flex flex-1 overflow-hidden relative">
-        <aside class="sidebar w-64 flex-shrink-0 flex flex-col justify-between h-full z-20 transition-all duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative" id="main-sidebar">
-        
-        <div class="p-6 text-white">
-            <h1 class="text-2xl font-bold tracking-wider text-green-400">PersonalSpace</h1>
-            <p class="text-xs text-white/60 uppercase tracking-wider mt-1">Team Project Hub</p>
-        </div>
-
-        <div class="px-4 mb-4">
-                <label class="text-[10px] text-green-400/80 uppercase font-bold block mb-1">Log In As:</label>
-                <div class="relative">
-                    <select id="user-switcher" onchange="switchUser(this.value)" class="w-full bg-purple-900/50 border border-purple-500/30 rounded px-2 py-2 text-sm text-white outline-none focus:bg-purple-800/50 cursor-pointer appearance-none font-medium">
-                        <option value="" class="text-slate-800 font-bold">★ Admin (Full Access)</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-white">
-                        <i class="fas fa-chevron-down text-xs text-green-400"></i>
-                    </div>
-                </div>
-                <p class="text-[10px] text-white/50 mt-1 italic" id="view-mode-hint">Loading...</p>
+        <aside class="sidebar w-64 flex-shrink-0 flex flex-col justify-between h-full z-20">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold text-green-400">PersonalSpace</h1>
+                <p id="view-mode-hint" class="text-[10px] text-white/50 italic mt-1 uppercase">Secure Hub</p>
             </div>
 
             <nav class="flex-1 px-4 space-y-2">
-                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10 active">
-                    <i class="fas fa-home w-5"></i> Dashboard
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition active">
+                    <i class="fas fa-home"></i> Dashboard
                 </button>
-                <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
-                    <i class="fas fa-tasks w-5"></i> Task Tracker
+                <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition">
+                    <i class="fas fa-tasks"></i> Tasks
                 </button>
             </nav>
 
             <div class="p-4 border-t border-purple-500/30">
-                <h3 class="text-xs font-bold text-green-400 uppercase mb-3 flex justify-between items-center">
-                    Team Members 
-                    <span id="member-count" class="bg-purple-800 px-2 rounded-full text-[10px] text-white">0</span>
-                </h3>
-                
+                <h3 class="text-xs font-bold text-green-400 uppercase mb-3 flex justify-between items-center">Team <span id="member-count" class="bg-purple-800 px-2 rounded-full text-white">0</span></h3>
                 <div id="admin-tools-members" class="admin-only flex gap-2 mb-3">
-                    <input type="text" id="new-member-name" placeholder="Name..." 
-                        class="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white/20 focus:border-green-400">
-                    <button onclick="addMember()" class="bg-green-600 hover:bg-green-500 text-black font-bold px-2 rounded text-sm transition">
-                        <i class="fas fa-plus"></i>
-                    </button>
+                    <input type="text" id="new-member-name" placeholder="Name..." class="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white">
+                    <button onclick="addMember()" class="bg-green-600 text-black px-2 rounded">+</button>
                 </div>
-                
-                <p class="text-[9px] text-white/40 italic mb-2">Click avatar to upload photo</p>
-                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    <li class="text-white/50 text-xs italic">Loading team...</li>
-                </ul>
+                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto"></ul>
             </div>
 
-            <div class="p-4 flex flex-col gap-3 border-t border-purple-500/30">
-                <div class="flex justify-end">
-                    <button onclick="toggleTheme()" class="text-green-400 hover:text-white transition text-xs" title="Toggle Theme"><i class="fas fa-moon" id="theme-icon"></i></button>
+            <div class="p-4 border-t border-purple-500/30">
+                <div id="admin-tools-data" class="admin-only flex flex-col gap-2 mb-4">
+                    <button onclick="backupData()" class="text-[10px] text-purple-300"><i class="fas fa-download"></i> Backup Cloud</button>
+                    <button onclick="clearAllData()" class="text-[10px] text-red-400"><i class="fas fa-trash"></i> Nuke Cloud</button>
                 </div>
-                
-                <div id="admin-tools-data" class="admin-only flex flex-col gap-2">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="backupData()" class="bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 text-[10px] py-1 rounded transition flex items-center justify-center gap-1 border border-purple-500/30">
-                            <i class="fas fa-download"></i> Backup
-                        </button>
-                        <button onclick="triggerRestore()" class="bg-green-500/20 hover:bg-green-500/40 text-green-200 text-[10px] py-1 rounded transition flex items-center justify-center gap-1 border border-green-500/30">
-                            <i class="fas fa-upload"></i> Restore
-                        </button>
-                    </div>
-
-                    <button onclick="clearAllData()" class="text-left text-[10px] text-red-300 hover:text-red-100 transition flex items-center gap-2 mt-1">
-                        <i class="fas fa-trash-alt"></i> Nuke Cloud Data
-                    </button>
-                </div>
-                
-                <div class="text-white/30 text-[10px] text-center mt-2 pt-2 border-t border-white/5">
-                    &copy; 2025 PersonalSpace
-                </div>
+                <button onclick="logout()" class="w-full bg-white/10 hover:bg-white/20 text-white text-xs py-2 rounded transition"><i class="fas fa-sign-out-alt mr-2"></i> Log Out</button>
             </div>
         </aside>
 
-        <main class="flex-1 relative h-full overflow-hidden flex flex-col bg-white/5 backdrop-blur-sm">
-            
-            <button onclick="document.getElementById('main-sidebar').classList.toggle('-translate-x-full')" class="md:hidden absolute top-4 left-4 z-50 text-white bg-purple-600 p-2 rounded-lg shadow-lg">
-                <i class="fas fa-bars"></i>
-            </button>
-
-            <div id="view-dashboard" class="flex-1 overflow-hidden p-4 md:p-6 fade-in h-full flex flex-col">
-                
-                <header class="mb-4 text-white shrink-0">
-                    <div class="flex justify-between items-center">
+        <main class="flex-1 p-6 overflow-hidden flex flex-col">
+            <div id="view-dashboard" class="flex-1 flex flex-col gap-4">
+                <header class="flex justify-between items-center text-white">
+                    <div>
+                        <h1 class="text-3xl font-bold text-green-400" id="clock">00:00</h1>
+                        <p id="date" class="text-sm opacity-70">Date</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-right">
                         <div>
-                            <h1 class="text-3xl font-bold tracking-tight text-green-400" id="clock">00:00</h1>
-                            <p class="text-sm opacity-90 mt-1 font-bold" id="date">Loading date...</p>
+                            <p id="greeting" class="font-bold">Welcome</p>
+                            <span id="dashboard-owner-badge" class="text-[10px] bg-green-500 text-black px-2 py-0.5 rounded-full uppercase font-bold">Workspace</span>
                         </div>
-                        
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <p class="text-lg font-bold text-white leading-tight" id="greeting">Connecting...</p>
-                                <span id="dashboard-owner-badge" class="bg-green-500 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
-                            </div>
-                            <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg flex items-center justify-center overflow-hidden shrink-0">
-                                <i class="fas fa-user text-white/50 text-2xl"></i>
-                            </div>
+                        <div id="header-avatar" class="w-12 h-12 rounded-full bg-purple-900 border-2 border-green-400 overflow-hidden flex items-center justify-center">
+                            <i class="fas fa-user text-white/50"></i>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex flex-col gap-4 flex-1 min-h-0">
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1 min-h-0">
-                        
-                        <div class="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
-                            
-                            <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col min-h-[200px]">
-                                <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                                    <i class="fas fa-sticky-note"></i> Quick Notes
-                                </h2>
-                                <textarea id="notepad" 
-                                    class="flex-1 w-full bg-purple-50 dark:bg-slate-900/50 border-none rounded-lg p-3 resize-none focus:ring-2 focus:ring-green-400 outline-none transition text-slate-700 dark:text-slate-200 text-sm"
-                                    placeholder="Type your notes here (Private to you)..."
-                                    onchange="saveNotes(this.value)"></textarea>
-                                <div class="text-[10px] text-right mt-1 text-slate-400" id="notes-status">Saved</div>
-                            </div>
-
-                            <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-0">
-                                <h2 class="text-sm font-bold mb-3 flex items-center gap-2 text-green-600 dark:text-green-400 shrink-0">
-                                    <i class="fas fa-check-circle"></i> Quick Tasks
-                                </h2>
-                                
-                                <div class="flex flex-col gap-2 mb-3 bg-purple-50 dark:bg-purple-900/20 p-2 rounded-xl border border-purple-100 dark:border-purple-800 shrink-0">
-                                    <input type="text" id="quick-task-input" placeholder="New task..." 
-                                        class="w-full bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                                    
-                                    <div class="flex gap-2">
-                                        <select id="quick-task-assignee" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                            <option value="">Unassigned</option>
-                                        </select>
-                                        
-                                        <select id="quick-task-status" class="w-24 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                            <option value="todo">To Do</option>
-                                            <option value="inprogress">Doing</option>
-                                            <option value="done">Done</option>
-                                        </select>
-                                        
-                                        <button onclick="addQuickTask()" class="bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg px-3 transition transform active:scale-95 shadow-lg shadow-green-500/30 text-xs">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <ul id="quick-task-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0"></ul>
-                            </div>
-                            </div>
-
-                        <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col h-full shrink-0 min-h-[250px]">
-                            <div class="flex justify-between items-center mb-2 shrink-0">
-                                <h2 class="text-sm font-bold flex items-center gap-2 text-purple-700 dark:text-purple-400">
-                                    <i class="fas fa-calendar-alt"></i> Master Schedule
-                                </h2>
-                                <div class="flex gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                    <button onclick="changeMonth(-1)" class="hover:text-green-500 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fas fa-chevron-left"></i></button>
-                                    <span id="calendar-month-year" class="font-bold w-24 text-center flex items-center justify-center">...</span>
-                                    <button onclick="changeMonth(1)" class="hover:text-green-500 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fas fa-chevron-right"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0 border-b border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/20 py-1 rounded-t-lg shrink-0">
-                                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                            </div>
-
-                            <div id="calendar-body" class="calendar-grid flex-1 overflow-y-auto">
-                            </div>
-                            
-                            <div class="mt-1 text-center text-[10px] text-slate-400 italic shrink-0">Hover events to update urgency or resolve.</div>
+                <div class="grid grid-cols-10 gap-4 flex-1 overflow-hidden">
+                    <div class="col-span-3 flex flex-col gap-4">
+                        <div class="glass-panel p-4 rounded-2xl h-1/2 flex flex-col">
+                            <h2 class="text-sm font-bold mb-2"><i class="fas fa-sticky-note mr-2"></i>Notes</h2>
+                            <textarea id="notepad" class="flex-1 w-full bg-transparent border-none outline-none text-sm" placeholder="Your private notes..." onchange="saveNotes(this.value)"></textarea>
                         </div>
-
+                        <div class="glass-panel p-4 rounded-2xl h-1/2 flex flex-col overflow-hidden">
+                            <h2 class="text-sm font-bold mb-2"><i class="fas fa-check-circle mr-2 text-green-500"></i>Tasks</h2>
+                            <ul id="quick-task-list" class="flex-1 overflow-y-auto space-y-2"></ul>
+                        </div>
+                    </div>
+                    <div class="col-span-7 glass-panel p-4 rounded-2xl flex flex-col">
+                        <div class="flex justify-between mb-2">
+                            <h2 class="text-sm font-bold"><i class="fas fa-calendar-alt mr-2"></i>Schedule</h2>
+                            <span id="calendar-month-year" class="text-xs font-bold">Month</span>
+                        </div>
+                        <div id="calendar-body" class="grid grid-cols-7 flex-1 border-t border-purple-100/10"></div>
                     </div>
                 </div>
             </div>
 
-            <div id="view-kanban" class="flex-1 overflow-hidden p-4 md:p-6 fade-in hidden flex-col h-full">
-                
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0 text-white gap-4">
-                    <div class="flex-1">
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-green-400 tracking-wide">
-                            Task Tracker 
-                            <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Main View</span>
-                        </h2>
-                        <p class="text-sm opacity-80" id="tracker-subtitle">Manage the project</p>
+            <div id="view-kanban" class="hidden flex-1 flex-col">
+                <div class="flex justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Task Tracker</h2>
+                    <button onclick="openTaskModal()" class="bg-green-500 text-black px-4 py-2 rounded-lg font-bold shadow-lg">+ New Task</button>
+                </div>
+                <div class="grid grid-cols-3 gap-6 flex-1 overflow-hidden">
+                    <div class="glass-panel p-3 rounded-xl flex flex-col border-t-4 border-slate-400">
+                        <h3 class="font-bold mb-3">To Do</h3>
+                        <div class="column-body flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'todo')" ondragover="allowDrop(event)"></div>
                     </div>
-
-                    <div class="bg-black/40 p-1 rounded-lg flex text-xs font-bold items-center gap-2 border border-purple-500/50">
-                        <button onclick="switchKanbanView('status')" id="btn-view-status" class="view-btn active px-3 py-1.5 rounded text-white">Status</button>
-                        <button onclick="switchKanbanView('week')" id="btn-view-week" class="view-btn px-3 py-1.5 rounded text-white text-opacity-70 hover:text-opacity-100">Week View</button>
+                    <div class="glass-panel p-3 rounded-xl flex flex-col border-t-4 border-purple-500">
+                        <h3 class="font-bold mb-3">In Progress</h3>
+                        <div class="column-body flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'inprogress')" ondragover="allowDrop(event)"></div>
                     </div>
-
-                    <div id="kanban-filter-container" class="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-purple-500/50">
-                            <div class="relative flex items-center">
-                                <i class="fas fa-calendar-alt text-green-400/70 text-xs absolute left-2 pointer-events-none"></i>
-                                <input type="text" id="date-range-picker" placeholder="Date / Filter..." 
-                                    class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-48 placeholder-white/50 cursor-pointer">
-                            </div>
-                            <button onclick="clearFilters()" class="text-xs text-white/50 hover:text-white px-2" title="Clear Filter"><i class="fas fa-times"></i></button>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button onclick="toggleReportModal()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg backdrop-blur transition flex items-center gap-2 text-sm border border-white/10">
-                            <i class="fas fa-chart-pie"></i> Report
-                        </button>
-                        <button onclick="openTaskModal()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
-                            <i class="fas fa-plus"></i> New Task
-                        </button>
+                    <div class="glass-panel p-3 rounded-xl flex flex-col border-t-4 border-green-500">
+                        <h3 class="font-bold mb-3">Executed</h3>
+                        <div class="column-body flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'done')" ondragover="allowDrop(event)"></div>
                     </div>
                 </div>
-
-                <div id="kanban-status-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[800px] md:min-w-0">
-                        
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-slate-400">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-slate-700 dark:text-slate-200">To Do</h3>
-                                <span id="count-todo" class="bg-slate-200 dark:bg-slate-700 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-purple-600">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-purple-700 dark:text-purple-400">In Progress</h3>
-                                <span id="count-inprogress" class="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-green-500">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-green-600 dark:text-green-400">Executed</h3>
-                                <span id="count-done" class="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <div id="kanban-week-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full hidden">
-                    <div class="grid grid-cols-7 gap-2 h-full min-w-[1400px]">
-                        <div id="week-columns-container" class="contents"></div>
-                    </div>
-                </div>
-
             </div>
         </main>
     </div>
 
-    <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border-2 border-purple-500">
-            <h2 class="text-xl font-bold mb-4 dark:text-white text-purple-800 tracking-wide" id="modal-title">Task Details</h2>
-            <input type="hidden" id="task-id">
-            
-            <div class="mb-3">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
-                <input type="text" id="task-title" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white">
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Assign To</label>
-                    <select id="task-assignee" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white">
-                        <option value="">Unassigned</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Scheduled Date</label>
-                    <input type="date" id="task-date" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white text-sm">
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Urgency Level</label>
-                <div class="flex gap-3 text-xl flag-rating" id="priority-selector">
-                    <input type="hidden" id="task-priority" value="1">
-                    <i class="fas fa-flag flag-btn" data-val="1" onclick="setPriority(1)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="2" onclick="setPriority(2)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="3" onclick="setPriority(3)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="4" onclick="setPriority(4)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="5" onclick="setPriority(5)"></i>
-                </div>
-                <p class="text-[10px] text-slate-400 mt-1" id="priority-text">Low Urgency</p>
-            </div>
-            
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
-                <textarea id="task-desc" rows="3" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"></textarea>
-            </div>
-
-            <div class="flex justify-between">
-                <button type="button" onclick="deleteCurrentTask()" id="btn-delete" class="text-red-500 hover:text-red-700 text-sm hidden">Delete Task</button>
-                <div class="flex gap-2 ml-auto">
-                    <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-500 dark:text-slate-400">Cancel</button>
-                    <button onclick="saveTask()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
-            <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
-            <p class="text-xs text-slate-500 mb-4">Scheduled Events</p>
-            
-            <input type="hidden" id="cal-date-val">
-            
-            <div id="day-events-list" class="mb-4 space-y-2 max-h-40 overflow-y-auto min-h-[50px] bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2"></div>
-
-            <div class="flex flex-col gap-2">
-                
-                <div class="flex gap-2 p-2 bg-slate-50 dark:bg-slate-700/30 rounded border border-slate-100 dark:border-slate-700">
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">From Date</label>
-                        <input type="date" id="evt-start-date" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-1 text-xs dark:text-white">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">To Date</label>
-                        <input type="date" id="evt-end-date" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-1 text-xs dark:text-white">
-                    </div>
-                </div>
-
-                <div class="flex gap-2 items-center mb-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Urgency:</span>
-                    <button type="button" onclick="setCalUrgency('low')" id="btn-urgency-low" class="flex-1 text-[10px] py-1 rounded border border-green-500 text-green-600 bg-green-50 hover:bg-green-100 font-bold transition">Low</button>
-                    <button type="button" onclick="setCalUrgency('medium')" id="btn-urgency-medium" class="flex-1 text-[10px] py-1 rounded border border-purple-200 text-purple-400 hover:bg-purple-50 font-bold transition">Med</button>
-                    <button type="button" onclick="setCalUrgency('high')" id="btn-urgency-high" class="flex-1 text-[10px] py-1 rounded border border-red-200 text-red-400 hover:bg-red-50 font-bold transition">High</button>
-                    <input type="hidden" id="new-event-urgency" value="low">
-                </div>
-
-                <div class="flex gap-2">
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Start Time</label>
-                        <input type="time" id="new-event-start" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">End Time</label>
-                        <input type="time" id="new-event-end" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    </div>
-                </div>
-                
-                <div class="flex gap-2">
-                    <input type="text" id="new-event-input" placeholder="Event details..." class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    
-                    <button id="btn-cancel-edit" onclick="cancelEditMode()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-times"></i>
-                    </button>
-
-                    <button id="btn-add-event" onclick="addEvent()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="mt-4 text-right">
-                <button onclick="closeModal('calendar-modal')" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="report-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col p-6 shadow-2xl border border-purple-600">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold dark:text-white tracking-wide text-purple-700"><i class="fas fa-clipboard-list mr-2"></i>Performance Report</h2>
-                <button onclick="toggleReportModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
-            </div>
-
-            <div class="flex gap-4 mb-6 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl items-end flex-wrap">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">From</label>
-                    <input type="date" id="report-start" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">To</label>
-                    <input type="date" id="report-end" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">User</label>
-                    <select id="report-user-filter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white outline-none w-32">
-                        <option value="">All Users</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Generic Day</label>
-                    <select id="report-day-filter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white outline-none w-32">
-                        <option value="">Any</option>
-                        <option value="Sunday">Sunday</option>
-                        <option value="Monday">Monday</option>
-                        <option value="Tuesday">Tuesday</option>
-                        <option value="Wednesday">Wednesday</option>
-                        <option value="Thursday">Thursday</option>
-                        <option value="Friday">Friday</option>
-                        <option value="Saturday">Saturday</option>
-                    </select>
-                </div>
-
-                <button onclick="generateReport()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 h-[38px]">Apply</button>
-                
-                <button onclick="exportReportCSV()" class="bg-green-600 text-black font-bold px-4 py-2 rounded-lg text-sm hover:bg-green-500 h-[38px] ml-auto">
-                    <i class="fas fa-file-csv mr-1"></i> Export CSV
-                </button>
-            </div>
-            <div class="flex-1 overflow-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 sticky top-0">
-                        <tr>
-                            <th class="p-3">Task</th>
-                            <th class="p-3">Assignee</th>
-                            <th class="p-3">Completed</th>
-                            <th class="p-3 text-right">Work Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="report-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
-                </table>
+    <div id="task-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6">
+            <h2 class="text-lg font-bold mb-4">Task Details</h2>
+            <input type="text" id="task-title" placeholder="What needs to be done?" class="w-full bg-slate-100 p-3 rounded-lg mb-4 outline-none">
+            <select id="task-assignee" class="w-full bg-slate-100 p-3 rounded-lg mb-4"></select>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('task-modal')" class="px-4 py-2">Cancel</button>
+                <button onclick="saveTask()" class="bg-purple-600 text-white px-6 py-2 rounded-lg">Save</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvfwF-_by5hoUIVoEowKwbzzKF3YkJWy0",
             authDomain: "personalspacehub-3a44d.firebaseapp.com",
@@ -702,1356 +221,244 @@
             storageBucket: "personalspacehub-3a44d.firebasestorage.app",
             messagingSenderId: "605942768680",
             appId: "1:605942768680:web:74702b5d902dd462f1811d",
-            measurementId: "G-E1YDD7Y7MX",
             databaseURL: "https://personalspacehub-3a44d-default-rtdb.firebaseio.com/"
         };
-
-        // Initialize Cloud Connection
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const analytics = firebase.analytics();
 
-        // --- GLOBAL STATE ---
         const store = {
-            theme: localStorage.getItem('nexus_theme') || 'light',
             currentUser: null,
             users: [],
             kanbanTasks: [],
-            avatars: {}, 
-            focus: '',
+            pins: {}, // Name: Pin mapping
             notes: '',
-            events: {}, 
+            avatars: {},
+            events: {},
             calendarMonth: new Date().getMonth(),
-            calendarYear: new Date().getFullYear(),
-            kanbanMode: 'status',
-            weekViewStart: new Date()
-        };
-        
-        let draggedItem = null;
-        let uploadingUser = null;
-        let editingEventIdx = null; 
-
-        // --- EXPOSE FUNCTIONS ---
-        window.switchUser = switchUser;
-        window.switchView = switchView;
-        window.switchKanbanView = switchKanbanView;
-        window.addMember = addMember;
-        window.removeMember = removeMember;
-        window.toggleTheme = toggleTheme;
-        window.saveFocus = saveFocus;
-        window.saveNotes = saveNotes;
-        window.addQuickTask = addQuickTask;
-        window.deleteQuickTask = deleteQuickTask;
-        window.updateTaskStatus = updateTaskStatus;
-        window.updateTaskPriority = updateTaskPriority;
-        window.updateTaskDate = updateTaskDate; 
-        window.toggleTaskPause = toggleTaskPause;
-        window.openTaskModal = openTaskModal;
-        window.closeModal = closeModal;
-        window.saveTask = saveTask;
-        window.deleteCurrentTask = deleteCurrentTask;
-        window.toggleReportModal = toggleReportModal;
-        window.generateReport = generateReport;
-        window.clearAllData = clearAllData;
-        window.backupData = backupData;
-        window.triggerRestore = triggerRestore;
-        window.handleRestore = handleRestore;
-        window.exportReportCSV = exportReportCSV;
-        window.setPriority = setPriority;
-        window.clearFilters = clearFilters;
-        window.changeWeek = changeWeek;
-        
-        window.triggerAvatarUpload = triggerAvatarUpload;
-        window.handleAvatarFile = handleAvatarFile;
-
-        window.changeMonth = changeMonth;
-        window.openCalendarModal = openCalendarModal;
-        window.addEvent = addEvent;
-        window.deleteEvent = deleteEvent;
-        window.resolveEvent = resolveEvent; 
-        window.setCalUrgency = setCalUrgency; 
-        window.updateEventUrgency = updateEventUrgency;
-        window.initEditEvent = initEditEvent;
-        window.cancelEditMode = cancelEditMode;
-
-        // Drag & Drop
-        window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
-        window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
-        window.allowDrop = (e) => { e.preventDefault(); e.target.closest('.column-body')?.classList.add('drag-over'); };
-        
-        window.drop = (e, val, type) => {
-            e.preventDefault();
-            const col = e.target.closest('.column-body');
-            col?.classList.remove('drag-over');
-            if(draggedItem) { 
-                if(type === 'status') updateTaskStatus(draggedItem, val); 
-                if(type === 'date') updateTaskDate(draggedItem, val);
-                draggedItem = null; 
-            }
+            calendarYear: new Date().getFullYear()
         };
 
-        // --- INIT ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadTheme();
-            updateClock();
-            setInterval(updateClock, 1000);
+        let targetUser = "";
+
+        function proceedToPin() {
+            targetUser = document.getElementById('login-user-select').value;
+            document.getElementById('login-step-1').classList.add('hidden');
+            document.getElementById('login-step-2').classList.remove('hidden');
             
-            // Set current week start (Sunday)
-            const today = new Date();
-            const day = today.getDay(); 
-            const diff = today.getDate() - day; 
-            store.weekViewStart = new Date(today.setDate(diff));
-            store.weekViewStart.setHours(0,0,0,0);
-
-            // Report defaults
-            const now = new Date();
-            document.getElementById('report-end').valueAsDate = now;
-            document.getElementById('report-start').valueAsDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            
-            document.getElementById('quick-task-input').addEventListener('keypress', (e) => {
-                if(e.key === 'Enter') addQuickTask();
-            });
-
-            // --- FIREBASE LISTENER ---
-            const statusDiv = document.getElementById('connection-status');
-            
-            db.ref('projectData').on('value', (snapshot) => {
-                statusDiv.innerHTML = '<i class="fas fa-wifi mr-1 text-green-400"></i> Cloud Connected';
-                statusDiv.classList.remove('bg-purple-900', 'border-green-400');
-                statusDiv.classList.add('bg-black', 'border-green-600');
-                
-                const data = snapshot.val();
-                if(data) {
-                    store.users = data.users || [];
-                    store.kanbanTasks = data.kanbanTasks || [];
-                    store.events = data.events || {};
-                    store.avatars = data.avatars || {};
-                    
-                    if(store.currentUser) {
-                         const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-                         if(data.userData && data.userData[userKey]) {
-                             store.notes = data.userData[userKey].notes || '';
-                             store.focus = data.userData[userKey].focus || '';
-                         }
-                    }
-
-                    renderTeamList();
-                    renderKanbanBoard(); 
-                    renderCalendar();
-                    updateDashboardUI();
-                } else {
-                    renderTeamList();
-                    renderKanbanBoard(); 
-                    renderCalendar();
-                }
-            }, (error) => {
-                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1 text-red-400"></i> Connection Error';
-                console.error(error);
-            });
-
-            setInterval(updateKanbanTimers, 1000);
-
-            // Initialize Main Range Filter
-            flatpickr("#date-range-picker", {
-                mode: "range",
-                dateFormat: "Y-m-d",
-                theme: "dark",
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (store.kanbanMode === 'week') {
-                        if (selectedDates.length > 0) {
-                            jumpToWeek(selectedDates[0]);
-                        }
-                    } else {
-                        if (selectedDates.length === 2 || selectedDates.length === 0) {
-                            renderKanbanBoard();
-                        }
-                    }
-                }
-            });
-        });
-
-        // --- HELPER: PUSH TO CLOUD ---
-        function pushToCloud() {
-            db.ref('projectData').update({
-                users: store.users,
-                kanbanTasks: store.kanbanTasks,
-                events: store.events,
-                avatars: store.avatars
-            }).catch(err => {
-                console.error("Save failed", err);
-                alert("Cloud save failed. Check console.");
-            });
-        }
-        
-        function saveUserDataToCloud() {
-            if(!store.currentUser) return;
-            const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-            db.ref('projectData/userData/' + userKey).update({
-                notes: store.notes,
-                focus: store.focus
-            });
-        }
-
-        // --- CORE LOGIC ---
-
-        function switchUser(userName) {
-            store.currentUser = userName || null;
-            document.getElementById('user-switcher').value = userName;
-            
-            if(store.currentUser) {
-                const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-                db.ref('projectData/userData/' + userKey).once('value').then((snap) => {
-                    const d = snap.val() || {};
-                    store.notes = d.notes || '';
-                    store.focus = d.focus || '';
-                    updateUIForUser();
-                    updateDashboardUI();
-                });
+            const prompt = document.getElementById('pin-prompt');
+            if (store.pins && store.pins[targetUser]) {
+                prompt.textContent = `Enter PIN for ${targetUser}`;
             } else {
-                store.notes = '';
-                updateUIForUser();
-                updateDashboardUI();
+                prompt.textContent = `Create a 4-digit PIN for ${targetUser}`;
             }
-            
-            renderKanbanBoard(); 
-            renderTeamList(); 
+            document.getElementById('login-pin-input').focus();
+        }
+
+        function backToLogin() {
+            document.getElementById('login-step-2').classList.add('hidden');
+            document.getElementById('login-step-1').classList.remove('hidden');
+            document.getElementById('login-pin-input').value = "";
+        }
+
+        function attemptLogin() {
+            const pin = document.getElementById('login-pin-input').value;
+            if (pin.length < 4) return alert("PIN must be 4 digits");
+
+            // Check if existing or new
+            if (!store.pins[targetUser]) {
+                // Register new PIN
+                db.ref('projectData/pins/' + targetUser).set(pin);
+                completeLogin(targetUser);
+            } else if (store.pins[targetUser] === pin) {
+                completeLogin(targetUser);
+            } else {
+                alert("Incorrect PIN");
+                document.getElementById('login-pin-input').value = "";
+            }
+        }
+
+        function completeLogin(name) {
+            store.currentUser = (name === "Admin") ? null : name;
+            document.getElementById('welcome-screen').style.opacity = "0";
+            setTimeout(() => {
+                document.getElementById('welcome-screen').style.visibility = "hidden";
+                updateUIForUser();
+                loadUserPrivateData();
+            }, 500);
+        }
+
+        function logout() {
+            location.reload();
         }
 
         function updateUIForUser() {
-            const badge = document.getElementById('dashboard-owner-badge');
-            const greeting = document.getElementById('greeting');
-            const hint = document.getElementById('view-mode-hint');
-            const trackerBadge = document.getElementById('tracker-badge');
-            const trackerSub = document.getElementById('tracker-subtitle');
-            const avatarContainer = document.getElementById('header-avatar');
             const adminTools = document.querySelectorAll('.admin-only');
+            const greeting = document.getElementById('greeting');
+            const badge = document.getElementById('dashboard-owner-badge');
 
             if (store.currentUser) {
-                badge.textContent = `${store.currentUser}'s Workspace`;
-                badge.classList.remove('hidden');
                 greeting.textContent = `Hello, ${store.currentUser}.`;
-                hint.textContent = "Private View";
-                trackerBadge.textContent = "Personal Filter";
-                trackerSub.textContent = `Tasks assigned to ${store.currentUser}`;
-                
-                // Hide Admin Tools for regular users
+                badge.textContent = `${store.currentUser}'s Space`;
                 adminTools.forEach(el => el.classList.add('hidden-tool'));
-
-                if (store.avatars[store.currentUser]) {
-                    avatarContainer.innerHTML = `<img src="${store.avatars[store.currentUser]}" class="w-full h-full object-cover">`;
-                } else {
-                    avatarContainer.innerHTML = `<div class="w-full h-full bg-purple-600 flex items-center justify-center text-white text-2xl font-bold">${store.currentUser.charAt(0).toUpperCase()}</div>`;
-                }
-
             } else {
-                badge.classList.add('hidden');
-                updateClock();
-                hint.textContent = "Admin View";
-                trackerBadge.textContent = "Main View";
-                trackerSub.textContent = "Showing all project tasks";
-                
-                // Show Admin Tools
+                greeting.textContent = `Admin Panel`;
+                badge.textContent = `Main View`;
                 adminTools.forEach(el => el.classList.remove('hidden-tool'));
-                
-                avatarContainer.innerHTML = `<i class="fas fa-user-shield text-white/50 text-2xl"></i>`;
             }
+            renderKanbanBoard();
+            renderTeamList();
         }
 
-        function updateDashboardUI() {
-            document.getElementById('notepad').value = store.notes;
-            renderQuickTasks(); 
+        function loadUserPrivateData() {
+            const key = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
+            db.ref('projectData/userData/' + key).once('value', snap => {
+                const data = snap.val() || {};
+                store.notes = data.notes || '';
+                document.getElementById('notepad').value = store.notes;
+            });
         }
 
-        // --- AVATAR UPLOAD LOGIC ---
-        function triggerAvatarUpload(username) {
-            uploadingUser = username;
-            document.getElementById('avatar-upload').click();
-        }
-
-        function handleAvatarFile(input) {
-            if (input.files && input.files[0] && uploadingUser) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Img = e.target.result;
-                    if(base64Img.length > 700000) {
-                        alert("Image too large. Please use a smaller image (<500KB).");
-                        return;
-                    }
-                    store.avatars[uploadingUser] = base64Img;
-                    pushToCloud();
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-            input.value = '';
-        }
-
-        // --- SAVING ---
-        function saveFocus(val) {
-            store.focus = val;
-            saveUserDataToCloud();
-        }
         function saveNotes(val) {
-            store.notes = val;
-            saveUserDataToCloud();
-            document.getElementById('notes-status').textContent = 'Saved';
+            const key = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
+            db.ref('projectData/userData/' + key).update({ notes: val });
         }
 
-        // --- CALENDAR LOGIC ---
-        function changeMonth(delta) {
-            store.calendarMonth += delta;
-            if(store.calendarMonth > 11) { store.calendarMonth = 0; store.calendarYear++; }
-            if(store.calendarMonth < 0) { store.calendarMonth = 11; store.calendarYear--; }
+        // FIREBASE DATA SYNC
+        db.ref('projectData').on('value', snap => {
+            const data = snap.val() || {};
+            store.users = data.users || [];
+            store.kanbanTasks = data.kanbanTasks || [];
+            store.pins = data.pins || {};
+            store.events = data.events || {};
+            store.avatars = data.avatars || {};
+            
+            updateLoginDropdown();
+            renderTeamList();
+            renderKanbanBoard();
             renderCalendar();
-        }
+            document.getElementById('connection-status').innerHTML = '<i class="fas fa-check-circle mr-1 text-green-400"></i> Cloud Active';
+        });
 
-        function parseEventData(evt) {
-            if (typeof evt === 'string') {
-                try { return JSON.parse(evt); } 
-                catch (e) {
-                    if (evt.includes("||")) {
-                        const parts = evt.split("||");
-                        return { time: parts[0], text: parts[1], urgency: 'low' };
-                    }
-                    return { time: '', text: evt, urgency: 'low' };
-                }
-            }
-            return evt;
-        }
-
-        function renderCalendar() {
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendar-month-year').textContent = `${monthNames[store.calendarMonth]} ${store.calendarYear}`;
-            
-            const firstDay = new Date(store.calendarYear, store.calendarMonth, 1).getDay();
-            const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
-            const today = new Date();
-            
-            const grid = document.getElementById('calendar-body');
-            grid.innerHTML = '';
-
-            for(let i=0; i<firstDay; i++) {
-                const pad = document.createElement('div');
-                pad.className = "bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700";
-                grid.appendChild(pad);
-            }
-
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateKey = `${store.calendarYear}-${String(store.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isToday = (today.getDate() === d && today.getMonth() === store.calendarMonth && today.getFullYear() === store.calendarYear);
-                const events = store.events[dateKey] || [];
-                
-                const el = document.createElement('div');
-                el.className = `calendar-day ${isToday ? 'today' : ''}`;
-                
-                const num = document.createElement('div');
-                num.className = "calendar-day-number";
-                num.textContent = d;
-                el.appendChild(num);
-                
-                events.forEach((evt, index) => {
-                    const evtData = parseEventData(evt);
-                    const evtDiv = document.createElement('div');
-                    evtDiv.className = `cal-event-item group cal-urgency-${evtData.urgency || 'low'}`;
-                    
-                    let innerContent = "";
-                    if (evtData.time) {
-                        innerContent += `<span class="cal-time">${evtData.time}</span>`;
-                    }
-                    innerContent += `<span>${evtData.text}</span>`;
-                    
-                    evtDiv.innerHTML = innerContent;
-                    
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'cal-actions-container bg-white/90 dark:bg-slate-800/90 rounded shadow-sm px-1 py-0.5 flex items-center gap-1 backdrop-blur-sm border border-slate-200 dark:border-slate-600';
-
-                    const urgencyDiv = document.createElement('div');
-                    urgencyDiv.className = 'flex gap-1 mr-1 border-r border-slate-300 dark:border-slate-600 pr-1';
-
-                    const lowBtn = document.createElement('button');
-                    lowBtn.className = 'w-2 h-2 rounded-full bg-green-500 hover:scale-125 transition ring-1 ring-green-600/20';
-                    lowBtn.onclick = (e) => { e.stopPropagation(); updateEventUrgency(dateKey, index, 'low'); };
-                    urgencyDiv.appendChild(lowBtn);
-
-                    const medBtn = document.createElement('button');
-                    medBtn.className = 'w-2 h-2 rounded-full bg-purple-500 hover:scale-125 transition ring-1 ring-purple-600/20';
-                    medBtn.onclick = (e) => { e.stopPropagation(); updateEventUrgency(dateKey, index, 'medium'); };
-                    urgencyDiv.appendChild(medBtn);
-
-                    const highBtn = document.createElement('button');
-                    highBtn.className = 'w-2 h-2 rounded-full bg-red-500 hover:scale-125 transition ring-1 ring-red-600/20';
-                    highBtn.onclick = (e) => { e.stopPropagation(); updateEventUrgency(dateKey, index, 'high'); };
-                    urgencyDiv.appendChild(highBtn);
-
-                    actionsDiv.appendChild(urgencyDiv);
-
-                    const checkBtn = document.createElement('div');
-                    checkBtn.className = 'cal-action-btn cal-btn-check';
-                    checkBtn.innerHTML = '<i class="fas fa-check"></i>';
-                    checkBtn.onclick = (e) => { e.stopPropagation(); resolveEvent(dateKey, index); };
-                    actionsDiv.appendChild(checkBtn);
-
-                    const delBtn = document.createElement('div');
-                    delBtn.className = 'cal-action-btn cal-btn-del';
-                    delBtn.innerHTML = '<i class="fas fa-times"></i>';
-                    delBtn.onclick = (e) => { e.stopPropagation(); deleteEvent(dateKey, index); };
-                    actionsDiv.appendChild(delBtn);
-
-                    evtDiv.appendChild(actionsDiv);
-                    el.appendChild(evtDiv);
-                });
-
-                el.onclick = () => openCalendarModal(dateKey);
-                grid.appendChild(el);
-            }
-        }
-
-        function openCalendarModal(dateStr) {
-            document.getElementById('calendar-modal').classList.remove('hidden');
-            const dateObj = new Date(dateStr);
-            const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
-            const offsetDate = new Date(dateObj.getTime() + userTimezoneOffset);
-            document.getElementById('cal-date-title').textContent = offsetDate.toDateString();
-            document.getElementById('cal-date-val').value = dateStr;
-            document.getElementById('evt-start-date').value = dateStr;
-            document.getElementById('evt-end-date').value = dateStr;
-            cancelEditMode(); 
-            renderDayEvents(dateStr);
-        }
-
-        function setCalUrgency(level) {
-            document.getElementById('new-event-urgency').value = level;
-            ['low', 'medium', 'high'].forEach(l => {
-                const btn = document.getElementById(`btn-urgency-${l}`);
-                btn.className = "flex-1 text-[10px] py-1 rounded border border-slate-200 text-slate-400 hover:bg-slate-100 font-bold transition";
+        function updateLoginDropdown() {
+            const select = document.getElementById('login-user-select');
+            const current = select.value;
+            select.innerHTML = '<option value="Admin">★ Admin</option>';
+            store.users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u; opt.textContent = u;
+                select.appendChild(opt);
             });
-            const btn = document.getElementById(`btn-urgency-${level}`);
-            if (level === 'low') btn.className = "flex-1 text-[10px] py-1 rounded border border-green-500 text-green-600 bg-green-50 hover:bg-green-100 font-bold transition";
-            if (level === 'medium') btn.className = "flex-1 text-[10px] py-1 rounded border border-purple-500 text-purple-600 bg-purple-50 hover:bg-purple-100 font-bold transition";
-            if (level === 'high') btn.className = "flex-1 text-[10px] py-1 rounded border border-red-500 text-red-600 bg-red-50 hover:bg-red-100 font-bold transition";
+            select.value = current;
         }
 
-        function renderDayEvents(dateStr) {
-            const list = document.getElementById('day-events-list');
+        function renderTeamList() {
+            const list = document.getElementById('team-list');
             list.innerHTML = '';
-            const events = store.events[dateStr] || [];
-            
-            if(events.length === 0) {
-                list.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">No events scheduled.</div>';
-                return;
-            }
+            const dropdown = document.getElementById('task-assignee');
+            dropdown.innerHTML = '<option value="">Unassigned</option>';
 
-            events.forEach((evt, idx) => {
-                const evtData = parseEventData(evt);
-                const urgency = evtData.urgency || 'low';
-                let borderClass = "border-green-500";
-                if(urgency === 'medium') borderClass = "border-purple-500";
-                if(urgency === 'high') borderClass = "border-red-500";
-
-                const div = document.createElement('div');
-                div.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs dark:text-white border-l-4 ${borderClass} shadow-sm`;
-                
-                let displayHtml = "";
-                if(evtData.time) {
-                    displayHtml += `<span class="font-bold mr-2 text-slate-500 dark:text-slate-300">${evtData.time}</span>`;
+            store.users.forEach((u, i) => {
+                const li = document.createElement('li');
+                li.className = "flex justify-between items-center text-xs text-white/70 bg-white/5 p-2 rounded";
+                li.innerHTML = `<span>${u}</span>`;
+                if (!store.currentUser) {
+                    li.innerHTML += `<button onclick="removeMember(${i})" class="text-red-400"><i class="fas fa-times"></i></button>`;
                 }
-                displayHtml += `<span>${evtData.text}</span>`;
+                list.appendChild(li);
 
-                div.innerHTML = `
-                    <div class="flex-1">${displayHtml}</div> 
-                    <div class="flex items-center gap-2">
-                        <div class="flex gap-1 mr-2 bg-slate-100 dark:bg-slate-700 p-1 rounded-full">
-                            <button onclick="updateEventUrgency('${dateStr}', ${idx}, 'low')" class="w-2 h-2 rounded-full bg-green-500 hover:scale-125 transition" title="Low"></button>
-                            <button onclick="updateEventUrgency('${dateStr}', ${idx}, 'medium')" class="w-2 h-2 rounded-full bg-purple-500 hover:scale-125 transition" title="Medium"></button>
-                            <button onclick="updateEventUrgency('${dateStr}', ${idx}, 'high')" class="w-2 h-2 rounded-full bg-red-500 hover:scale-125 transition" title="High"></button>
-                        </div>
-                        <button onclick="initEditEvent('${dateStr}', ${idx})" class="text-blue-400 hover:text-blue-500" title="Edit"><i class="fas fa-pen"></i></button>
-                        <button onclick="resolveEvent('${dateStr}', ${idx})" class="text-green-500 hover:text-green-600" title="Resolve & Remove"><i class="fas fa-check"></i></button>
-                        <button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400 hover:text-red-500" title="Delete"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                list.appendChild(div);
+                const opt = document.createElement('option');
+                opt.value = u; opt.textContent = u;
+                dropdown.appendChild(opt);
             });
-        }
-
-        function initEditEvent(dateStr, idx) {
-            const events = store.events[dateStr];
-            if (!events || !events[idx]) return;
-            const evtData = parseEventData(events[idx]);
-            document.getElementById('new-event-input').value = evtData.text;
-            document.getElementById('new-event-start').value = '';
-            document.getElementById('new-event-end').value = '';
-            
-            if (evtData.time) {
-                const parts = evtData.time.split(' - ');
-                document.getElementById('new-event-start').value = parts[0] || '';
-                if (parts.length > 1) {
-                    document.getElementById('new-event-end').value = parts[1] || '';
-                }
-            }
-            setCalUrgency(evtData.urgency || 'low');
-            editingEventIdx = idx;
-            const addBtn = document.getElementById('btn-add-event');
-            addBtn.innerHTML = '<i class="fas fa-save"></i>'; 
-            addBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
-            addBtn.classList.add('bg-blue-500', 'hover:bg-blue-600'); 
-            document.getElementById('btn-cancel-edit').classList.remove('hidden');
-        }
-
-        function cancelEditMode() {
-            document.getElementById('new-event-input').value = '';
-            document.getElementById('new-event-start').value = '';
-            document.getElementById('new-event-end').value = '';
-            setCalUrgency('low');
-            editingEventIdx = null;
-            const addBtn = document.getElementById('btn-add-event');
-            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
-            addBtn.classList.add('bg-green-500', 'hover:bg-green-600');
-            addBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-            document.getElementById('btn-cancel-edit').classList.add('hidden');
-        }
-
-        function updateEventUrgency(dateStr, idx, newUrgency) {
-            if(store.events[dateStr] && store.events[dateStr][idx]) {
-                const evtData = parseEventData(store.events[dateStr][idx]);
-                evtData.urgency = newUrgency;
-                store.events[dateStr][idx] = JSON.stringify(evtData);
-                pushToCloud();
-            }
-        }
-
-        function addEvent() {
-            const val = document.getElementById('new-event-input').value.trim();
-            const startVal = document.getElementById('new-event-start').value;
-            const endVal = document.getElementById('new-event-end').value;
-            const urgency = document.getElementById('new-event-urgency').value;
-            const rangeStart = document.getElementById('evt-start-date').value;
-            const rangeEnd = document.getElementById('evt-end-date').value;
-
-            if (!val) return;
-            if (!rangeStart || !rangeEnd) { alert("Please select a valid date range."); return; }
-
-            let timeStr = "";
-            if (startVal) {
-                timeStr = startVal;
-                if (endVal) timeStr += ` - ${endVal}`;
-            }
-
-            const newEvent = { text: val, time: timeStr, urgency: urgency, groupId: Date.now().toString() };
-            let currDate = new Date(rangeStart);
-            const lastDate = new Date(rangeEnd);
-
-            if (currDate > lastDate) { alert("Start date cannot be after End date"); return; }
-
-            while (currDate <= lastDate) {
-                const year = currDate.getFullYear();
-                const month = String(currDate.getMonth() + 1).padStart(2, '0');
-                const day = String(currDate.getDate()).padStart(2, '0');
-                const dateKey = `${year}-${month}-${day}`;
-
-                if (!store.events[dateKey]) store.events[dateKey] = [];
-
-                if (editingEventIdx !== null && dateKey === document.getElementById('cal-date-val').value) {
-                    store.events[dateKey][editingEventIdx] = JSON.stringify(newEvent);
-                } else {
-                    store.events[dateKey].push(JSON.stringify(newEvent));
-                    store.events[dateKey].sort();
-                }
-                currDate.setDate(currDate.getDate() + 1);
-            }
-            pushToCloud();
-
-            if (editingEventIdx !== null) { cancelEditMode(); } 
-            else { 
-                document.getElementById('new-event-input').value = ''; 
-                document.getElementById('new-event-start').value = ''; 
-                document.getElementById('new-event-end').value = ''; 
-            }
-        }
-
-        function resolveEvent(dateStr, idx) { deleteEvent(dateStr, idx); }
-
-        function deleteEvent(dateStr, idx) {
-            if(store.events[dateStr]) {
-                store.events[dateStr].splice(idx, 1);
-                if(store.events[dateStr].length === 0) delete store.events[dateStr];
-                pushToCloud();
-            }
-        }
-
-        // --- TASKS LOGIC ---
-        function addQuickTask() {
-            const val = document.getElementById('quick-task-input').value.trim();
-            const status = document.getElementById('quick-task-status').value;
-            const assignee = document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned";
-            
-            if(val) {
-                const now = Date.now();
-                const newTask = { 
-                    id: Date.now().toString(),
-                    title: val, description: "", assignee: assignee,
-                    status: status, createdAt: now, 
-                    priority: 1, assignedDate: "", 
-                    isPaused: false, 
-                    completedAt: (status === 'done' ? now : null), 
-                    lastMoved: now, log: { todo: 0, inprogress: 0, done: 0 } 
-                };
-                store.kanbanTasks.push(newTask);
-                pushToCloud();
-                document.getElementById('quick-task-input').value = '';
-            }
-        }
-
-        function deleteQuickTask(id) {
-            if(confirm('Delete this task?')) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.id !== id);
-                pushToCloud();
-            }
+            document.getElementById('member-count').textContent = store.users.length;
         }
 
         function addMember() {
             const name = document.getElementById('new-member-name').value.trim();
-            if(name && !store.users.includes(name)) {
+            if (name && !store.users.includes(name)) {
                 store.users.push(name);
+                db.ref('projectData').update({ users: store.users });
                 document.getElementById('new-member-name').value = '';
-                pushToCloud();
             }
         }
+        
         function removeMember(idx) {
-            if(confirm('Remove user?')) {
+            if (confirm("Remove user and their PIN?")) {
+                const name = store.users[idx];
                 store.users.splice(idx, 1);
-                pushToCloud();
+                db.ref('projectData').update({ users: store.users });
+                db.ref('projectData/pins/' + name).remove();
             }
         }
 
-        function setPriority(val) {
-            document.getElementById('task-priority').value = val;
-            const flags = document.querySelectorAll('.flag-btn');
-            const texts = ["Low Urgency", "Low Urgency", "Medium Urgency", "High Urgency", "Critical Urgency"];
-            flags.forEach(f => {
-                if (parseInt(f.dataset.val) <= val) {
-                    f.classList.add('active'); f.classList.remove('text-slate-300');
-                } else {
-                    f.classList.remove('active'); f.classList.add('text-slate-300');
-                }
+        function renderKanbanBoard() {
+            const cols = document.querySelectorAll('.column-body');
+            cols.forEach(c => c.innerHTML = '');
+            
+            const filtered = store.kanbanTasks.filter(t => !store.currentUser || t.assignee === store.currentUser);
+            
+            filtered.forEach(t => {
+                const card = document.createElement('div');
+                card.className = "task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm text-sm border-l-4 " + 
+                    (t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300');
+                card.innerHTML = `<h4 class="font-bold">${t.title}</h4><p class="text-[10px] text-slate-400">${t.assignee || 'Unassigned'}</p>`;
+                
+                const colIdx = (t.status === 'inprogress') ? 1 : (t.status === 'done') ? 2 : 0;
+                cols[colIdx].appendChild(card);
             });
-            document.getElementById('priority-text').textContent = texts[val-1];
+            
+            // Dashboard quick list
+            const quickList = document.getElementById('quick-task-list');
+            quickList.innerHTML = '';
+            filtered.filter(t => t.status !== 'done').forEach(t => {
+                const li = document.createElement('li');
+                li.className = "bg-white/5 p-2 rounded text-xs flex justify-between";
+                li.innerHTML = `<span>${t.title}</span><span class="opacity-50">${t.status}</span>`;
+                quickList.appendChild(li);
+            });
         }
 
         function saveTask() {
-            const id = document.getElementById('task-id').value;
             const title = document.getElementById('task-title').value;
-            const desc = document.getElementById('task-desc').value;
-            const priority = parseInt(document.getElementById('task-priority').value) || 1;
-            const assignedDate = document.getElementById('task-date').value; 
-            
-            let assignee = document.getElementById('task-assignee').value;
-            if (store.currentUser && assignee === "") assignee = store.currentUser;
-            if(!title) return alert('Title required');
-
-            const taskData = { title, description: desc, assignee, priority, assignedDate };
-
-            if(id) {
-                const t = store.kanbanTasks.find(x => x.id == id);
-                if(t) Object.assign(t, taskData);
-            } else {
-                store.kanbanTasks.push({ id: Date.now().toString(), ...taskData, status: 'todo', createdAt: Date.now(), completedAt: null, lastMoved: Date.now(), log: { todo: 0, inprogress: 0, done: 0 }, isPaused: false });
-            }
-            pushToCloud();
+            const assignee = document.getElementById('task-assignee').value;
+            if (!title) return;
+            store.kanbanTasks.push({ id: Date.now(), title, assignee, status: 'todo' });
+            db.ref('projectData').update({ kanbanTasks: store.kanbanTasks });
             closeModal('task-modal');
         }
 
-        function updateTaskStatus(id, newStatus) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (!task || task.status === newStatus) return;
-
-            const now = Date.now();
-            let newLog = task.log ? { ...task.log } : { todo: 0, inprogress: 0, done: 0 };
-            
-            if (task.status === 'inprogress' && !task.isPaused) {
-                const elapsed = Math.floor((now - task.lastMoved) / 1000);
-                newLog['inprogress'] = (newLog['inprogress'] || 0) + elapsed;
-            }
-
-            task.status = newStatus;
-            task.lastMoved = now;
-            task.log = newLog;
-            task.completedAt = (newStatus === 'done') ? now : null;
-            task.isPaused = false; 
-            pushToCloud();
+        function openTaskModal() { document.getElementById('task-modal').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function switchView(v) {
+            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
+            document.getElementById('view-kanban').classList.toggle('hidden', v !== 'kanban');
+            document.getElementById('nav-dashboard').classList.toggle('active', v === 'dashboard');
+            document.getElementById('nav-kanban').classList.toggle('active', v === 'kanban');
         }
-
-        function toggleTaskPause(id) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (!task || task.status !== 'inprogress') return;
-
-            const now = Date.now();
-            if (task.isPaused) {
-                task.isPaused = false;
-                task.lastMoved = now; 
-            } else {
-                const elapsed = Math.floor((now - task.lastMoved) / 1000);
-                task.log['inprogress'] = (task.log['inprogress'] || 0) + elapsed;
-                task.isPaused = true;
-            }
-            pushToCloud();
-        }
-
-        function updateTaskDate(id, newDate) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (!task || task.assignedDate === newDate) return;
-            task.assignedDate = newDate;
-            pushToCloud();
-        }
-
-        function updateTaskPriority(id, newPriority) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (!task) return;
-            task.priority = parseInt(newPriority);
-            pushToCloud();
-        }
-
-        function deleteCurrentTask() {
-            const id = document.getElementById('task-id').value;
-            if(id && confirm('Delete?')) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.id != id);
-                pushToCloud();
-                closeModal('task-modal');
-            }
-        }
-
-        function clearFilters() {
-            const picker = document.getElementById('date-range-picker')._flatpickr;
-            if(picker) { picker.clear(); }
-        }
-
-        // --- WEEKLY VIEW LOGIC ---
-        function switchKanbanView(mode) {
-            store.kanbanMode = mode;
-            const statusView = document.getElementById('kanban-status-view');
-            const weekView = document.getElementById('kanban-week-view');
-            const btnStatus = document.getElementById('btn-view-status');
-            const btnWeek = document.getElementById('btn-view-week');
-
-            if (mode === 'status') {
-                statusView.classList.remove('hidden');
-                weekView.classList.add('hidden');
-                btnStatus.classList.add('active', 'text-white'); btnStatus.classList.remove('text-opacity-70');
-                btnWeek.classList.remove('active'); btnWeek.classList.add('text-opacity-70');
-                document.getElementById('date-range-picker').placeholder = "Date / Filter...";
-            } else {
-                statusView.classList.add('hidden');
-                weekView.classList.remove('hidden');
-                btnWeek.classList.add('active', 'text-white'); btnWeek.classList.remove('text-opacity-70');
-                btnStatus.classList.remove('active'); btnStatus.classList.add('text-opacity-70');
-                document.getElementById('date-range-picker').placeholder = "Jump to Week...";
-                if (document.getElementById('week-columns-container').children.length === 0) {
-                    generateWeekColumns();
-                    renderKanbanBoard();
-                }
-            }
-        }
-
-        function changeWeek(delta) {
-            store.weekViewStart.setDate(store.weekViewStart.getDate() + (delta * 7));
-            generateWeekColumns();
-            renderKanbanBoard();
-        }
-
-        function jumpToWeek(date) {
-            const day = date.getDay();
-            const diff = date.getDate() - day; 
-            const newStart = new Date(date);
-            newStart.setDate(diff);
-            newStart.setHours(0,0,0,0);
-            store.weekViewStart = newStart;
-            generateWeekColumns();
-            renderKanbanBoard();
-        }
-
-        function generateWeekColumns() {
-            const container = document.getElementById('week-columns-container');
-            container.innerHTML = '';
-            const curr = new Date(store.weekViewStart); 
-            const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-            for (let i = 0; i < 7; i++) {
-                const year = curr.getFullYear();
-                const month = String(curr.getMonth() + 1).padStart(2, '0');
-                const day = String(curr.getDate()).padStart(2, '0');
-                const dateStr = `${year}-${month}-${day}`; 
-
-                const displayDate = `${days[curr.getDay()]} ${curr.getDate()}`;
-                
-                const col = document.createElement('div');
-                col.className = "glass-panel rounded-xl flex flex-col h-full border-t-2 border-slate-300 dark:border-slate-600 min-w-[200px]";
-                col.innerHTML = `
-                    <div class="p-2 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 text-center">
-                        <h3 class="font-bold text-slate-700 dark:text-slate-200 text-sm">${displayDate}</h3>
-                    </div>
-                    <div class="column-body p-2 flex-1 overflow-y-auto space-y-2" ondrop="drop(event, '${dateStr}', 'date')" ondragover="allowDrop(event)" id="col-${dateStr}">
-                        </div>
-                `;
-                container.appendChild(col);
-                curr.setDate(curr.getDate() + 1); 
-            }
-        }
-        
-        // --- DATA MANAGEMENT ---
-        function clearAllData() {
-            if(confirm("WARNING: This will delete ALL tasks and users from the cloud for EVERYONE.\n\nAre you sure?")) {
-                db.ref('projectData').remove();
-                location.reload();
-            }
-        }
-
-        function backupData() {
-            const data = {
-                users: store.users,
-                kanbanTasks: store.kanbanTasks,
-                events: store.events,
-                avatars: store.avatars
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const date = new Date().toISOString().split('T')[0];
-            a.download = `personalspace_backup_${date}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function triggerRestore() {
-            alert("Restore is disabled in cloud mode to prevent accidental overwrites.");
-        }
-
-        function handleRestore(input) {
-            // Restore functionality logic removed for cloud safety
-        }
-
-        // --- RENDER UTILS ---
-        function renderTeamList() {
-            const list = document.getElementById('team-list');
-            document.getElementById('member-count').textContent = store.users.length;
-            list.innerHTML = '';
-            
-            const taskDropdown = document.getElementById('task-assignee');
-            taskDropdown.innerHTML = '<option value="">Unassigned</option>';
-
-            const quickTaskAssignee = document.getElementById('quick-task-assignee');
-            if(quickTaskAssignee) {
-                quickTaskAssignee.innerHTML = '<option value="">Assign to...</option>';
-            }
-
-            const reportUserFilter = document.getElementById('report-user-filter');
-            const currentReportFilter = reportUserFilter ? reportUserFilter.value : "";
-            if(reportUserFilter) {
-                reportUserFilter.innerHTML = '<option value="">All Users</option>';
-            }
-
-            const userSwitcher = document.getElementById('user-switcher');
-            const currentSwitcherVal = userSwitcher.value; // Preserve selection if possible
-            userSwitcher.innerHTML = '<option value="" class="text-slate-800 font-bold">★ Admin (Full Access)</option>';
-
-            store.users.forEach((user, index) => {
-                const li = document.createElement('li');
-                li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 transition group';
-                
-                let avatarHTML = `<div class="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-[10px] text-white font-bold">${user.charAt(0).toUpperCase()}</div>`;
-                if(store.avatars[user]) {
-                    avatarHTML = `<div class="w-5 h-5 rounded-full bg-cover bg-center border border-white/20" style="background-image: url('${store.avatars[user]}')"></div>`;
-                }
-                
-                // Only show delete button if current user is ADMIN (null)
-                let deleteBtn = '';
-                if (!store.currentUser) {
-                    deleteBtn = `<button onclick="removeMember(${index})" class="opacity-0 group-hover:opacity-100 hover:text-red-400"><i class="fas fa-times"></i></button>`;
-                }
-
-                li.innerHTML = `
-                    <div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${user}')">
-                        ${avatarHTML}
-                        <div class="avatar-overlay absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 transition">
-                            <i class="fas fa-camera text-[8px] text-white"></i>
-                        </div>
-                        <span>${user}</span>
-                    </div>
-                    ${deleteBtn}
-                `;
-                list.appendChild(li);
-
-                const opt = document.createElement('option');
-                opt.value = user; opt.textContent = user;
-                taskDropdown.appendChild(opt);
-
-                if(quickTaskAssignee) {
-                    const opt2 = document.createElement('option');
-                    opt2.value = user; opt2.textContent = user;
-                    quickTaskAssignee.appendChild(opt2);
-                }
-
-                if(reportUserFilter) {
-                    const opt3 = document.createElement('option');
-                    opt3.value = user; opt3.textContent = user;
-                    if(user === currentReportFilter) opt3.selected = true;
-                    reportUserFilter.appendChild(opt3);
-                }
-
-                const switchOpt = document.createElement('option');
-                switchOpt.value = user; switchOpt.textContent = user; switchOpt.className = "text-slate-800";
-                if(store.currentUser === user) switchOpt.selected = true;
-                userSwitcher.appendChild(switchOpt);
-            });
-            
-            // Restore user selection if still valid
-            if(store.users.includes(currentSwitcherVal)) {
-                userSwitcher.value = currentSwitcherVal;
-            }
-        }
-
-        function createCardHTML(t) {
-             let timerHtml = '';
-             let statusColor = 'border-l-4 border-slate-300';
-             
-             if (t.status === 'inprogress') {
-                 const logVal = t.log ? t.log['inprogress'] || 0 : 0;
-                 let displayTime = logVal;
-                 let playPauseIcon = '<i class="fas fa-pause"></i>';
-                 let activeClass = 'timer-active';
-                 let colorClass = 'text-purple-600';
-
-                 if (t.isPaused) {
-                     playPauseIcon = '<i class="fas fa-play"></i>';
-                     activeClass = '';
-                     colorClass = 'text-amber-500';
-                 } else {
-                     displayTime += Math.floor((Date.now() - t.lastMoved) / 1000);
-                 }
-
-                 timerHtml = `
-                     <div class="flex items-center gap-2">
-                          <button onclick="toggleTaskPause('${t.id}')" class="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-[10px] ${colorClass} transition">
-                             ${playPauseIcon}
-                          </button>
-                          <div class="text-xs ${colorClass} font-bold flex items-center gap-1 ${activeClass}" id="timer-${t.id}" data-last="${t.lastMoved}" data-stored="${logVal}" data-paused="${t.isPaused}">
-                             <i class="fas fa-stopwatch"></i> <span>${formatTime(displayTime)}</span>
-                          </div>
-                     </div>
-                    `;
-                 statusColor = t.isPaused ? 'border-l-4 border-amber-400 pl-2' : 'border-l-4 border-purple-500 pl-2';
-
-             } else if (t.status === 'done') {
-                 const totalWorkTime = t.log ? t.log['inprogress'] || 0 : 0;
-                 timerHtml = `<div class="text-xs text-green-600 font-medium flex items-center gap-1"><i class="fas fa-check-circle"></i> <span>${formatTime(totalWorkTime)}</span></div>`;
-                 statusColor = 'border-l-4 border-green-500 pl-2 opacity-70';
-             } else {
-                 statusColor = 'border-l-4 border-slate-300 pl-2';
-                 timerHtml = `<div class="text-xs text-slate-400 italic">To Do</div>`;
-             }
-
-             let assigneeHtml = '';
-             if (t.assignee) {
-                 const hasImg = store.avatars[t.assignee];
-                 const icon = hasImg 
-                      ? `<div class="w-4 h-4 rounded-full bg-cover bg-center border border-purple-200" style="background-image: url('${hasImg}')"></div>` 
-                      : `<i class="fas fa-user"></i>`;
-                 assigneeHtml = `<div class="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">${icon} ${t.assignee}</div>`;
-             }
-
-             const priority = t.priority || 1; 
-             let flagsHtml = '';
-             let flagColor = 'text-slate-300';
-             if (priority >= 3) flagColor = 'text-amber-400';
-             if (priority >= 4) flagColor = 'text-red-500';
-             if (priority <= 2 && priority > 0) flagColor = 'text-green-400';
-             for(let i=0; i<priority; i++) flagsHtml += `<i class="fas fa-flag text-[10px] ${flagColor} ml-0.5"></i>`;
-
-             let dateLabel = "";
-             if (t.assignedDate) {
-                 const parts = t.assignedDate.split('-');
-                 const m = parseInt(parts[1]); 
-                 const d = parseInt(parts[2]); 
-                 dateLabel = `<span class="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-1 rounded border border-slate-200 dark:border-slate-600">${m}/${d}</span>`;
-             }
-
-             return `
-                 <div class="${statusColor}">
-                     <div class="flex justify-between items-start mb-2">
-                         <div class="flex-1 min-w-0 mr-2">
-                             <h4 class="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight truncate">${t.title}</h4>
-                             <div class="flex gap-1 mt-1">${dateLabel}</div>
-                         </div>
-                         <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 opacity-0 group-hover:opacity-100"><i class="fas fa-pen text-xs"></i></button>
-                     </div>
-                     <p class="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">${t.description || ''}</p>
-                     <div class="flex justify-between items-end border-t border-slate-100 dark:border-slate-700 pt-2">
-                         <div class="flex flex-col gap-1">${assigneeHtml}</div>
-                         <div class="flex flex-col items-end gap-1"><div>${flagsHtml}</div>${timerHtml}</div>
-                     </div>
-                 </div>
-             `;
-         }
-
-        function renderKanbanBoard() {
-            const rangeInput = document.getElementById('date-range-picker').value;
-            let filterStart = null;
-            let filterEnd = null;
-
-            if (rangeInput && rangeInput.includes(" to ")) {
-                const parts = rangeInput.split(" to ");
-                filterStart = parts[0];
-                filterEnd = parts[1];
-            } else if (rangeInput) {
-                filterStart = rangeInput;
-                filterEnd = rangeInput;
-            }
-
-            if (store.kanbanMode === 'status') {
-                ['todo', 'inprogress', 'done'].forEach(status => {
-                    const container = document.querySelector(`[ondrop="drop(event, '${status}', 'status')"]`);
-                    const tasks = store.kanbanTasks.filter(t => {
-                        if (t.status !== status) return false;
-                        
-                        // --- SECURITY FILTER ---
-                        // Only show if user is admin OR task is assigned to current user
-                        if (store.currentUser && t.assignee !== store.currentUser) return false;
-                        
-                        if (filterStart || filterEnd) {
-                            if (!t.assignedDate) return false;
-                            const taskDate = t.assignedDate;
-                            if (filterStart && taskDate < filterStart) return false;
-                            if (filterEnd && taskDate > filterEnd) return false;
-                        }
-                        return true; 
-                    });
-
-                    container.innerHTML = '';
-                    document.getElementById(`count-${status}`).textContent = tasks.length;
-
-                    if (tasks.length === 0) {
-                        const msg = (filterStart || filterEnd) ? "No tasks in range." : (store.currentUser ? "No tasks assigned to you." : "No Task active.");
-                        container.innerHTML = `<div class="text-center text-slate-400 text-xs italic p-4 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">${msg}</div>`;
-                        return;
-                    }
-
-                    tasks.forEach(t => {
-                        const el = document.createElement('div');
-                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
-                        el.draggable = true;
-                        el.ondragstart = (e) => window.dragStart(e, t.id);
-                        el.ondragend = window.dragEnd;
-                        el.innerHTML = createCardHTML(t);
-                        container.appendChild(el);
-                    });
-                });
-            } else {
-                if (document.getElementById('week-columns-container').children.length === 0) {
-                    generateWeekColumns();
-                }
-
-                const curr = new Date(store.weekViewStart);
-                for(let i=0; i<7; i++) {
-                    const year = curr.getFullYear();
-                    const month = String(curr.getMonth() + 1).padStart(2, '0');
-                    const day = String(curr.getDate()).padStart(2, '0');
-                    const dateStr = `${year}-${month}-${day}`; 
-
-                    const container = document.getElementById(`col-${dateStr}`);
-                    
-                    if(container) {
-                        container.innerHTML = '';
-                        const tasks = store.kanbanTasks.filter(t => {
-                            if (t.assignedDate !== dateStr) return false;
-                            if (t.status === 'done') return false; 
-                            
-                            // --- SECURITY FILTER ---
-                            if (store.currentUser && t.assignee !== store.currentUser) return false;
-                            
-                            return true;
-                        });
-
-                        tasks.forEach(t => {
-                            const el = document.createElement('div');
-                            el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
-                            el.draggable = true;
-                            el.ondragstart = (e) => window.dragStart(e, t.id);
-                            el.ondragend = window.dragEnd;
-                            el.innerHTML = createCardHTML(t);
-                            container.appendChild(el);
-                        });
-                    }
-                    curr.setDate(curr.getDate() + 1);
-                }
-            }
-
-            renderQuickTasks();
-        }
-        
-        function renderQuickTasks() {
-            const list = document.getElementById('quick-task-list');
-            list.innerHTML = '';
-            
-            // --- SECURITY FILTER ---
-            // Only show if user is admin OR task is assigned to current user
-            const myTasks = store.kanbanTasks.filter(t => {
-                if (t.status === 'done') return false;
-                return !store.currentUser || t.assignee === store.currentUser;
-            }).sort((a, b) => {
-                if ((b.priority || 1) !== (a.priority || 1)) return (b.priority || 1) - (a.priority || 1);
-                const map = { 'inprogress': 1, 'todo': 2 };
-                return map[a.status] - map[b.status];
-            });
-
-            if (myTasks.length === 0) {
-                list.innerHTML = `<li class="text-center text-slate-400 text-sm italic mt-10">No active Task found.</li>`;
-                return;
-            }
-
-            myTasks.forEach(t => {
-                const li = document.createElement('li');
-                li.className = 'flex items-start gap-3 p-3 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 group transition hover:shadow-md';
-                
-                const assignedUser = t.assignee || "?";
-                let avatarHTML = `<div class="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-xs">${assignedUser.charAt(0).toUpperCase()}</div>`;
-                if(store.avatars[assignedUser]) {
-                    avatarHTML = `<div class="w-8 h-8 rounded-full bg-cover bg-center border border-slate-200 dark:border-slate-600" style="background-image: url('${store.avatars[assignedUser]}')"></div>`;
-                }
-
-                const p = t.priority || 1;
-                let prioClass = 'bg-slate-100 text-slate-500 border-slate-200';
-                if(p <= 2) prioClass = 'bg-green-100 text-green-700 border-green-200'; 
-                if(p === 3) prioClass = 'bg-amber-100 text-amber-700 border-amber-200'; 
-                if(p >= 4) prioClass = 'bg-red-100 text-red-700 border-red-200'; 
-
-                li.innerHTML = `
-                    <div class="flex-shrink-0 mt-0.5" title="Assigned to ${assignedUser}">${avatarHTML}</div>
-                    
-                    <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-                        
-                        <div class="flex justify-between items-start">
-                            <span class="dark:text-slate-200 font-bold text-sm leading-tight truncate mr-2" title="${t.title}">${t.title}</span>
-                            <button onclick="deleteQuickTask('${t.id}')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition shrink-0"><i class="fas fa-trash text-xs"></i></button>
-                        </div>
-
-                        <div class="flex items-center text-xs text-slate-400">
-                            <i class="fas fa-calendar-alt mr-2 opacity-50 text-[10px]"></i>
-                            <input type="date" onchange="updateTaskDate('${t.id}', this.value)" value="${t.assignedDate || ''}" 
-                                class="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-600 text-[11px] font-medium text-slate-500 dark:text-slate-400 outline-none w-auto hover:border-purple-400 hover:text-purple-500 transition p-0 pb-0.5">
-                        </div>
-
-                        <div class="flex items-center gap-2 mt-0.5">
-                            
-                            <select onchange="updateTaskPriority('${t.id}', this.value)" class="${prioClass} border rounded px-1.5 py-0.5 text-[9px] font-bold outline-none cursor-pointer w-auto shadow-sm uppercase tracking-wide">
-                                <option value="1" ${p===1 ? 'selected' : ''}>Low</option>
-                                <option value="2" ${p===2 ? 'selected' : ''}>Normal</option>
-                                <option value="3" ${p===3 ? 'selected' : ''}>Medium</option>
-                                <option value="4" ${p===4 ? 'selected' : ''}>High</option>
-                                <option value="5" ${p===5 ? 'selected' : ''}>Critical</option>
-                            </select>
-
-                            <span class="text-slate-300 text-[10px]">&mdash;</span>
-
-                            <select onchange="updateTaskStatus('${t.id}', this.value)" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5 text-[9px] uppercase font-bold text-slate-600 dark:text-slate-300 outline-none cursor-pointer w-auto shadow-sm">
-                                <option value="todo" ${t.status === 'todo' ? 'selected' : ''}>To Do</option>
-                                <option value="inprogress" ${t.status === 'inprogress' ? 'selected' : ''}>Doing</option>
-                                <option value="done" ${t.status === 'done' ? 'selected' : ''}>Done</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(li);
-            });
-        }
-
         function updateClock() {
             const now = new Date();
             document.getElementById('clock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-            document.getElementById('date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-            if (!store.currentUser) {
-                const h = now.getHours();
-                const timeBasedGreeting = (h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening");
-                document.getElementById('greeting').textContent = timeBasedGreeting + ".";
+            document.getElementById('date').textContent = now.toDateString();
+        }
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-body');
+            grid.innerHTML = '';
+            const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
+            for(let i=1; i<=daysInMonth; i++) {
+                const day = document.createElement('div');
+                day.className = "h-12 border-b border-r border-purple-100/10 text-[10px] p-1 text-white/40";
+                day.textContent = i;
+                grid.appendChild(day);
             }
-        }
-
-        function updateKanbanTimers() {
-            const now = Date.now();
-            document.querySelectorAll('[id^="timer-"]').forEach(el => {
-                const stored = parseInt(el.dataset.stored);
-                const last = parseInt(el.dataset.last);
-                const isPaused = el.dataset.paused === 'true';
-
-                if (!isPaused) {
-                    el.querySelector('span').textContent = formatTime(stored + Math.floor((now - last) / 1000));
-                } else {
-                    el.querySelector('span').textContent = formatTime(stored); 
-                }
-            });
-        }
-        function formatTime(s) {
-            const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-            return h>0 ? `${h}h ${m}m` : `${m}m ${sec}s`;
+            document.getElementById('calendar-month-year').textContent = new Date(store.calendarYear, store.calendarMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
         }
         
-        function loadTheme() {
-            const b = document.body;
-            const icon = document.getElementById('theme-icon');
-            if(store.theme === 'dark') {
-                b.classList.add('dark'); 
-                b.style.background = 'linear-gradient(135deg, #10002b, #004b23)'; 
-                icon.className = 'fas fa-sun';
-            } else {
-                b.classList.remove('dark'); 
-                b.style.background = 'linear-gradient(135deg, #9d4edd, #70e000)';
-                icon.className = 'fas fa-moon';
-            }
-        }
-        function toggleTheme() {
-            store.theme = store.theme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('nexus_theme', store.theme);
-            loadTheme();
-        }
-        function switchView(viewName) {
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-kanban').classList.add('hidden');
-            document.getElementById('view-dashboard').classList.remove('flex');
-            document.getElementById('view-kanban').classList.remove('flex');
-            document.getElementById('nav-dashboard').classList.remove('active');
-            document.getElementById('nav-kanban').classList.remove('active');
-            const view = document.getElementById(`view-${viewName}`);
-            view.classList.remove('hidden');
-            view.classList.add(viewName === 'kanban' ? 'flex' : 'block');
-            if(viewName === 'dashboard') view.classList.add('flex', 'flex-col');
-            document.getElementById(`nav-${viewName}`).classList.add('active');
-        }
-        
-        function openTaskModal(id = null) {
-            const modal = document.getElementById('task-modal');
-            modal.classList.remove('hidden');
-            const title = document.getElementById('task-title');
-            const desc = document.getElementById('task-desc');
-            const assignee = document.getElementById('task-assignee');
-            const dateInput = document.getElementById('task-date'); 
-            const hiddenId = document.getElementById('task-id');
-            const delBtn = document.getElementById('btn-delete');
-            
-            if (store.currentUser && !id) assignee.value = store.currentUser; 
-
-            if(id) {
-                const t = store.kanbanTasks.find(x => x.id === id);
-                title.value = t.title; desc.value = t.description; assignee.value = t.assignee || "";
-                dateInput.value = t.assignedDate || ""; 
-                hiddenId.value = t.id; document.getElementById('modal-title').textContent = "Edit Task"; delBtn.classList.remove('hidden');
-                setPriority(t.priority || 1); 
-            } else {
-                title.value = ''; desc.value = ''; hiddenId.value = ''; dateInput.value = '';
-                if(!store.currentUser) assignee.value = '';
-                document.getElementById('modal-title').textContent = "New Task"; delBtn.classList.add('hidden');
-                setPriority(1); 
-            }
-        }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        
-        function toggleReportModal() {
-            const m = document.getElementById('report-modal');
-            m.classList.toggle('hidden');
-            if(!m.classList.contains('hidden')) generateReport();
+        function clearAllData() {
+            if(confirm("NUKE EVERYTHING?")) db.ref('projectData').remove();
         }
 
-        function generateReport() {
-            const start = new Date(document.getElementById('report-start').value).setHours(0,0,0,0);
-            const end = new Date(document.getElementById('report-end').value).setHours(23,59,59,999);
-            const userFilter = document.getElementById('report-user-filter').value;
-            const dayFilter = document.getElementById('report-day-filter').value;
-            const tbody = document.getElementById('report-body');
-            tbody.innerHTML = '';
-
-            const completed = store.kanbanTasks.filter(t => {
-                if(t.status !== 'done') return false;
-                if(t.completedAt < start || t.completedAt > end) return false;
-                if(userFilter && t.assignee !== userFilter) return false;
-                if(dayFilter) {
-                    if (!t.assignedDate) return false;
-                    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const d = new Date(t.assignedDate);
-                    if (days[d.getDay()] !== dayFilter) return false;
-                }
-                return true;
-            });
-
-            if(completed.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">No data found.</td></tr>';
-                return;
-            }
-
-            let totalSeconds = 0; 
-
-            completed.forEach(t => {
-                const workTime = t.log['inprogress'] || 0;
-                totalSeconds += workTime;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700";
-                tr.innerHTML = `
-                    <td class="p-3 font-medium">${t.title}</td>
-                    <td class="p-3"><span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">${t.assignee || 'Unassigned'}</span></td>
-                    <td class="p-3 text-sm text-slate-500">${new Date(t.completedAt).toLocaleDateString()}</td>
-                    <td class="p-3 text-right font-mono text-green-600 dark:text-green-400">${formatTime(workTime)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const totalRow = document.createElement('tr');
-            totalRow.className = "bg-slate-100 dark:bg-slate-700/50 font-bold border-t-2 border-slate-300 dark:border-slate-500";
-            totalRow.innerHTML = `
-                <td colspan="3" class="p-3 text-right dark:text-white">TOTAL TIME SPENT:</td>
-                <td class="p-3 text-right font-mono text-purple-600 dark:text-purple-400">${formatTime(totalSeconds)}</td>
-            `;
-            tbody.appendChild(totalRow);
-        }
-
-        function exportReportCSV() {
-            const start = new Date(document.getElementById('report-start').value).setHours(0,0,0,0);
-            const end = new Date(document.getElementById('report-end').value).setHours(23,59,59,999);
-            const userFilter = document.getElementById('report-user-filter').value;
-            const dayFilter = document.getElementById('report-day-filter').value;
-            
-            const completed = store.kanbanTasks.filter(t => {
-                if(t.status !== 'done') return false;
-                if(t.completedAt < start || t.completedAt > end) return false;
-                if(userFilter && t.assignee !== userFilter) return false;
-                if(dayFilter) {
-                    if (!t.assignedDate) return false;
-                    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const d = new Date(t.assignedDate);
-                    if (days[d.getDay()] !== dayFilter) return false;
-                }
-                return true;
-            });
-
-            if(completed.length === 0) {
-                alert("No completed tasks to export in this date range/filter.");
-                return;
-            }
-
-            let csvContent = "Task Title,Assignee,Completed Date,Work Duration\n";
-            completed.forEach(t => {
-                const workTime = t.log['inprogress'] || 0;
-                const formattedTime = formatTime(workTime);
-                const dateStr = new Date(t.completedAt).toLocaleDateString();
-                const cleanTitle = t.title.replace(/"/g, '""');
-                csvContent += `"${cleanTitle}","${t.assignee || 'Unassigned'}","${dateStr}","${formattedTime}"\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const date = new Date().toISOString().split('T')[0];
-            a.download = `report_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+        setInterval(updateClock, 1000);
+        updateClock();
     </script>
 </body>
 </html>
