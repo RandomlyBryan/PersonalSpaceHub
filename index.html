@@ -517,6 +517,9 @@
                     </div>
 
                     <div class="flex gap-2">
+                        <button onclick="exportSummaryReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10">
+                            <i class="fas fa-file-export"></i> Export & Flush Executed
+                        </button>
                         <button onclick="toggleReportModal()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg backdrop-blur transition flex items-center gap-2 text-sm border border-white/10">
                             <i class="fas fa-chart-pie"></i> Report
                         </button>
@@ -841,6 +844,49 @@
             }
         };
 
+        // --- NEW: EXPORT SUMMARY & FLUSH EXECUTED (Your Request) ---
+        window.exportSummaryReport = () => {
+            if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
+            
+            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
+            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
+            const executed = store.kanbanTasks.filter(t => t.status === 'done');
+
+            let content = "PERSONAL SPACE - DETAILED PROJECT STATUS\n";
+            content += `Date: ${new Date().toLocaleString()}\n`;
+            content += "========================================\n\n";
+
+            content += "[TO DO TASKS]\n";
+            content += todo.map(t => `- ${t.title} (Assignee: ${t.assignee || 'Unassigned'})`).join('\n') || "None";
+            
+            content += "\n\n[ONGOING TASKS]\n";
+            content += ongoing.map(t => `- ${t.title} (Assignee: ${t.assignee || 'Unassigned'})`).join('\n') || "None";
+
+            content += "\n\n[EXECUTED TASKS (COMPLETED)]\n";
+            content += executed.map(t => `- ${t.title} (Assignee: ${t.assignee || 'Unassigned'})`).join('\n') || "None";
+
+            content += "\n\n========================================\n";
+            content += "Note: Executed column has been flushed for performance.";
+
+            // Trigger Download
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Project_Summary_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // FLUSH THE EXECUTED COLUMN
+            if(confirm("Report exported. Clear Executed column now?")) {
+                store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
+                pushToCloud();
+                renderKanbanBoard();
+                alert("Executed tasks removed from cloud.");
+            }
+        };
+
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             loadTheme();
@@ -931,7 +977,6 @@
         });
 
         // --- AUTH LOGIC ---
-        // NEW: Toggle visibility function
         function togglePasswordVisibility() {
             const passInput = document.getElementById('login-password');
             const icon = document.getElementById('eye-icon');
@@ -976,7 +1021,6 @@
             }
         }
 
-        // NEW: Admin Change Password
         function changeAdminPassword() {
             const currentPass = prompt("Enter NEW Admin password:");
             if (currentPass && currentPass.trim() !== "") {
@@ -1007,7 +1051,7 @@
                 kanbanTasks: store.kanbanTasks,
                 events: store.events,
                 avatars: store.avatars,
-                passwords: store.passwords // Keep passwords in cloud
+                passwords: store.passwords 
             }).catch(err => {
                 console.error("Save failed", err);
                 alert("Cloud save failed. Check console.");
@@ -1065,7 +1109,6 @@
                 trackerBadge.textContent = "Personal Filter";
                 trackerSub.textContent = `Tasks assigned to ${store.currentUser}`;
                 
-                // Hide Admin Tools for regular users
                 adminTools.forEach(el => el.classList.add('hidden-tool'));
 
                 if (store.avatars[store.currentUser]) {
@@ -1081,7 +1124,6 @@
                 trackerBadge.textContent = "Main View";
                 trackerSub.textContent = "Showing all project tasks";
                 
-                // Show Admin Tools
                 adminTools.forEach(el => el.classList.remove('hidden-tool'));
                 
                 avatarContainer.innerHTML = `<i class="fas fa-user-shield text-white/50 text-2xl"></i>`;
@@ -1093,7 +1135,6 @@
             renderQuickTasks(); 
         }
 
-        // --- AVATAR UPLOAD LOGIC ---
         function triggerAvatarUpload(username) {
             uploadingUser = username;
             document.getElementById('avatar-upload').click();
@@ -1116,7 +1157,6 @@
             input.value = '';
         }
 
-        // --- SAVING ---
         function saveFocus(val) {
             store.focus = val;
             saveUserDataToCloud();
@@ -1127,7 +1167,6 @@
             document.getElementById('notes-status').textContent = 'Saved';
         }
 
-        // --- CALENDAR LOGIC ---
         function changeMonth(delta) {
             store.calendarMonth += delta;
             if(store.calendarMonth > 11) { store.calendarMonth = 0; store.calendarYear++; }
@@ -1756,10 +1795,10 @@
                  timerHtml = `
                      <div class="flex items-center gap-2">
                           <button onclick="toggleTaskPause('${t.id}')" class="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-[10px] ${colorClass} transition">
-                             ${playPauseIcon}
+                              ${playPauseIcon}
                           </button>
                           <div class="text-xs ${colorClass} font-bold flex items-center gap-1 ${activeClass}" id="timer-${t.id}" data-last="${t.lastMoved}" data-stored="${logVal}" data-paused="${t.isPaused}">
-                             <i class="fas fa-stopwatch"></i> <span>${formatTime(displayTime)}</span>
+                              <i class="fas fa-stopwatch"></i> <span>${formatTime(displayTime)}</span>
                           </div>
                      </div>
                     `;
@@ -1836,8 +1875,6 @@
                     const container = document.querySelector(`[ondrop="drop(event, '${status}', 'status')"]`);
                     const tasks = store.kanbanTasks.filter(t => {
                         if (t.status !== status) return false;
-                        
-                        // SECURITY FILTER: Only show if user is admin OR task is assigned to current user
                         if (store.currentUser && t.assignee !== store.currentUser) return false;
                         
                         if (filterStart || filterEnd) {
@@ -1887,10 +1924,7 @@
                         const tasks = store.kanbanTasks.filter(t => {
                             if (t.assignedDate !== dateStr) return false;
                             if (t.status === 'done') return false; 
-                            
-                            // SECURITY FILTER
                             if (store.currentUser && t.assignee !== store.currentUser) return false;
-                            
                             return true;
                         });
 
@@ -1915,7 +1949,6 @@
             const list = document.getElementById('quick-task-list');
             list.innerHTML = '';
             
-            // SECURITY FILTER
             const myTasks = store.kanbanTasks.filter(t => {
                 if (t.status === 'done') return false;
                 return !store.currentUser || t.assignee === store.currentUser;
