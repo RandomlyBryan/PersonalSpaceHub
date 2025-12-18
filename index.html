@@ -288,20 +288,15 @@
 
                 <div>
                     <label class="text-[10px] text-purple-400 font-bold uppercase ml-1">Password</label>
-                    <div class="relative">
-                        <input type="password" id="login-password" placeholder="••••••••" 
-                            class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none focus:border-jokerGreen placeholder-white/20 pr-10">
-                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-jokerGreen transition-colors">
-                            <i id="password-toggle-icon" class="fas fa-eye"></i>
-                        </button>
-                    </div>
+                    <input type="password" id="login-password" placeholder="••••••••" 
+                        class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none focus:border-jokerGreen placeholder-white/20">
                 </div>
 
                 <button onclick="handleLogin()" class="w-full bg-jokerGreen hover:bg-green-400 text-black font-black py-3 rounded-xl transition transform active:scale-95 shadow-lg">
                     ACCESS SYSTEM
                 </button>
                 <p id="login-error" class="text-red-400 text-[10px] text-center font-bold hidden uppercase animate-pulse">Invalid Credentials</p>
-                <p class="text-white/40 text-[10px] text-center font-bold tracking-widest mt-2 uppercase">Welcome!</p>
+                <p class="text-white/20 text-[9px] text-center">Default Password: 1234</p>
             </div>
         </div>
     </div>
@@ -722,8 +717,7 @@
                         <tr>
                             <th class="p-3">Task</th>
                             <th class="p-3">Assignee</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Scheduled</th>
+                            <th class="p-3">Completed</th>
                             <th class="p-3 text-right">Work Time</th>
                         </tr>
                     </thead>
@@ -819,7 +813,6 @@
         window.handleLogin = handleLogin;
         window.logout = logout;
         window.resetMemberPassword = resetMemberPassword;
-        window.togglePasswordVisibility = togglePasswordVisibility;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -927,20 +920,6 @@
         });
 
         // --- AUTH LOGIC ---
-        function togglePasswordVisibility() {
-            const passInput = document.getElementById('login-password');
-            const icon = document.getElementById('password-toggle-icon');
-            if (passInput.type === 'password') {
-                passInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-
         function handleLogin() {
             const user = document.getElementById('login-username').value;
             const pass = document.getElementById('login-password').value;
@@ -1743,7 +1722,7 @@
                  timerHtml = `
                      <div class="flex items-center gap-2">
                           <button onclick="toggleTaskPause('${t.id}')" class="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-[10px] ${colorClass} transition">
-                              ${playPauseIcon}
+                             ${playPauseIcon}
                           </button>
                           <div class="text-xs ${colorClass} font-bold flex items-center gap-1 ${activeClass}" id="timer-${t.id}" data-last="${t.lastMoved}" data-stored="${logVal}" data-paused="${t.isPaused}">
                              <i class="fas fa-stopwatch"></i> <span>${formatTime(displayTime)}</span>
@@ -2069,28 +2048,17 @@
         }
 
         function generateReport() {
-            const startVal = document.getElementById('report-start').value;
-            const endVal = document.getElementById('report-end').value;
+            const start = new Date(document.getElementById('report-start').value).setHours(0,0,0,0);
+            const end = new Date(document.getElementById('report-end').value).setHours(23,59,59,999);
             const userFilter = document.getElementById('report-user-filter').value;
             const dayFilter = document.getElementById('report-day-filter').value;
             const tbody = document.getElementById('report-body');
-            
-            const start = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
-            const end = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
-            
             tbody.innerHTML = '';
 
-            const filteredTasks = store.kanbanTasks.filter(t => {
-                // User Filter
+            const completed = store.kanbanTasks.filter(t => {
+                if(t.status !== 'done') return false;
+                if(t.completedAt < start || t.completedAt > end) return false;
                 if(userFilter && t.assignee !== userFilter) return false;
-                
-                // Date Logic (Compare based on assignedDate or completion date)
-                if(start && end) {
-                    const taskTime = t.completedAt || (t.assignedDate ? new Date(t.assignedDate).getTime() : t.createdAt);
-                    if(taskTime < start || taskTime > end) return false;
-                }
-                
-                // Generic Day Filter
                 if(dayFilter) {
                     if (!t.assignedDate) return false;
                     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -2100,35 +2068,23 @@
                 return true;
             });
 
-            if(filteredTasks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">No data found matching current filters.</td></tr>';
+            if(completed.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">No data found.</td></tr>';
                 return;
             }
 
             let totalSeconds = 0; 
 
-            // Sort by Status then Title
-            filteredTasks.sort((a,b) => {
-                const order = { 'inprogress': 0, 'todo': 1, 'done': 2 };
-                return order[a.status] - order[b.status];
-            });
-
-            filteredTasks.forEach(t => {
-                const workTime = t.log ? t.log['inprogress'] || 0 : 0;
+            completed.forEach(t => {
+                const workTime = t.log['inprogress'] || 0;
                 totalSeconds += workTime;
-
-                let statusBadge = '';
-                if(t.status === 'todo') statusBadge = '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">To Do</span>';
-                else if(t.status === 'inprogress') statusBadge = '<span class="bg-purple-100 text-purple-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Doing</span>';
-                else if(t.status === 'done') statusBadge = '<span class="bg-green-100 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase">Done</span>';
 
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/50 dark:text-slate-300 border-b border-slate-100 dark:border-slate-700";
                 tr.innerHTML = `
                     <td class="p-3 font-medium">${t.title}</td>
                     <td class="p-3"><span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">${t.assignee || 'Unassigned'}</span></td>
-                    <td class="p-3">${statusBadge}</td>
-                    <td class="p-3 text-sm text-slate-500">${t.assignedDate || 'No Date'}</td>
+                    <td class="p-3 text-sm text-slate-500">${new Date(t.completedAt).toLocaleDateString()}</td>
                     <td class="p-3 text-right font-mono text-green-600 dark:text-green-400">${formatTime(workTime)}</td>
                 `;
                 tbody.appendChild(tr);
@@ -2137,47 +2093,43 @@
             const totalRow = document.createElement('tr');
             totalRow.className = "bg-slate-100 dark:bg-slate-700/50 font-bold border-t-2 border-slate-300 dark:border-slate-500";
             totalRow.innerHTML = `
-                <td colspan="4" class="p-3 text-right dark:text-white">ACCUMULATED TEAM WORK TIME:</td>
+                <td colspan="3" class="p-3 text-right dark:text-white">TOTAL TIME SPENT:</td>
                 <td class="p-3 text-right font-mono text-purple-600 dark:text-purple-400">${formatTime(totalSeconds)}</td>
             `;
             tbody.appendChild(totalRow);
         }
 
         function exportReportCSV() {
-            const startVal = document.getElementById('report-start').value;
-            const endVal = document.getElementById('report-end').value;
+            const start = new Date(document.getElementById('report-start').value).setHours(0,0,0,0);
+            const end = new Date(document.getElementById('report-end').value).setHours(23,59,59,999);
             const userFilter = document.getElementById('report-user-filter').value;
             const dayFilter = document.getElementById('report-day-filter').value;
             
-            const start = startVal ? new Date(startVal).setHours(0,0,0,0) : null;
-            const end = endVal ? new Date(endVal).setHours(23,59,59,999) : null;
-
-            const filteredTasks = store.kanbanTasks.filter(t => {
+            const completed = store.kanbanTasks.filter(t => {
+                if(t.status !== 'done') return false;
+                if(t.completedAt < start || t.completedAt > end) return false;
                 if(userFilter && t.assignee !== userFilter) return false;
-                if(start && end) {
-                    const taskTime = t.completedAt || (t.assignedDate ? new Date(t.assignedDate).getTime() : t.createdAt);
-                    if(taskTime < start || taskTime > end) return false;
-                }
                 if(dayFilter) {
                     if (!t.assignedDate) return false;
-                    const d = new Date(t.assignedDate);
                     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                    const d = new Date(t.assignedDate);
                     if (days[d.getDay()] !== dayFilter) return false;
                 }
                 return true;
             });
 
-            if(filteredTasks.length === 0) {
-                alert("No tasks match the current filters for export.");
+            if(completed.length === 0) {
+                alert("No completed tasks to export in this date range/filter.");
                 return;
             }
 
-            let csvContent = "Task Title,Assignee,Status,Scheduled Date,Work Duration\n";
-            filteredTasks.forEach(t => {
-                const workTime = t.log ? t.log['inprogress'] || 0 : 0;
+            let csvContent = "Task Title,Assignee,Completed Date,Work Duration\n";
+            completed.forEach(t => {
+                const workTime = t.log['inprogress'] || 0;
                 const formattedTime = formatTime(workTime);
+                const dateStr = new Date(t.completedAt).toLocaleDateString();
                 const cleanTitle = t.title.replace(/"/g, '""');
-                csvContent += `"${cleanTitle}","${t.assignee || 'Unassigned'}","${t.status.toUpperCase()}","${t.assignedDate || ''}","${formattedTime}"\n`;
+                csvContent += `"${cleanTitle}","${t.assignee || 'Unassigned'}","${dateStr}","${formattedTime}"\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2185,7 +2137,7 @@
             const a = document.createElement('a');
             a.href = url;
             const date = new Date().toISOString().split('T')[0];
-            a.download = `full_team_report_${date}.csv`;
+            a.download = `report_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         }
