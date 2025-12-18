@@ -21,9 +21,7 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { 
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         glass: "rgba(255, 255, 255, 0.95)",
                         darkGlass: "rgba(30, 41, 59, 0.95)",
@@ -37,1304 +35,398 @@
     </script>
 
     <style>
-        body {
-            background: linear-gradient(135deg, #9d4edd, #70e000);
-            min-height: 100vh;
-            transition: background 0.5s ease;
-            overflow: hidden; 
-            font-family: 'Inter', sans-serif;
-        }
-        .dark body {
-             background: linear-gradient(135deg, #10002b, #004b23);
-        }
-
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(157, 78, 221, 0.3);
-            box-shadow: 0 8px 32px 0 rgba(60, 9, 108, 0.2);
-        }
-        .dark .glass-panel {
-            background: rgba(20, 10, 40, 0.85);
-            color: #e2e8f0;
-            border: 1px solid rgba(57, 255, 20, 0.1);
-        }
-        .sidebar {
-            background: rgba(36, 0, 70, 0.7);
-            backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(255,255,255,0.1);
-        }
+        body { background: linear-gradient(135deg, #9d4edd, #70e000); min-height: 100vh; transition: background 0.5s ease; overflow: hidden; font-family: 'Inter', sans-serif; }
+        .dark body { background: linear-gradient(135deg, #10002b, #004b23); }
+        .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(157, 78, 221, 0.3); box-shadow: 0 8px 32px 0 rgba(60, 9, 108, 0.2); }
+        .dark .glass-panel { background: rgba(20, 10, 40, 0.85); color: #e2e8f0; border: 1px solid rgba(57, 255, 20, 0.1); }
+        .sidebar { background: rgba(36, 0, 70, 0.7); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.1); }
         .dark .sidebar { background: rgba(10, 0, 20, 0.8); }
-        
-        .nav-item.active { 
-            background: rgba(255, 255, 255, 0.1); 
-            border-left: 4px solid #39ff14; 
-            color: #39ff14;
-        }
-        .dark .nav-item.active { 
-            background: rgba(255, 255, 255, 0.05); 
-            border-left: 4px solid #9d4edd; 
-            color: #d8b4fe;
-        } 
-
+        .nav-item.active { background: rgba(255, 255, 255, 0.1); border-left: 4px solid #39ff14; color: #39ff14; }
+        .dark .nav-item.active { background: rgba(255, 255, 255, 0.05); border-left: 4px solid #9d4edd; color: #d8b4fe; } 
         .column-body { min-height: 200px; transition: background-color 0.2s; }
         .column-body.drag-over { background-color: rgba(57, 255, 20, 0.15); border-radius: 0.5rem; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(157, 78, 221, 0.5); border-radius: 3px; }
-
-        .task-card { cursor: grab; }
-        .task-card:active { cursor: grabbing; }
-        .dragging { opacity: 0.5; transform: scale(0.98); }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Calendar Styles */
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            border-top: 1px solid #e2e8f0; 
-            border-left: 1px solid #e2e8f0;
-        }
-        .dark .calendar-grid {
-            border-color: #3c096c;
-        }
-        
-        .calendar-day { 
-            min-height: 80px; 
-            max-height: 110px; 
-            overflow-y: auto;  
-            overflow-x: hidden;
-            display: flex; 
-            flex-direction: column; 
-            align-items: flex-start; 
-            justify-content: flex-start;
-            padding: 4px;
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            position: relative;
-            transition: background 0.2s;
-            border-right: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            background: rgba(255,255,255,0.4);
-        }
-        .calendar-day::-webkit-scrollbar { width: 2px; }
-        .calendar-day::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
-
-        .dark .calendar-day {
-            border-color: #3c096c;
-            background: rgba(30, 41, 59, 0.4);
-        }
-
-        .calendar-day:hover { background: rgba(57, 255, 20, 0.15); }
-        .calendar-day.today { background: #3c096c; color: #39ff14; font-weight: bold; border: 1px solid #39ff14; }
-        .dark .calendar-day.today { background: #240046; color: #39ff14; }
-
-        .calendar-day-number { 
-            margin-bottom: 2px; 
-            position: sticky; 
-            top: 0;
-            z-index: 10;
-            width: 100%;
-            padding: 2px 4px;
-            font-weight: bold;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            background: rgba(255,255,255,0.85); 
-            backdrop-filter: blur(4px);
-        }
-        .dark .calendar-day-number {
-            background: rgba(30, 41, 59, 0.85);
-            border-color: rgba(255,255,255,0.05);
-        }
-
-        .cal-event-item {
-            font-size: 0.65rem;
-            line-height: 1.2;
-            padding: 4px 5px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.6);
-            margin-top: 2px;
-            width: 100%;
-            white-space: normal; 
-            word-break: break-word;
-            text-align: left; 
-            border-left: 3px solid #ccc; 
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            position: relative;
-            color: #334155;
-            padding-right: 2px;
-        }
-        .dark .cal-event-item {
-            background: rgba(15, 23, 42, 0.6);
-            color: #e2e8f0;
-        }
-
-        .cal-urgency-low { border-left-color: #39ff14 !important; background: rgba(57, 255, 20, 0.1); }
-        .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
-        .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
-
-        .cal-actions-container {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            display: flex;
-            gap: 3px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 20;
-            padding: 2px 4px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .dark .cal-actions-container {
-            background: rgba(30, 41, 59, 0.95);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .cal-event-item:hover .cal-actions-container { opacity: 1; }
-
-        .cal-action-btn {
-            width: 16px;
-            height: 16px;
-            background: rgba(0,0,0, 0.05);
-            color: #64748b;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .dark .cal-action-btn { background: rgba(255,255,255, 0.1); color: #94a3b8; }
-        
-        .cal-btn-del:hover { background: #ef4444 !important; color: white !important; transform: scale(1.1); }
-        .cal-btn-check:hover { background: #39ff14 !important; color: black !important; transform: scale(1.1); }
-
-        .cal-time { font-weight: 800; opacity: 0.9; font-size: 0.6rem; display: block; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom:1px; margin-bottom:1px;}
-
-        .flag-btn {
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #cbd5e1; 
-        }
-        .dark .flag-btn { color: #475569; }
-        
-        .flag-rating:hover .flag-btn { color: #9d4edd; } 
-        .flag-btn:hover ~ .flag-btn { color: #cbd5e1; } 
-        .dark .flag-rating:hover .flag-btn { color: #9d4edd; }
-        .dark .flag-btn:hover ~ .flag-btn { color: #475569; }
-        .flag-btn.active { color: #9d4edd; }
-        
-        .avatar-container:hover .avatar-overlay { opacity: 1; }
-        
-        .view-btn { transition: all 0.2s; }
-        .view-btn.active { background-color: rgba(57, 255, 20, 0.2); font-weight: bold; border: 1px solid #39ff14; color: #39ff14; }
-
-        .timer-active { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green {
-            0% { text-shadow: 0 0 0 rgba(57, 255, 20, 0); }
-            50% { text-shadow: 0 0 4px rgba(57, 255, 20, 0.5); }
-            100% { text-shadow: 0 0 0 rgba(57, 255, 20, 0); }
-        }
-        
-        .flatpickr-calendar {
-            background: rgba(36, 0, 70, 0.95) !important; 
-            border: 1px solid #39ff14 !important;
-            backdrop-filter: blur(10px) !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
-            z-index: 9999 !important;
-        }
-        .flatpickr-day.selected {
-            background: #39ff14 !important;
-            border-color: #39ff14 !important;
-            color: black !important;
-            font-weight: bold;
-        }
-        
-        /* Helper to hide admin tools */
-        .admin-only { transition: all 0.3s; }
-        .admin-only.hidden-tool { display: none !important; }
-
-        /* Welcome Screen Overlay */
-        #welcome-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: linear-gradient(135deg, #240046, #004b23);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s ease, visibility 0.5s;
-        }
-        #welcome-screen.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; }
+        .calendar-day { min-height: 80px; padding: 4px; font-size: 0.85rem; cursor: pointer; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: rgba(255,255,255,0.4); }
+        .dark .calendar-day { border-color: #3c096c; background: rgba(30, 41, 59, 0.4); }
+        .calendar-day.today { background: #3c096c; color: #39ff14; font-weight: bold; border: 2px solid #39ff14; }
+        #welcome-screen { position: fixed; inset: 0; z-index: 1000; background: linear-gradient(135deg, #240046, #004b23); display: flex; align-items: center; justify-content: center; }
+        #welcome-screen.hidden { display: none; }
+        .cal-event-item { font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; background: rgba(255,255,255,0.6); margin-top: 2px; border-left: 3px solid #39ff14; }
     </style>
 </head>
 <body class="text-slate-800 antialiased flex flex-col h-screen w-screen overflow-hidden">
 
     <div id="welcome-screen">
-        <div class="glass-panel p-8 rounded-3xl w-full max-w-md border-2 border-green-400 shadow-[0_0_50px_rgba(57,255,20,0.2)] text-center fade-in">
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-400 shadow-lg">
-                    <i class="fas fa-user-astronaut text-green-400 text-3xl"></i>
-                </div>
-                <h1 class="text-3xl font-black text-purple-800 dark:text-green-400 tracking-tighter">PERSONAL SPACE</h1>
-                <p class="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">Authentication Required</p>
-            </div>
-
+        <div class="glass-panel p-8 rounded-3xl w-full max-w-md border-2 border-green-400 shadow-2xl text-center">
+            <h1 class="text-3xl font-black text-purple-800 dark:text-green-400 tracking-tighter mb-6">PERSONAL SPACE</h1>
             <div class="space-y-4 text-left">
                 <div>
-                    <label class="block text-[10px] font-bold text-purple-600 dark:text-purple-300 uppercase mb-1">Select Identity</label>
-                    <select id="login-user-select" class="w-full bg-slate-100 dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-900 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-400 outline-none transition cursor-pointer dark:text-white">
-                        <option value="">Choose your name...</option>
+                    <label class="block text-[10px] font-bold uppercase mb-1">Select Identity</label>
+                    <select id="login-user-select" class="w-full bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-3 text-sm font-bold outline-none border-2 border-transparent focus:border-green-400 dark:text-white">
+                        <option value="">Choose name...</option>
                         <option value="admin">★ System Admin</option>
                     </select>
                 </div>
-
-                <div id="password-field">
-                    <label class="block text-[10px] font-bold text-purple-600 dark:text-purple-300 uppercase mb-1" id="pass-label">Password</label>
-                    <input type="password" id="login-password" placeholder="••••••••" class="w-full bg-slate-100 dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-900 rounded-xl px-4 py-3 text-sm focus:border-green-400 outline-none transition dark:text-white">
-                    <p id="first-login-hint" class="text-[10px] text-green-500 mt-1 italic hidden">First login detected! Set your password above.</p>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase mb-1" id="pass-label">Password</label>
+                    <input type="password" id="login-password" placeholder="••••••••" class="w-full bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-3 text-sm outline-none border-2 border-transparent focus:border-green-400 dark:text-white">
+                    <p id="first-login-hint" class="text-[10px] text-green-500 mt-1 italic hidden">First login! Set your password above.</p>
                 </div>
-
-                <button onclick="attemptLogin()" class="w-full bg-green-500 hover:bg-green-400 text-black font-black py-4 rounded-xl shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest">
-                    Enter Workspace <i class="fas fa-arrow-right"></i>
-                </button>
+                <button onclick="attemptLogin()" class="w-full bg-green-500 hover:bg-green-400 text-black font-black py-4 rounded-xl transition uppercase tracking-widest">Enter Workspace</button>
             </div>
-            
-            <p class="text-[10px] text-slate-400 mt-6">&copy; 2025 PersonalSpace Security Protocol</p>
         </div>
     </div>
 
-    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg shadow-lg z-50 font-bold opacity-90 border border-t-0 border-green-400" id="connection-status">
-        <i class="fas fa-circle-notch fa-spin mr-1 text-yellow-400"></i> Connecting to Cloud...
+    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg z-50 font-bold border border-green-400" id="connection-status">
+        Connecting...
     </div>
-
-    <input type="file" id="avatar-upload" class="hidden" accept="image/*" onchange="handleAvatarFile(this)">
-    <input type="file" id="restore-upload" class="hidden" accept=".json" onchange="handleRestore(this)">
 
     <div class="flex flex-1 overflow-hidden relative">
-        <aside class="sidebar w-64 flex-shrink-0 flex flex-col justify-between h-full z-20 transition-all duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative" id="main-sidebar">
-        
-        <div class="p-6 text-white">
-            <h1 class="text-2xl font-bold tracking-wider text-green-400">PersonalSpace</h1>
-            <p class="text-xs text-white/60 uppercase tracking-wider mt-1">Team Project Hub</p>
-        </div>
+        <aside class="sidebar w-64 flex-shrink-0 flex flex-col justify-between h-full z-20">
+            <div class="p-6 text-white"><h1 class="text-2xl font-bold text-green-400">PersonalSpace</h1></div>
 
-        <div class="px-4 mb-4">
-                <label class="text-[10px] text-green-400/80 uppercase font-bold block mb-1">Session Identity:</label>
-                <div class="relative">
-                    <div id="user-display-tag" class="w-full bg-purple-900/50 border border-purple-500/30 rounded px-2 py-2 text-sm text-white font-bold flex items-center justify-between">
-                        <span>Admin</span>
-                        <button onclick="logout()" class="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-400">Logout</button>
-                    </div>
+            <div class="px-4 mb-4">
+                <div id="user-display-tag" class="w-full bg-purple-900/50 border border-purple-500/30 rounded px-2 py-2 text-sm text-white font-bold flex items-center justify-between">
+                    <span id="active-user-name">Admin</span>
+                    <button onclick="logout()" class="text-[9px] bg-red-500 text-white px-2 py-0.5 rounded">Logout</button>
                 </div>
-                <p class="text-[10px] text-white/50 mt-1 italic" id="view-mode-hint">Loading...</p>
             </div>
 
             <nav class="flex-1 px-4 space-y-2">
-                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10 active">
-                    <i class="fas fa-home w-5"></i> Dashboard
-                </button>
-                <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
-                    <i class="fas fa-tasks w-5"></i> Task Tracker
-                </button>
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg active"><i class="fas fa-home"></i> Dashboard</button>
+                <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg"><i class="fas fa-tasks"></i> Task Tracker</button>
             </nav>
 
             <div class="p-4 border-t border-purple-500/30">
-                <h3 class="text-xs font-bold text-green-400 uppercase mb-3 flex justify-between items-center">
-                    Team Members 
-                    <span id="member-count" class="bg-purple-800 px-2 rounded-full text-[10px] text-white">0</span>
-                </h3>
-                
+                <h3 class="text-xs font-bold text-green-400 uppercase mb-3 flex justify-between">Team Members <span id="member-count">0</span></h3>
                 <div id="admin-tools-members" class="admin-only flex gap-2 mb-3">
-                    <input type="text" id="new-member-name" placeholder="Name..." 
-                        class="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white/20 focus:border-green-400">
-                    <button onclick="addMember()" class="bg-green-600 hover:bg-green-500 text-black font-bold px-2 rounded text-sm transition">
-                        <i class="fas fa-plus"></i>
-                    </button>
+                    <input type="text" id="new-member-name" placeholder="Name..." class="w-full bg-white/10 border border-white/20 rounded px-2 py-1 text-sm text-white">
+                    <button onclick="addMember()" class="bg-green-600 px-2 rounded text-black font-bold">+</button>
                 </div>
-                
-                <p class="text-[9px] text-white/40 italic mb-2">Click avatar to upload photo</p>
-                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    <li class="text-white/50 text-xs italic">Loading team...</li>
-                </ul>
+                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto"></ul>
             </div>
-
-            <div class="p-4 flex flex-col gap-3 border-t border-purple-500/30">
-                <div class="flex justify-end">
-                    <button onclick="toggleTheme()" class="text-green-400 hover:text-white transition text-xs" title="Toggle Theme"><i class="fas fa-moon" id="theme-icon"></i></button>
-                </div>
-                
-                <div id="admin-tools-data" class="admin-only flex flex-col gap-2">
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="backupData()" class="bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 text-[10px] py-1 rounded transition flex items-center justify-center gap-1 border border-purple-500/30">
-                            <i class="fas fa-download"></i> Backup
-                        </button>
-                        <button onclick="triggerRestore()" class="bg-green-500/20 hover:bg-green-500/40 text-green-200 text-[10px] py-1 rounded transition flex items-center justify-center gap-1 border border-green-500/30">
-                            <i class="fas fa-upload"></i> Restore
-                        </button>
-                    </div>
-
-                    <button onclick="clearAllData()" class="text-left text-[10px] text-red-300 hover:text-red-100 transition flex items-center gap-2 mt-1">
-                        <i class="fas fa-trash-alt"></i> Nuke Cloud Data
-                    </button>
-                </div>
-                
-                <div class="text-white/30 text-[10px] text-center mt-2 pt-2 border-t border-white/5">
-                    &copy; 2025 PersonalSpace
-                </div>
+            
+            <div class="p-4 flex justify-between border-t border-purple-500/30">
+                <button onclick="toggleTheme()" class="text-green-400"><i class="fas fa-moon" id="theme-icon"></i></button>
+                <button onclick="clearAllData()" class="admin-only text-red-400 text-[10px]">Clear Data</button>
             </div>
         </aside>
 
-        <main class="flex-1 relative h-full overflow-hidden flex flex-col bg-white/5 backdrop-blur-sm">
-            
-            <button onclick="document.getElementById('main-sidebar').classList.toggle('-translate-x-full')" class="md:hidden absolute top-4 left-4 z-50 text-white bg-purple-600 p-2 rounded-lg shadow-lg">
-                <i class="fas fa-bars"></i>
-            </button>
-
-            <div id="view-dashboard" class="flex-1 overflow-hidden p-4 md:p-6 fade-in h-full flex flex-col">
-                
-                <header class="mb-4 text-white shrink-0">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h1 class="text-3xl font-bold tracking-tight text-green-400" id="clock">00:00</h1>
-                            <p class="text-sm opacity-90 mt-1 font-bold" id="date">Loading date...</p>
-                        </div>
-                        
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <p class="text-lg font-bold text-white leading-tight" id="greeting">Connecting...</p>
-                                <span id="dashboard-owner-badge" class="bg-green-500 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
-                            </div>
-                            <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg flex items-center justify-center overflow-hidden shrink-0">
-                                <i class="fas fa-user text-white/50 text-2xl"></i>
-                            </div>
-                        </div>
-                    </div>
+        <main class="flex-1 relative flex flex-col bg-white/5 backdrop-blur-sm p-6 overflow-hidden">
+            <div id="view-dashboard" class="flex-1 flex flex-col gap-4 overflow-hidden">
+                <header class="flex justify-between items-center text-white">
+                    <div><h1 class="text-3xl font-bold text-green-400" id="clock">00:00</h1><p id="date" class="text-sm">Date</p></div>
+                    <div id="greeting" class="text-xl font-bold">Hello!</div>
                 </header>
 
-                <div class="flex flex-col gap-4 flex-1 min-h-0">
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1 min-h-0">
-                        
-                        <div class="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
-                            
-                            <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col min-h-[200px]">
-                                <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                                    <i class="fas fa-sticky-note"></i> Quick Notes
-                                </h2>
-                                <textarea id="notepad" 
-                                    class="flex-1 w-full bg-purple-50 dark:bg-slate-900/50 border-none rounded-lg p-3 resize-none focus:ring-2 focus:ring-green-400 outline-none transition text-slate-700 dark:text-slate-200 text-sm"
-                                    placeholder="Type your notes here (Private to you)..."
-                                    onchange="saveNotes(this.value)"></textarea>
-                                <div class="text-[10px] text-right mt-1 text-slate-400" id="notes-status">Saved</div>
-                            </div>
-
-                            <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-0">
-                                <h2 class="text-sm font-bold mb-3 flex items-center gap-2 text-green-600 dark:text-green-400 shrink-0">
-                                    <i class="fas fa-check-circle"></i> Quick Tasks
-                                </h2>
-                                
-                                <div class="flex flex-col gap-2 mb-3 bg-purple-50 dark:bg-purple-900/20 p-2 rounded-xl border border-purple-100 dark:border-purple-800 shrink-0">
-                                    <input type="text" id="quick-task-input" placeholder="New task..." 
-                                        class="w-full bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                                    
-                                    <div class="flex gap-2">
-                                        <select id="quick-task-assignee" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                            <option value="">Unassigned</option>
-                                        </select>
-                                        
-                                        <select id="quick-task-status" class="w-24 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                            <option value="todo">To Do</option>
-                                            <option value="inprogress">Doing</option>
-                                            <option value="done">Done</option>
-                                        </select>
-                                        
-                                        <button onclick="addQuickTask()" class="bg-green-500 hover:bg-green-600 text-black font-bold rounded-lg px-3 transition transform active:scale-95 shadow-lg shadow-green-500/30 text-xs">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <ul id="quick-task-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0"></ul>
-                            </div>
-                            </div>
-
-                        <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col h-full shrink-0 min-h-[250px]">
-                            <div class="flex justify-between items-center mb-2 shrink-0">
-                                <h2 class="text-sm font-bold flex items-center gap-2 text-purple-700 dark:text-purple-400">
-                                    <i class="fas fa-calendar-alt"></i> Master Schedule
-                                </h2>
-                                <div class="flex gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                    <button onclick="changeMonth(-1)" class="hover:text-green-500 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fas fa-chevron-left"></i></button>
-                                    <span id="calendar-month-year" class="font-bold w-24 text-center flex items-center justify-center">...</span>
-                                    <button onclick="changeMonth(1)" class="hover:text-green-500 w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"><i class="fas fa-chevron-right"></i></button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0 border-b border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-900/20 py-1 rounded-t-lg shrink-0">
-                                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-                            </div>
-
-                            <div id="calendar-body" class="calendar-grid flex-1 overflow-y-auto">
-                            </div>
-                            
-                            <div class="mt-1 text-center text-[10px] text-slate-400 italic shrink-0">Hover events to update urgency or resolve.</div>
+                <div class="grid grid-cols-10 gap-4 flex-1 overflow-hidden">
+                    <div class="col-span-3 flex flex-col gap-4 overflow-hidden">
+                        <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col">
+                            <h2 class="text-sm font-bold mb-2">Quick Notes</h2>
+                            <textarea id="notepad" onchange="saveNotes(this.value)" class="flex-1 bg-transparent outline-none text-sm resize-none"></textarea>
                         </div>
-
+                        <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col overflow-hidden">
+                            <h2 class="text-sm font-bold mb-2">Quick Tasks</h2>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="quick-task-input" class="flex-1 bg-white/10 rounded px-2 py-1 text-xs">
+                                <button onclick="addQuickTask()" class="bg-green-500 px-2 rounded">+</button>
+                            </div>
+                            <ul id="quick-task-list" class="flex-1 overflow-y-auto space-y-2"></ul>
+                        </div>
+                    </div>
+                    <div class="col-span-7 glass-panel rounded-2xl p-4 flex flex-col overflow-hidden">
+                        <div class="flex justify-between mb-2">
+                            <h2 class="font-bold">Master Schedule</h2>
+                            <div class="flex gap-4">
+                                <button onclick="changeMonth(-1)">&lt;</button>
+                                <span id="calendar-month-year" class="font-bold">...</span>
+                                <button onclick="changeMonth(1)">&gt;</button>
+                            </div>
+                        </div>
+                        <div id="calendar-body" class="calendar-grid flex-1 overflow-y-auto"></div>
                     </div>
                 </div>
             </div>
 
-            <div id="view-kanban" class="flex-1 overflow-hidden p-4 md:p-6 fade-in hidden flex-col h-full">
-                
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0 text-white gap-4">
-                    <div class="flex-1">
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-green-400 tracking-wide">
-                            Task Tracker 
-                            <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Main View</span>
-                        </h2>
-                        <p class="text-sm opacity-80" id="tracker-subtitle">Manage the project</p>
+            <div id="view-kanban" class="hidden flex-1 flex-col gap-4">
+                <div class="grid grid-cols-3 gap-6 h-full">
+                    <div class="glass-panel p-4 rounded-xl flex flex-col">
+                        <h3 class="font-bold mb-4 border-b pb-2">To Do</h3>
+                        <div id="kanban-todo" class="column-body flex-1 space-y-3" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
                     </div>
-
-                    <div class="bg-black/40 p-1 rounded-lg flex text-xs font-bold items-center gap-2 border border-purple-500/50">
-                        <button onclick="switchKanbanView('status')" id="btn-view-status" class="view-btn active px-3 py-1.5 rounded text-white">Status</button>
-                        <button onclick="switchKanbanView('week')" id="btn-view-week" class="view-btn px-3 py-1.5 rounded text-white text-opacity-70 hover:text-opacity-100">Week View</button>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col">
+                        <h3 class="font-bold mb-4 border-b pb-2">Doing</h3>
+                        <div id="kanban-inprogress" class="column-body flex-1 space-y-3" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
                     </div>
-
-                    <div id="kanban-filter-container" class="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-purple-500/50">
-                            <div class="relative flex items-center">
-                                <i class="fas fa-calendar-alt text-green-400/70 text-xs absolute left-2 pointer-events-none"></i>
-                                <input type="text" id="date-range-picker" placeholder="Date / Filter..." 
-                                    class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-48 placeholder-white/50 cursor-pointer">
-                            </div>
-                            <button onclick="clearFilters()" class="text-xs text-white/50 hover:text-white px-2" title="Clear Filter"><i class="fas fa-times"></i></button>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button onclick="toggleReportModal()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg backdrop-blur transition flex items-center gap-2 text-sm border border-white/10">
-                            <i class="fas fa-chart-pie"></i> Report
-                        </button>
-                        <button onclick="openTaskModal()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
-                            <i class="fas fa-plus"></i> New Task
-                        </button>
+                    <div class="glass-panel p-4 rounded-xl flex flex-col">
+                        <h3 class="font-bold mb-4 border-b pb-2">Done</h3>
+                        <div id="kanban-done" class="column-body flex-1 space-y-3" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
                     </div>
                 </div>
-
-                <div id="kanban-status-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[800px] md:min-w-0">
-                        
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-slate-400">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-slate-700 dark:text-slate-200">To Do</h3>
-                                <span id="count-todo" class="bg-slate-200 dark:bg-slate-700 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-purple-600">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-purple-700 dark:text-purple-400">In Progress</h3>
-                                <span id="count-inprogress" class="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-green-500">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
-                                <h3 class="font-bold text-green-600 dark:text-green-400">Executed</h3>
-                                <span id="count-done" class="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">0</span>
-                            </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <div id="kanban-week-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full hidden">
-                    <div class="grid grid-cols-7 gap-2 h-full min-w-[1400px]">
-                        <div id="week-columns-container" class="contents"></div>
-                    </div>
-                </div>
-
             </div>
         </main>
     </div>
 
-    <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border-2 border-purple-500">
-            <h2 class="text-xl font-bold mb-4 dark:text-white text-purple-800 tracking-wide" id="modal-title">Task Details</h2>
-            <input type="hidden" id="task-id">
-            
-            <div class="mb-3">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
-                <input type="text" id="task-title" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white">
+    <div id="calendar-modal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h2 id="cal-date-title" class="font-bold mb-4">Date</h2>
+            <div id="day-events-list" class="mb-4 space-y-2"></div>
+            <input type="text" id="new-event-input" placeholder="New event..." class="w-full border p-2 rounded mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('calendar-modal')">Cancel</button>
+                <button onclick="addEvent()" class="bg-green-500 px-4 py-2 rounded">Add</button>
             </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Assign To</label>
-                    <select id="task-assignee" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white">
-                        <option value="">Unassigned</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Scheduled Date</label>
-                    <input type="date" id="task-date" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white text-sm">
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Urgency Level</label>
-                <div class="flex gap-3 text-xl flag-rating" id="priority-selector">
-                    <input type="hidden" id="task-priority" value="1">
-                    <i class="fas fa-flag flag-btn" data-val="1" onclick="setPriority(1)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="2" onclick="setPriority(2)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="3" onclick="setPriority(3)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="4" onclick="setPriority(4)"></i>
-                    <i class="fas fa-flag flag-btn" data-val="5" onclick="setPriority(5)"></i>
-                </div>
-                <p class="text-[10px] text-slate-400 mt-1" id="priority-text">Low Urgency</p>
-            </div>
-            
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
-                <textarea id="task-desc" rows="3" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"></textarea>
-            </div>
-
-            <div class="flex justify-between">
-                <button type="button" onclick="deleteCurrentTask()" id="btn-delete" class="text-red-500 hover:text-red-700 text-sm hidden">Delete Task</button>
-                <div class="flex gap-2 ml-auto">
-                    <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-500 dark:text-slate-400">Cancel</button>
-                    <button onclick="saveTask()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium">Save</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
-            <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
-            <p class="text-xs text-slate-500 mb-4">Scheduled Events</p>
-            <input type="hidden" id="cal-date-val">
-            <div id="day-events-list" class="mb-4 space-y-2 max-h-40 overflow-y-auto min-h-[50px] bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2"></div>
-            <div class="flex flex-col gap-2">
-                <div class="flex gap-2 p-2 bg-slate-50 dark:bg-slate-700/30 rounded border border-slate-100 dark:border-slate-700">
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">From Date</label>
-                        <input type="date" id="evt-start-date" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-1 text-xs dark:text-white">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">To Date</label>
-                        <input type="date" id="evt-end-date" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded p-1 text-xs dark:text-white">
-                    </div>
-                </div>
-                <div class="flex gap-2 items-center mb-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">Urgency:</span>
-                    <button type="button" onclick="setCalUrgency('low')" id="btn-urgency-low" class="flex-1 text-[10px] py-1 rounded border border-green-500 text-green-600 bg-green-50 hover:bg-green-100 font-bold transition">Low</button>
-                    <button type="button" onclick="setCalUrgency('medium')" id="btn-urgency-medium" class="flex-1 text-[10px] py-1 rounded border border-purple-200 text-purple-400 hover:bg-purple-50 font-bold transition">Med</button>
-                    <button type="button" onclick="setCalUrgency('high')" id="btn-urgency-high" class="flex-1 text-[10px] py-1 rounded border border-red-200 text-red-400 hover:bg-red-50 font-bold transition">High</button>
-                    <input type="hidden" id="new-event-urgency" value="low">
-                </div>
-                <div class="flex gap-2">
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">Start Time</label>
-                        <input type="time" id="new-event-start" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase">End Time</label>
-                        <input type="time" id="new-event-end" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="new-event-input" placeholder="Event details..." class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
-                    <button id="btn-cancel-edit" onclick="cancelEditMode()" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold px-3 py-2 rounded-lg transition"><i class="fas fa-times"></i></button>
-                    <button id="btn-add-event" onclick="addEvent()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-3 py-2 rounded-lg transition"><i class="fas fa-plus"></i></button>
-                </div>
-            </div>
-            <div class="mt-4 text-right"><button onclick="closeModal('calendar-modal')" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Close</button></div>
-        </div>
-    </div>
-
-    <div id="report-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col p-6 shadow-2xl border border-purple-600">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold dark:text-white tracking-wide text-purple-700"><i class="fas fa-clipboard-list mr-2"></i>Performance Report</h2>
-                <button onclick="toggleReportModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="flex gap-4 mb-6 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl items-end flex-wrap">
-                <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">From</label><input type="date" id="report-start" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white"></div>
-                <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">To</label><input type="date" id="report-end" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white"></div>
-                <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">User</label><select id="report-user-filter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white outline-none w-32"><option value="">All Users</option></select></div>
-                <div><label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Generic Day</label><select id="report-day-filter" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm dark:text-white outline-none w-32"><option value="">Any</option><option value="Sunday">Sunday</option><option value="Monday">Monday</option><option value="Tuesday">Tuesday</option><option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option><option value="Friday">Friday</option><option value="Saturday">Saturday</option></select></div>
-                <button onclick="generateReport()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 h-[38px]">Apply</button>
-                <button onclick="exportReportCSV()" class="bg-green-600 text-black font-bold px-4 py-2 rounded-lg text-sm hover:bg-green-500 h-[38px] ml-auto"><i class="fas fa-file-csv mr-1"></i> Export CSV</button>
-            </div>
-            <div class="flex-1 overflow-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 sticky top-0"><tr><th class="p-3">Task</th><th class="p-3">Assignee</th><th class="p-3">Completed</th><th class="p-3 text-right">Work Time</th></tr></thead><tbody id="report-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody></table></div>
         </div>
     </div>
 
     <script>
-        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCvfwF-_by5hoUIVoEowKwbzzKF3YkJWy0",
             authDomain: "personalspacehub-3a44d.firebaseapp.com",
             projectId: "personalspacehub-3a44d",
             storageBucket: "personalspacehub-3a44d.firebasestorage.app",
-            messagingSenderId: "605942768680",
-            appId: "1:605942768680:web:74702b5d902dd462f1811d",
-            measurementId: "G-E1YDD7Y7MX",
             databaseURL: "https://personalspacehub-3a44d-default-rtdb.firebaseio.com/"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const analytics = firebase.analytics();
 
-        // --- GLOBAL STATE ---
         const store = {
-            theme: localStorage.getItem('nexus_theme') || 'light',
             currentUser: null,
             users: [],
-            passwords: {}, // New: Added password storage
+            passwords: {},
             kanbanTasks: [],
-            avatars: {}, 
-            focus: '',
+            events: {},
             notes: '',
-            events: {}, 
             calendarMonth: new Date().getMonth(),
-            calendarYear: new Date().getFullYear(),
-            kanbanMode: 'status',
-            weekViewStart: new Date()
-        };
-        
-        let draggedItem = null;
-        let uploadingUser = null;
-        let editingEventIdx = null; 
-
-        // LOGIN HELPERS
-        window.attemptLogin = attemptLogin;
-        window.logout = logout;
-        window.resetUserPassword = resetUserPassword;
-
-        // --- EXPOSE FUNCTIONS ---
-        window.switchUser = switchUser;
-        window.switchView = switchView;
-        window.switchKanbanView = switchKanbanView;
-        window.addMember = addMember;
-        window.removeMember = removeMember;
-        window.toggleTheme = toggleTheme;
-        window.saveFocus = saveFocus;
-        window.saveNotes = saveNotes;
-        window.addQuickTask = addQuickTask;
-        window.deleteQuickTask = deleteQuickTask;
-        window.updateTaskStatus = updateTaskStatus;
-        window.updateTaskPriority = updateTaskPriority;
-        window.updateTaskDate = updateTaskDate; 
-        window.toggleTaskPause = toggleTaskPause;
-        window.openTaskModal = openTaskModal;
-        window.closeModal = closeModal;
-        window.saveTask = saveTask;
-        window.deleteCurrentTask = deleteCurrentTask;
-        window.toggleReportModal = toggleReportModal;
-        window.generateReport = generateReport;
-        window.clearAllData = clearAllData;
-        window.backupData = backupData;
-        window.triggerRestore = triggerRestore;
-        window.handleRestore = handleRestore;
-        window.exportReportCSV = exportReportCSV;
-        window.setPriority = setPriority;
-        window.clearFilters = clearFilters;
-        window.changeWeek = changeWeek;
-        window.triggerAvatarUpload = triggerAvatarUpload;
-        window.handleAvatarFile = handleAvatarFile;
-        window.changeMonth = changeMonth;
-        window.openCalendarModal = openCalendarModal;
-        window.addEvent = addEvent;
-        window.deleteEvent = deleteEvent;
-        window.resolveEvent = resolveEvent; 
-        window.setCalUrgency = setCalUrgency; 
-        window.updateEventUrgency = updateEventUrgency;
-        window.initEditEvent = initEditEvent;
-        window.cancelEditMode = cancelEditMode;
-
-        // Drag & Drop
-        window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
-        window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
-        window.allowDrop = (e) => { e.preventDefault(); e.target.closest('.column-body')?.classList.add('drag-over'); };
-        window.drop = (e, val, type) => {
-            e.preventDefault();
-            const col = e.target.closest('.column-body');
-            col?.classList.remove('drag-over');
-            if(draggedItem) { 
-                if(type === 'status') updateTaskStatus(draggedItem, val); 
-                if(type === 'date') updateTaskDate(draggedItem, val);
-                draggedItem = null; 
-            }
+            calendarYear: new Date().getFullYear()
         };
 
-        // --- INIT ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadTheme();
-            updateClock();
-            setInterval(updateClock, 1000);
-            
-            const today = new Date();
-            const day = today.getDay(); 
-            const diff = today.getDate() - day; 
-            store.weekViewStart = new Date(today.setDate(diff));
-            store.weekViewStart.setHours(0,0,0,0);
-
-            // Report defaults
-            const now = new Date();
-            document.getElementById('report-end').valueAsDate = now;
-            document.getElementById('report-start').valueAsDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            
-            document.getElementById('quick-task-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') addQuickTask(); });
-
-            // Detect Selection for password logic
-            document.getElementById('login-user-select').addEventListener('change', function() {
-                const user = this.value;
-                const hint = document.getElementById('first-login-hint');
-                const label = document.getElementById('pass-label');
-                
-                if (user && user !== 'admin' && !store.passwords[user]) {
-                    hint.classList.remove('hidden');
-                    label.textContent = "Create New Password";
-                } else {
-                    hint.classList.add('hidden');
-                    label.textContent = "Password";
-                }
-            });
-
-            // --- FIREBASE LISTENER ---
-            const statusDiv = document.getElementById('connection-status');
-            db.ref('projectData').on('value', (snapshot) => {
-                statusDiv.innerHTML = '<i class="fas fa-wifi mr-1 text-green-400"></i> Cloud Connected';
-                statusDiv.classList.remove('bg-purple-900', 'border-green-400');
-                statusDiv.classList.add('bg-black', 'border-green-600');
-                
-                const data = snapshot.val();
-                if(data) {
-                    store.users = data.users || [];
-                    store.passwords = data.passwords || {}; // Load passwords
-                    store.kanbanTasks = data.kanbanTasks || [];
-                    store.events = data.events || {};
-                    store.avatars = data.avatars || {};
-                    
-                    if(store.currentUser) {
-                         const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-                         if(data.userData && data.userData[userKey]) {
-                             store.notes = data.userData[userKey].notes || '';
-                             store.focus = data.userData[userKey].focus || '';
-                         }
-                    }
-
-                    updateLoginUserSelect();
-                    renderTeamList();
-                    renderKanbanBoard(); 
-                    renderCalendar();
-                    updateDashboardUI();
-                }
-            });
-
-            setInterval(updateKanbanTimers, 1000);
-            flatpickr("#date-range-picker", {
-                mode: "range", dateFormat: "Y-m-d", theme: "dark",
-                onChange: function(selectedDates) {
-                    if (store.kanbanMode === 'week' && selectedDates.length > 0) jumpToWeek(selectedDates[0]);
-                    else if (selectedDates.length === 2 || selectedDates.length === 0) renderKanbanBoard();
-                }
-            });
+        // UI LISTENERS
+        document.getElementById('login-user-select').addEventListener('change', function() {
+            const u = this.value;
+            document.getElementById('first-login-hint').classList.toggle('hidden', (u === 'admin' || (store.passwords && store.passwords[u])));
         });
 
-        // --- NEW: LOGIN LOGIC ---
+        // CORE FUNCTIONS
         function attemptLogin() {
-            const user = document.getElementById('login-user-select').value;
-            const pass = document.getElementById('login-password').value;
+            const u = document.getElementById('login-user-select').value;
+            const p = document.getElementById('login-password').value;
+            if(!u || !p) return alert("Missing info");
 
-            if (!user) return alert("Please select a name.");
-            if (!pass) return alert("Please enter a password.");
-
-            // Admin Logic
-            if (user === 'admin') {
-                if (pass === 'admin123') { // Default admin password
-                    switchUser(null);
-                    hideWelcome();
-                } else {
-                    alert("Incorrect Admin Password.");
-                }
-                return;
-            }
-
-            // Member Logic
-            if (!store.passwords[user]) {
-                // First Login - Setup Password
-                store.passwords[user] = pass;
-                pushPasswordsToCloud();
-                switchUser(user);
-                hideWelcome();
-                alert("Password set! Welcome to your space.");
+            if(u === 'admin') {
+                if(p === 'admin123') loginSuccess(null);
+                else alert("Wrong Admin Pass");
             } else {
-                // Verify Password
-                if (store.passwords[user] === pass) {
-                    switchUser(user);
-                    hideWelcome();
+                if(!store.passwords || !store.passwords[u]) {
+                    if(!store.passwords) store.passwords = {};
+                    store.passwords[u] = p;
+                    db.ref('projectData/passwords').set(store.passwords);
+                    loginSuccess(u);
+                } else if(store.passwords[u] === p) {
+                    loginSuccess(u);
                 } else {
-                    alert("Incorrect Password.");
+                    alert("Wrong Password");
                 }
             }
         }
 
-        function logout() {
-            location.reload();
-        }
-
-        function hideWelcome() {
+        function loginSuccess(u) {
+            store.currentUser = u;
+            document.getElementById('active-user-name').textContent = u || "Admin";
             document.getElementById('welcome-screen').classList.add('hidden');
+            updateUIForUser();
+            renderCalendar();
+            renderKanbanBoard();
         }
 
-        function updateLoginUserSelect() {
-            const select = document.getElementById('login-user-select');
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">Choose your name...</option><option value="admin">★ System Admin</option>';
-            store.users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u; opt.textContent = u;
-                select.appendChild(opt);
-            });
-            select.value = currentVal;
-        }
+        function logout() { location.reload(); }
 
-        function resetUserPassword(user) {
-            if (confirm(`Clear password for ${user}? They will be asked to set a new one on next login.`)) {
-                delete store.passwords[user];
-                pushPasswordsToCloud();
-                alert("Password reset.");
-            }
-        }
-
-        function pushPasswordsToCloud() {
-            db.ref('projectData/passwords').set(store.passwords);
-        }
-
-        // --- HELPER: PUSH TO CLOUD ---
-        function pushToCloud() {
-            db.ref('projectData').update({
-                users: store.users,
-                kanbanTasks: store.kanbanTasks,
-                events: store.events,
-                avatars: store.avatars
-            });
-        }
-        
-        function saveUserDataToCloud() {
-            if(!store.currentUser) return;
-            const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-            db.ref('projectData/userData/' + userKey).update({
-                notes: store.notes,
-                focus: store.focus
-            });
-        }
-
-        // --- CORE LOGIC ---
-        function switchUser(userName) {
-            store.currentUser = userName || null;
-            
-            if(store.currentUser) {
-                const userKey = store.currentUser.replace(/[^a-zA-Z0-9]/g, '_');
-                db.ref('projectData/userData/' + userKey).once('value').then((snap) => {
-                    const d = snap.val() || {};
-                    store.notes = d.notes || '';
-                    store.focus = d.focus || '';
-                    updateUIForUser();
-                    updateDashboardUI();
-                });
-            } else {
-                store.notes = '';
-                updateUIForUser();
-                updateDashboardUI();
-            }
-            
-            renderKanbanBoard(); 
-            renderTeamList(); 
-        }
+        function switchUser(u) { store.currentUser = u; updateUIForUser(); }
 
         function updateUIForUser() {
-            const badge = document.getElementById('dashboard-owner-badge');
-            const greeting = document.getElementById('greeting');
-            const hint = document.getElementById('view-mode-hint');
-            const trackerBadge = document.getElementById('tracker-badge');
-            const trackerSub = document.getElementById('tracker-subtitle');
-            const avatarContainer = document.getElementById('header-avatar');
-            const adminTools = document.querySelectorAll('.admin-only');
-            const userTag = document.getElementById('user-display-tag');
-
-            if (store.currentUser) {
-                userTag.querySelector('span').textContent = store.currentUser;
-                badge.textContent = `${store.currentUser}'s Workspace`;
-                badge.classList.remove('hidden');
-                greeting.textContent = `Hello, ${store.currentUser}.`;
-                hint.textContent = "Member Access";
-                trackerBadge.textContent = "Personal Filter";
-                trackerSub.textContent = `Tasks assigned to ${store.currentUser}`;
-                adminTools.forEach(el => el.classList.add('hidden-tool'));
-
-                if (store.avatars[store.currentUser]) {
-                    avatarContainer.innerHTML = `<img src="${store.avatars[store.currentUser]}" class="w-full h-full object-cover">`;
-                } else {
-                    avatarContainer.innerHTML = `<div class="w-full h-full bg-purple-600 flex items-center justify-center text-white text-2xl font-bold">${store.currentUser.charAt(0).toUpperCase()}</div>`;
-                }
-            } else {
-                userTag.querySelector('span').textContent = "Admin";
-                badge.classList.add('hidden');
-                updateClock();
-                hint.textContent = "System Admin View";
-                trackerBadge.textContent = "Main View";
-                trackerSub.textContent = "Showing all project tasks";
-                adminTools.forEach(el => el.classList.remove('hidden-tool'));
-                avatarContainer.innerHTML = `<i class="fas fa-user-shield text-white/50 text-2xl"></i>`;
-            }
+            const isAdmin = !store.currentUser;
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
+            document.getElementById('greeting').textContent = "Hello, " + (store.currentUser || "Admin");
         }
 
-        function updateDashboardUI() {
-            document.getElementById('notepad').value = store.notes;
-            renderQuickTasks(); 
-        }
-
-        function triggerAvatarUpload(username) {
-            uploadingUser = username;
-            document.getElementById('avatar-upload').click();
-        }
-
-        function handleAvatarFile(input) {
-            if (input.files && input.files[0] && uploadingUser) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Img = e.target.result;
-                    if(base64Img.length > 700000) { alert("Image too large (<500KB)."); return; }
-                    store.avatars[uploadingUser] = base64Img;
-                    pushToCloud();
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-            input.value = '';
-        }
-
-        function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
-        function saveNotes(val) { 
-            store.notes = val; 
-            saveUserDataToCloud();
-            document.getElementById('notes-status').textContent = 'Saved';
-        }
-
-        // --- CALENDAR LOGIC ---
-        function changeMonth(delta) {
-            store.calendarMonth += delta;
-            if(store.calendarMonth > 11) { store.calendarMonth = 0; store.calendarYear++; }
-            if(store.calendarMonth < 0) { store.calendarMonth = 11; store.calendarYear--; }
+        // FIREBASE LISTENER
+        db.ref('projectData').on('value', snap => {
+            const d = snap.val() || {};
+            store.users = d.users || [];
+            store.passwords = d.passwords || {};
+            store.kanbanTasks = d.kanbanTasks || [];
+            store.events = d.events || {};
+            
+            updateLoginUserSelect();
+            renderTeamList();
+            renderKanbanBoard();
             renderCalendar();
-        }
-
-        function parseEventData(evt) {
-            if (typeof evt === 'string') {
-                try { return JSON.parse(evt); } 
-                catch (e) { return { time: '', text: evt, urgency: 'low' }; }
-            }
-            return evt;
-        }
-
-        function renderCalendar() {
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendar-month-year').textContent = `${monthNames[store.calendarMonth]} ${store.calendarYear}`;
-            const firstDay = new Date(store.calendarYear, store.calendarMonth, 1).getDay();
-            const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
-            const today = new Date();
-            const grid = document.getElementById('calendar-body');
-            grid.innerHTML = '';
-
-            for(let i=0; i<firstDay; i++) {
-                const pad = document.createElement('div');
-                pad.className = "bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700";
-                grid.appendChild(pad);
-            }
-
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateKey = `${store.calendarYear}-${String(store.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isToday = (today.getDate() === d && today.getMonth() === store.calendarMonth && today.getFullYear() === store.calendarYear);
-                const events = store.events[dateKey] || [];
-                const el = document.createElement('div');
-                el.className = `calendar-day ${isToday ? 'today' : ''}`;
-                const num = document.createElement('div');
-                num.className = "calendar-day-number";
-                num.textContent = d;
-                el.appendChild(num);
-                
-                events.forEach((evt, index) => {
-                    const evtData = parseEventData(evt);
-                    const evtDiv = document.createElement('div');
-                    evtDiv.className = `cal-event-item group cal-urgency-${evtData.urgency || 'low'}`;
-                    evtDiv.innerHTML = `${evtData.time ? `<span class="cal-time">${evtData.time}</span>` : ''}<span>${evtData.text}</span>`;
-                    const actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'cal-actions-container';
-                    actionsDiv.innerHTML = `<div class="cal-action-btn cal-btn-del" onclick="event.stopPropagation(); deleteEvent('${dateKey}', ${index})"><i class="fas fa-times"></i></div>`;
-                    evtDiv.appendChild(actionsDiv);
-                    el.appendChild(evtDiv);
-                });
-                el.onclick = () => openCalendarModal(dateKey);
-                grid.appendChild(el);
-            }
-        }
-
-        function openCalendarModal(dateStr) {
-            document.getElementById('calendar-modal').classList.remove('hidden');
-            document.getElementById('cal-date-title').textContent = new Date(dateStr).toDateString();
-            document.getElementById('cal-date-val').value = dateStr;
-            document.getElementById('evt-start-date').value = dateStr;
-            document.getElementById('evt-end-date').value = dateStr;
-            renderDayEvents(dateStr);
-        }
-
-        function renderDayEvents(dateStr) {
-            const list = document.getElementById('day-events-list');
-            list.innerHTML = '';
-            const events = store.events[dateStr] || [];
-            if(events.length === 0) { list.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">No events.</div>'; return; }
-            events.forEach((evt, idx) => {
-                const evtData = parseEventData(evt);
-                const div = document.createElement('div');
-                div.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs dark:text-white border-l-4 border-green-500 shadow-sm`;
-                div.innerHTML = `<div>${evtData.time ? `<span class="font-bold mr-2">${evtData.time}</span>` : ''}${evtData.text}</div><button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button>`;
-                list.appendChild(div);
-            });
-        }
-
-        function addEvent() {
-            const val = document.getElementById('new-event-input').value.trim();
-            const date = document.getElementById('cal-date-val').value;
-            if (!val) return;
-            if (!store.events[date]) store.events[date] = [];
-            store.events[date].push(JSON.stringify({ text: val, urgency: 'low' }));
-            pushToCloud();
-            document.getElementById('new-event-input').value = '';
-            renderDayEvents(date);
-        }
-
-        function deleteEvent(dateStr, idx) {
-            if(store.events[dateStr]) {
-                store.events[dateStr].splice(idx, 1);
-                if(store.events[dateStr].length === 0) delete store.events[dateStr];
-                pushToCloud();
-                renderDayEvents(dateStr);
-            }
-        }
-
-        // --- TASKS LOGIC ---
-        function addQuickTask() {
-            const val = document.getElementById('quick-task-input').value.trim();
-            const assignee = document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned";
-            if(val) {
-                store.kanbanTasks.push({ id: Date.now().toString(), title: val, assignee: assignee, status: 'todo', createdAt: Date.now(), priority: 1, log: { inprogress: 0 } });
-                pushToCloud();
-                document.getElementById('quick-task-input').value = '';
-            }
-        }
-
-        function deleteQuickTask(id) {
-            if(confirm('Delete this task?')) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.id !== id);
-                pushToCloud();
-            }
-        }
+            document.getElementById('connection-status').textContent = "Cloud Connected";
+        });
 
         function addMember() {
-            const name = document.getElementById('new-member-name').value.trim();
-            if(name && !store.users.includes(name)) {
-                store.users.push(name);
+            const n = document.getElementById('new-member-name').value.trim();
+            if(n && !store.users.includes(n)) {
+                store.users.push(n);
+                db.ref('projectData/users').set(store.users);
                 document.getElementById('new-member-name').value = '';
-                pushToCloud();
             }
         }
+
         function removeMember(idx) {
-            if(confirm('Remove user?')) {
-                const user = store.users[idx];
-                store.users.splice(idx, 1);
-                if (store.passwords[user]) delete store.passwords[user];
-                pushToCloud();
-                pushPasswordsToCloud();
-            }
-        }
-
-        function saveTask() {
-            const id = document.getElementById('task-id').value;
-            const title = document.getElementById('task-title').value;
-            const assignee = document.getElementById('task-assignee').value;
-            if(!title) return alert('Title required');
-            if(id) {
-                const t = store.kanbanTasks.find(x => x.id == id);
-                if(t) Object.assign(t, { title, assignee, description: document.getElementById('task-desc').value });
-            } else {
-                store.kanbanTasks.push({ id: Date.now().toString(), title, assignee, status: 'todo', createdAt: Date.now(), log: { inprogress: 0 } });
-            }
-            pushToCloud();
-            closeModal('task-modal');
-        }
-
-        function updateTaskStatus(id, newStatus) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (!task) return;
-            task.status = newStatus;
-            pushToCloud();
-        }
-
-        function updateTaskPriority(id, p) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (task) { task.priority = parseInt(p); pushToCloud(); }
-        }
-
-        function updateTaskDate(id, d) {
-            const task = store.kanbanTasks.find(t => t.id === id);
-            if (task) { task.assignedDate = d; pushToCloud(); }
+            const u = store.users[idx];
+            store.users.splice(idx, 1);
+            if(store.passwords && store.passwords[u]) delete store.passwords[u];
+            db.ref('projectData/users').set(store.users);
+            db.ref('projectData/passwords').set(store.passwords || {});
         }
 
         function renderTeamList() {
             const list = document.getElementById('team-list');
+            list.innerHTML = '';
             document.getElementById('member-count').textContent = store.users.length;
-            list.innerHTML = '';
-            const taskDropdown = document.getElementById('task-assignee');
-            taskDropdown.innerHTML = '<option value="">Unassigned</option>';
-
-            store.users.forEach((user, index) => {
+            store.users.forEach((u, i) => {
                 const li = document.createElement('li');
-                li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 transition group';
-                
-                let avatarHTML = `<div class="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-[10px] text-white font-bold">${user.charAt(0).toUpperCase()}</div>`;
-                if(store.avatars[user]) avatarHTML = `<div class="w-5 h-5 rounded-full bg-cover bg-center border border-white/20" style="background-image: url('${store.avatars[user]}')"></div>`;
-                
-                // ADDED: Reset Password Button for Admin
-                let adminBtns = '';
-                if (!store.currentUser) {
-                    adminBtns = `
-                        <div class="flex gap-2 opacity-0 group-hover:opacity-100">
-                            <button onclick="resetUserPassword('${user}')" title="Reset Password" class="text-yellow-400 hover:text-yellow-200"><i class="fas fa-key"></i></button>
-                            <button onclick="removeMember(${index})" class="hover:text-red-400"><i class="fas fa-times"></i></button>
-                        </div>
-                    `;
-                }
-
-                li.innerHTML = `
-                    <div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${user}')">
-                        ${avatarHTML}
-                        <span>${user}</span>
-                    </div>
-                    ${adminBtns}
-                `;
-                list.appendChild(li);
-                const opt = document.createElement('option');
-                opt.value = user; opt.textContent = user;
-                taskDropdown.appendChild(opt);
-            });
-        }
-
-        function renderKanbanBoard() {
-            ['todo', 'inprogress', 'done'].forEach(status => {
-                const container = document.querySelector(`[ondrop="drop(event, '${status}', 'status')"]`);
-                const tasks = store.kanbanTasks.filter(t => {
-                    if (t.status !== status) return false;
-                    if (store.currentUser && t.assignee !== store.currentUser) return false;
-                    return true;
-                });
-                container.innerHTML = '';
-                document.getElementById(`count-${status}`).textContent = tasks.length;
-                tasks.forEach(t => {
-                    const el = document.createElement('div');
-                    el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
-                    el.draggable = true;
-                    el.ondragstart = (e) => window.dragStart(e, t.id);
-                    el.innerHTML = `
-                        <div class="flex justify-between">
-                            <h4 class="font-bold text-sm">${t.title}</h4>
-                            <button onclick="openTaskModal('${t.id}')" class="text-xs text-slate-400"><i class="fas fa-pen"></i></button>
-                        </div>
-                        <div class="text-[10px] mt-2 text-purple-500 font-bold">${t.assignee || 'Unassigned'}</div>
-                    `;
-                    container.appendChild(el);
-                });
-            });
-            renderQuickTasks();
-        }
-
-        function renderQuickTasks() {
-            const list = document.getElementById('quick-task-list');
-            list.innerHTML = '';
-            const myTasks = store.kanbanTasks.filter(t => !store.currentUser || t.assignee === store.currentUser);
-            myTasks.forEach(t => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded shadow-sm text-xs';
-                li.innerHTML = `<span>${t.title}</span><div class="flex gap-2"><span class="font-bold text-[10px] uppercase">${t.status}</span><button onclick="deleteQuickTask('${t.id}')"><i class="fas fa-trash text-red-400"></i></button></div>`;
+                li.className = "flex justify-between items-center bg-white/5 p-2 rounded text-white text-sm group";
+                li.innerHTML = `<span>${u}</span>
+                    <div class="opacity-0 group-hover:opacity-100 flex gap-2">
+                        <button onclick="resetPass('${u}')" class="text-yellow-400">🔑</button>
+                        <button onclick="removeMember(${i})" class="text-red-400">×</button>
+                    </div>`;
                 list.appendChild(li);
             });
         }
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-            document.getElementById('date').textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-            if (!store.currentUser) document.getElementById('greeting').textContent = "System Admin Access";
-        }
-
-        function updateKanbanTimers() {} // No modifications to logic needed
-        function formatTime(s) { const m = Math.floor(s/60), sec = s%60; return `${m}m ${sec}s`; }
-        
-        function loadTheme() {
-            const b = document.body;
-            if(store.theme === 'dark') b.classList.add('dark'); else b.classList.remove('dark');
-        }
-        function toggleTheme() {
-            store.theme = store.theme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('nexus_theme', store.theme);
-            loadTheme();
-        }
-        function switchView(viewName) {
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-kanban').classList.add('hidden');
-            document.getElementById(`view-${viewName}`).classList.remove('hidden');
-            document.getElementById(`view-${viewName}`).classList.add('flex');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(`nav-${viewName}`).classList.add('active');
-        }
-        function openTaskModal(id = null) {
-            document.getElementById('task-modal').classList.remove('hidden');
-            if(id) {
-                const t = store.kanbanTasks.find(x => x.id === id);
-                document.getElementById('task-title').value = t.title;
-                document.getElementById('task-id').value = t.id;
+        function resetPass(u) {
+            if(confirm("Reset pass for " + u + "?")) {
+                delete store.passwords[u];
+                db.ref('projectData/passwords').set(store.passwords);
             }
         }
+
+        function updateLoginUserSelect() {
+            const s = document.getElementById('login-user-select');
+            const cur = s.value;
+            s.innerHTML = '<option value="">Choose name...</option><option value="admin">★ System Admin</option>';
+            store.users.forEach(u => {
+                const o = document.createElement('option');
+                o.value = u; o.textContent = u;
+                s.appendChild(o);
+            });
+            s.value = cur;
+        }
+
+        // CALENDAR
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-body');
+            grid.innerHTML = '';
+            const first = new Date(store.calendarYear, store.calendarMonth, 1).getDay();
+            const days = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
+            
+            document.getElementById('calendar-month-year').textContent = new Date(store.calendarYear, store.calendarMonth).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+            for(let i=0; i<first; i++) grid.appendChild(document.createElement('div'));
+            
+            for(let d=1; d<=days; d++) {
+                const dateKey = `${store.calendarYear}-${store.calendarMonth}-${d}`;
+                const el = document.createElement('div');
+                el.className = "calendar-day";
+                const today = new Date();
+                if(d === today.getDate() && store.calendarMonth === today.getMonth()) el.classList.add('today');
+                
+                el.innerHTML = `<div class="font-bold">${d}</div>`;
+                const evs = store.events[dateKey] || [];
+                evs.forEach(ev => {
+                    const div = document.createElement('div');
+                    div.className = "cal-event-item";
+                    div.textContent = (typeof ev === 'string' ? JSON.parse(ev).text : ev.text);
+                    el.appendChild(div);
+                });
+                el.onclick = () => openCalendar(dateKey);
+                grid.appendChild(el);
+            }
+        }
+
+        function openCalendar(key) {
+            document.getElementById('calendar-modal').classList.remove('hidden');
+            document.getElementById('cal-date-title').textContent = key;
+            renderEvents(key);
+        }
+
+        function renderEvents(key) {
+            const list = document.getElementById('day-events-list');
+            list.innerHTML = '';
+            const evs = store.events[key] || [];
+            evs.forEach((ev, i) => {
+                const text = (typeof ev === 'string' ? JSON.parse(ev).text : ev.text);
+                const d = document.createElement('div');
+                d.className = "flex justify-between text-sm p-1 border-b";
+                d.innerHTML = `<span>${text}</span><button onclick="delEv('${key}', ${i})">×</button>`;
+                list.appendChild(d);
+            });
+        }
+
+        function addEvent() {
+            const k = document.getElementById('cal-date-title').textContent;
+            const v = document.getElementById('new-event-input').value;
+            if(!v) return;
+            if(!store.events[k]) store.events[k] = [];
+            store.events[k].push(JSON.stringify({text: v}));
+            db.ref('projectData/events').set(store.events);
+            document.getElementById('new-event-input').value = '';
+            renderEvents(k);
+        }
+
+        function delEv(k, i) {
+            store.events[k].splice(i,1);
+            db.ref('projectData/events').set(store.events);
+            renderEvents(k);
+        }
+
+        // TASKS
+        function renderKanbanBoard() {
+            ['todo', 'inprogress', 'done'].forEach(s => {
+                const con = document.getElementById('kanban-' + s);
+                con.innerHTML = '';
+                const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
+                tasks.forEach(t => {
+                    const d = document.createElement('div');
+                    d.className = "bg-white p-2 rounded shadow text-sm cursor-pointer";
+                    d.draggable = true;
+                    d.ondragstart = (e) => draggedItem = t.id;
+                    d.innerHTML = `<b>${t.title}</b><br><small>${t.assignee}</small>`;
+                    con.appendChild(d);
+                });
+            });
+        }
+
+        function addQuickTask() {
+            const v = document.getElementById('quick-task-input').value;
+            if(!v) return;
+            store.kanbanTasks.push({id: Date.now().toString(), title: v, status: 'todo', assignee: store.currentUser || 'Unassigned'});
+            db.ref('projectData/kanbanTasks').set(store.kanbanTasks);
+            document.getElementById('quick-task-input').value = '';
+        }
+
+        // UTILS
+        function switchView(v) {
+            document.getElementById('view-dashboard').classList.toggle('hidden', v !== 'dashboard');
+            document.getElementById('view-kanban').classList.toggle('hidden', v !== 'kanban');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.id === 'nav-' + v));
+        }
+
+        function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function toggleReportModal() { document.getElementById('report-modal').classList.toggle('hidden'); }
-        function generateReport() {}
-        function clearAllData() { if(confirm("Nuke data?")) db.ref('projectData').remove(); }
-        function backupData() {}
-        function triggerRestore() {}
-        function handleRestore() {}
-        function exportReportCSV() {}
-        function setPriority(v) { document.getElementById('task-priority').value = v; }
-        function clearFilters() {}
-        function setCalUrgency(l) { document.getElementById('new-event-urgency').value = l; }
-        function updateEventUrgency() {}
-        function initEditEvent() {}
-        function cancelEditMode() {}
+        function changeMonth(n) { store.calendarMonth += n; renderCalendar(); }
+        function allowDrop(e) { e.preventDefault(); }
+        function drop(e, s) {
+            const t = store.kanbanTasks.find(x => x.id === draggedItem);
+            if(t) { t.status = s; db.ref('projectData/kanbanTasks').set(store.kanbanTasks); }
+        }
+        function clearAllData() { if(confirm("Clear everything?")) db.ref('projectData').remove(); }
+        function toggleTheme() { document.body.classList.toggle('dark'); }
     </script>
 </body>
 </html>
