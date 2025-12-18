@@ -288,15 +288,20 @@
 
                 <div>
                     <label class="text-[10px] text-purple-400 font-bold uppercase ml-1">Password</label>
-                    <input type="password" id="login-password" placeholder="••••••••" 
-                        class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none focus:border-jokerGreen placeholder-white/20">
+                    <div class="relative">
+                        <input type="password" id="login-password" placeholder="••••••••" 
+                            class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white outline-none focus:border-jokerGreen placeholder-white/20">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-jokerGreen transition">
+                            <i id="eye-icon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <button onclick="handleLogin()" class="w-full bg-jokerGreen hover:bg-green-400 text-black font-black py-3 rounded-xl transition transform active:scale-95 shadow-lg">
                     ACCESS SYSTEM
                 </button>
                 <p id="login-error" class="text-red-400 text-[10px] text-center font-bold hidden uppercase animate-pulse">Invalid Credentials</p>
-                <p class="text-white/20 text-[9px] text-center">Default Password: 1234</p>
+                <p class="text-white/30 text-[9px] text-center font-bold tracking-widest uppercase mt-2">Welcome to PersonalSpaceHub</p>
             </div>
         </div>
     </div>
@@ -362,6 +367,10 @@
                 </div>
                 
                 <div id="admin-tools-data" class="admin-only flex flex-col gap-2">
+                    <button onclick="changeAdminPassword()" class="text-left text-[10px] text-amber-400 hover:text-amber-200 transition flex items-center gap-2 mb-1">
+                        <i class="fas fa-key"></i> Update Admin Password
+                    </button>
+
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="backupData()" class="bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 text-[10px] py-1 rounded transition flex items-center justify-center gap-1 border border-purple-500/30">
                             <i class="fas fa-download"></i> Backup
@@ -813,6 +822,8 @@
         window.handleLogin = handleLogin;
         window.logout = logout;
         window.resetMemberPassword = resetMemberPassword;
+        window.togglePasswordVisibility = togglePasswordVisibility; // NEW: Added
+        window.changeAdminPassword = changeAdminPassword; // NEW: Added
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -920,6 +931,19 @@
         });
 
         // --- AUTH LOGIC ---
+        // NEW: Toggle visibility function
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('login-password');
+            const icon = document.getElementById('eye-icon');
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passInput.type = "password";
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
         function handleLogin() {
             const user = document.getElementById('login-username').value;
             const pass = document.getElementById('login-password').value;
@@ -949,6 +973,16 @@
                 store.passwords[username] = newPass;
                 db.ref('projectData/passwords').update(store.passwords)
                     .then(() => alert(`Password for ${username} has been updated.`));
+            }
+        }
+
+        // NEW: Admin Change Password
+        function changeAdminPassword() {
+            const currentPass = prompt("Enter NEW Admin password:");
+            if (currentPass && currentPass.trim() !== "") {
+                store.passwords["Admin"] = currentPass.trim();
+                db.ref('projectData/passwords').update(store.passwords)
+                    .then(() => alert("Admin password updated successfully in the cloud."));
             }
         }
 
