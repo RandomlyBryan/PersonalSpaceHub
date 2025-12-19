@@ -448,7 +448,9 @@
                                     <input type="text" id="quick-task-input" placeholder="New task..." 
                                         class="w-full bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
                                     
-                                    <div class="flex gap-2">
+                                    <div class="flex flex-wrap gap-2">
+                                        <input type="date" id="quick-task-date" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
+
                                         <select id="quick-task-assignee" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
                                             <option value="">Unassigned</option>
                                         </select>
@@ -931,7 +933,6 @@
             location.reload();
         }
 
-        // Added functionality to set own password
         function changeMyPassword() {
             const name = store.currentUser || "Admin";
             const newPass = prompt(`Enter new password for ${name}:`);
@@ -1197,12 +1198,19 @@
             const val = document.getElementById('quick-task-input').value.trim();
             if(val) {
                 store.kanbanTasks.push({
-                    id: Date.now().toString(), title: val, status: document.getElementById('quick-task-status').value,
+                    id: Date.now().toString(), 
+                    title: val, 
+                    status: document.getElementById('quick-task-status').value,
                     assignee: document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned",
-                    priority: 1, lastMoved: Date.now(), log: { inprogress: 0 }, isPaused: false
+                    assignedDate: document.getElementById('quick-task-date').value || "",
+                    priority: 1, 
+                    lastMoved: Date.now(), 
+                    log: { inprogress: 0 }, 
+                    isPaused: false
                 });
                 pushToCloud();
                 document.getElementById('quick-task-input').value = '';
+                document.getElementById('quick-task-date').value = '';
             }
         }
 
@@ -1259,7 +1267,6 @@
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
                 
-                // Admin can reset anyone's password
                 const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
                 const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
 
@@ -1312,10 +1319,36 @@
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
                 const li = document.createElement('li');
-                li.className = 'flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700 text-xs';
-                li.innerHTML = `<span class="truncate font-bold">${t.title}</span><div class="flex gap-2">
-                    <button onclick="updateTaskStatus('${t.id}', 'done')" class="text-green-500"><i class="fas fa-check"></i></button>
-                    <button onclick="deleteQuickTask('${t.id}')" class="text-slate-300"><i class="fas fa-trash"></i></button></div>`;
+                li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
+                
+                const statusColors = {
+                    'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
+                    'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300'
+                };
+
+                li.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
+                        <div class="flex gap-2 shrink-0 ml-2">
+                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button>
+                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">
+                                ${t.status === 'inprogress' ? 'Doing' : 'To Do'}
+                            </span>
+                            <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium">
+                                <i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50">
+                            <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
+                        </div>
+                    </div>`;
                 list.appendChild(li);
             });
         }
