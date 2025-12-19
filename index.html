@@ -1138,37 +1138,17 @@
         function addEvent() {
             const val = document.getElementById('new-event-input').value.trim();
             if (!val) return;
+            const date = document.getElementById('cal-date-val').value;
+            const start = document.getElementById('new-event-start').value;
+            const end = document.getElementById('new-event-end').value;
+            const timeStr = start ? (end ? `${start} - ${end}` : start) : "";
 
-            const startStr = document.getElementById('evt-start-date').value;
-            const endStr = document.getElementById('evt-end-date').value;
-            const startT = document.getElementById('new-event-start').value;
-            const endT = document.getElementById('new-event-end').value;
-            const timeStr = startT ? (endT ? `${startT} - ${endT}` : startT) : "";
-            const urgency = document.getElementById('new-event-urgency').value;
-
-            if (!startStr || !endStr) return;
-
-            // Date Range Loop Logic
-            let start = new Date(startStr);
-            let end = new Date(endStr);
-            
-            // Iterate through the date range
-            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                const dateKey = d.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-                
-                if (!store.events[dateKey]) store.events[dateKey] = [];
-                
-                // Add the event for this specific date
-                store.events[dateKey].push(JSON.stringify({ 
-                    text: val, 
-                    time: timeStr, 
-                    urgency: urgency 
-                }));
-            }
+            if (!store.events[date]) store.events[date] = [];
+            store.events[date].push(JSON.stringify({ text: val, time: timeStr, urgency: document.getElementById('new-event-urgency').value }));
             
             saveUserDataToCloud();
             cancelEditMode();
-            renderDayEvents(document.getElementById('cal-date-val').value);
+            renderDayEvents(date);
             renderCalendar();
         }
 
