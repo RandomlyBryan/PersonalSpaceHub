@@ -360,7 +360,10 @@
             </div>
 
             <div class="p-4 flex flex-col gap-3 border-t border-purple-500/30">
-                <div class="flex justify-end">
+                <div class="flex justify-between items-center">
+                    <button onclick="changeMyPassword()" class="text-[10px] text-amber-400 hover:text-amber-200 transition flex items-center gap-2">
+                        <i class="fas fa-lock"></i> Update My Password
+                    </button>
                     <button onclick="toggleTheme()" class="text-green-400 hover:text-white transition text-xs" title="Toggle Theme"><i class="fas fa-moon" id="theme-icon"></i></button>
                 </div>
                 
@@ -763,6 +766,7 @@
         window.resetMemberPassword = resetMemberPassword;
         window.togglePasswordVisibility = togglePasswordVisibility; 
         window.changeAdminPassword = changeAdminPassword;
+        window.changeMyPassword = changeMyPassword;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -927,11 +931,23 @@
             location.reload();
         }
 
+        // Added functionality to set own password
+        function changeMyPassword() {
+            const name = store.currentUser || "Admin";
+            const newPass = prompt(`Enter new password for ${name}:`);
+            if (newPass && newPass.trim().length > 0) {
+                store.passwords[name] = newPass.trim();
+                db.ref('projectData/passwords').update(store.passwords)
+                    .then(() => alert("Password updated successfully!"))
+                    .catch(err => alert("Error updating password."));
+            }
+        }
+
         function resetMemberPassword(username) {
-            const newPass = prompt(`New password for ${username}:`, "1234");
-            if (newPass) {
-                store.passwords[username] = newPass;
+            if (confirm(`Reset ${username}'s password to default (1234)?`)) {
+                store.passwords[username] = "1234";
                 db.ref('projectData/passwords').update(store.passwords);
+                alert(`${username}'s password has been reset.`);
             }
         }
 
@@ -1135,39 +1151,24 @@
             });
         }
 
-        // --- UPDATED ADD EVENT LOGIC FOR DISTRIBUTION ---
         function addEvent() {
             const val = document.getElementById('new-event-input').value.trim();
             if (!val) return;
-
             const startDayStr = document.getElementById('evt-start-date').value;
             const endDayStr = document.getElementById('evt-end-date').value;
-
             if(!startDayStr || !endDayStr) return alert("Please select start and end dates.");
-
             const start = document.getElementById('new-event-start').value;
             const end = document.getElementById('new-event-end').value;
             const urgency = document.getElementById('new-event-urgency').value;
             const timeStr = start ? (end ? `${start} - ${end}` : start) : "";
-
-            // Create range
             let curr = new Date(startDayStr);
             const stop = new Date(endDayStr);
-
-            // Iterate through every date in the range
             while(curr <= stop) {
                 const dateKey = curr.toISOString().split('T')[0];
                 if (!store.events[dateKey]) store.events[dateKey] = [];
-                
-                store.events[dateKey].push(JSON.stringify({ 
-                    text: val, 
-                    time: timeStr, 
-                    urgency: urgency 
-                }));
-
+                store.events[dateKey].push(JSON.stringify({ text: val, time: timeStr, urgency: urgency }));
                 curr.setDate(curr.getDate() + 1);
             }
-            
             saveUserDataToCloud();
             cancelEditMode();
             renderDayEvents(document.getElementById('cal-date-val').value);
@@ -1257,8 +1258,13 @@
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
+                
+                // Admin can reset anyone's password
+                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
+                const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
+
                 li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>
-                    ${!store.currentUser ? `<button onclick="removeMember(${i})" class="opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : ''}`;
+                    ${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
                 document.getElementById('quick-task-assignee').add(new Option(u, u));
