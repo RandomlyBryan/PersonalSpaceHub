@@ -1149,20 +1149,21 @@
             if (!startStr || !endStr) return;
 
             // Date Range Loop Logic
-            let current = new Date(startStr);
-            const end = new Date(endStr);
-
-            while (current <= end) {
-                const dateKey = current.toISOString().split('T')[0];
+            let start = new Date(startStr);
+            let end = new Date(endStr);
+            
+            // Iterate through the date range
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateKey = d.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+                
                 if (!store.events[dateKey]) store.events[dateKey] = [];
                 
+                // Add the event for this specific date
                 store.events[dateKey].push(JSON.stringify({ 
                     text: val, 
                     time: timeStr, 
                     urgency: urgency 
                 }));
-
-                current.setDate(current.getDate() + 1);
             }
             
             saveUserDataToCloud();
