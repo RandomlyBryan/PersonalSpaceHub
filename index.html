@@ -530,9 +530,9 @@
                     <div class="flex-1">
                         <h2 class="text-2xl font-bold flex items-center gap-2 text-green-400 tracking-wide">
                             Task Tracker 
-                            <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Main View</span>
+                            <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Status View</span>
                         </h2>
-                        <p class="text-sm opacity-80" id="tracker-subtitle">Manage the project</p>
+                        <p class="text-sm opacity-80" id="tracker-subtitle">Manage project progress</p>
                     </div>
 
                     <div class="bg-black/40 p-1 rounded-lg flex text-xs font-bold items-center gap-2 border border-purple-500/50">
@@ -590,9 +590,12 @@
                 </div>
 
                 <div id="kanban-week-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full hidden">
-                    <div class="grid grid-cols-7 gap-2 h-full min-w-[1400px]">
-                        <div id="week-columns-container" class="contents"></div>
+                    <div class="flex items-center gap-4 mb-4 text-white">
+                        <button onclick="changeWeek(-1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold"><i class="fas fa-chevron-left mr-2"></i> Prev Week</button>
+                        <span id="week-view-date-range" class="text-sm font-bold text-green-400 tracking-wider uppercase">Loading...</span>
+                        <button onclick="changeWeek(1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold">Next Week <i class="fas fa-chevron-right ml-2"></i></button>
                     </div>
+                    <div id="week-columns-container" class="grid grid-cols-7 gap-3 h-full min-w-[1200px]"></div>
                 </div>
 
             </div>
@@ -1430,22 +1433,94 @@
         }
 
         function renderKanbanBoard() {
-            ['todo', 'inprogress', 'done'].forEach(s => {
-                const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
-                if(!container) return;
-                container.innerHTML = '';
-                const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
-                const countBadge = document.getElementById(`count-${s}`);
-                if(countBadge) countBadge.textContent = tasks.length;
+            // Visibility Toggle
+            const statusView = document.getElementById('kanban-status-view');
+            const weekView = document.getElementById('kanban-week-view');
+            const badge = document.getElementById('tracker-badge');
+            const subtitle = document.getElementById('tracker-subtitle');
+
+            if (store.kanbanMode === 'status') {
+                statusView.classList.remove('hidden');
+                weekView.classList.add('hidden');
+                badge.textContent = "Status View";
+                subtitle.textContent = "Manage project progress";
+
+                ['todo', 'inprogress', 'done'].forEach(s => {
+                    const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
+                    if(!container) return;
+                    container.innerHTML = '';
+                    const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
+                    const countBadge = document.getElementById(`count-${s}`);
+                    if(countBadge) countBadge.textContent = tasks.length;
+                    tasks.forEach(t => {
+                        const el = document.createElement('div');
+                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
+                        el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
+                        el.innerHTML = createCardHTML(t);
+                        container.appendChild(el);
+                    });
+                });
+            } else {
+                statusView.classList.add('hidden');
+                weekView.classList.remove('hidden');
+                badge.textContent = "Week View";
+                subtitle.textContent = "Scheduled task timeline";
+                renderWeekView();
+            }
+            renderQuickTasks();
+        }
+
+        function renderWeekView() {
+            const container = document.getElementById('week-columns-container');
+            const rangeDisplay = document.getElementById('week-view-date-range');
+            container.innerHTML = '';
+            
+            const start = new Date(store.weekViewStart);
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            rangeDisplay.textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+
+            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+            for (let i = 0; i < 7; i++) {
+                const currentDay = new Date(start);
+                currentDay.setDate(start.getDate() + i);
+                const dateKey = currentDay.toISOString().split('T')[0];
+                const isToday = new Date().toISOString().split('T')[0] === dateKey;
+
+                const col = document.createElement('div');
+                col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
+                
+                col.innerHTML = `
+                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+                        <h3 class="font-bold text-xs ${isToday ? 'text-jokerGreen' : 'text-slate-500'}">${days[currentDay.getDay()]}</h3>
+                        <p class="text-[10px] opacity-60">${currentDay.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p>
+                    </div>
+                    <div class="column-body p-2 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>
+                `;
+
+                const body = col.querySelector('.column-body');
+                const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateKey && (!store.currentUser || t.assignee === store.currentUser));
+                
                 tasks.forEach(t => {
                     const el = document.createElement('div');
-                    el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
+                    el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
-                    el.innerHTML = createCardHTML(t);
-                    container.appendChild(el);
+                    el.innerHTML = `
+                        <div class="flex justify-between items-start gap-1">
+                            <span class="font-bold truncate">${t.title}</span>
+                            <span class="text-[8px] px-1 rounded ${t.status === 'done' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-400'}">${t.status[0].toUpperCase()}</span>
+                        </div>
+                        <div class="flex justify-between mt-2 opacity-60">
+                             <span>${t.assignee || 'Any'}</span>
+                             <span>${formatTime(t.log.inprogress)}</span>
+                        </div>
+                    `;
+                    body.appendChild(el);
                 });
-            });
-            renderQuickTasks();
+
+                container.appendChild(col);
+            }
         }
 
         function renderQuickTasks() {
@@ -1457,7 +1532,7 @@
                 const li = document.createElement('li');
                 li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
                 const statusColors = { 'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400', 'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300' };
-                li.innerHTML = `<div class="flex items-center justify-between mb-2"><span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span><div class="flex gap-2 shrink-0 ml-2"><button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button><button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button></div></div><div class="flex flex-wrap items-center justify-between gap-y-2"><div class="flex items-center gap-2"><span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span><span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span></div><div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50"><i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}</div></div>`;
+                li.innerHTML = `<div class="flex items-center justify-between mb-2"><span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span><div class="flex gap-2 shrink-0 ml-2"><button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button><button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button></div></div><div class="flex wrap items-center justify-between gap-y-2"><div class="flex items-center gap-2"><span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span><span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span></div><div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50"><i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}</div></div>`;
                 list.appendChild(li);
             });
         }
@@ -1468,14 +1543,21 @@
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
         function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); document.getElementById('theme-icon').className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
-        function switchView(v) { ['dashboard', 'kanban'].forEach(x => { const view = document.getElementById(`view-${x}`); const nav = document.getElementById(`nav-${x}`); if(view) view.classList.add('hidden'); if(nav) nav.classList.remove('active'); }); const targetView = document.getElementById(`view-${v}`); const targetNav = document.getElementById(`nav-${v}`); if(targetView) targetView.classList.remove('hidden'); if(targetNav) targetNav.classList.add('active'); }
+        function switchView(v) { ['dashboard', 'kanban'].forEach(x => { const view = document.getElementById(`view-${x}`); const nav = document.getElementById(`nav-${x}`); if(view) view.classList.add('hidden'); if(nav) nav.classList.remove('active'); }); const targetView = document.getElementById(`view-${v}`); const targetNav = document.getElementById(`nav-${v}`); if(targetView) targetView.classList.remove('hidden'); if(targetNav) targetNav.classList.add('active'); if(v === 'kanban') renderKanbanBoard(); }
         function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); document.getElementById('btn-delete').classList.toggle('hidden', !id); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function setPriority(v) { document.getElementById('task-priority').value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
         function addMember() { const n = document.getElementById('new-member-name').value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); document.getElementById('new-member-name').value=''; } }
         function removeMember(i) { if(confirm('Remove?')) { store.users.splice(i, 1); pushToCloud(); } }
         function clearFilters() { document.getElementById('date-range-picker')._flatpickr.clear(); renderKanbanBoard(); }
-        function switchKanbanView(m) { store.kanbanMode = m; switchView('kanban'); renderKanbanBoard(); }
+        
+        function switchKanbanView(m) { 
+            store.kanbanMode = m; 
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-view-${m}`).classList.add('active');
+            renderKanbanBoard(); 
+        }
+
         function changeWeek(d) { store.weekViewStart.setDate(store.weekViewStart.getDate() + (d*7)); renderKanbanBoard(); }
         function jumpToWeek(d) { store.weekViewStart = d; renderKanbanBoard(); }
         function clearAllData() { if(confirm('Nuke everything?')) { db.ref('projectData').remove(); location.reload(); } }
