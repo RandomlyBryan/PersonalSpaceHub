@@ -736,7 +736,7 @@
             avatars: {}, 
             focus: '',
             notes: '',
-            adminMessages: {}, // Structure: { "User": { msg: "...", reply: "...", resolved: bool } }
+            adminMessages: {}, // { "User": { msg: "...", reply: "..." } }
             events: {}, 
             passwords: {},
             calendarMonth: new Date().getMonth(),
@@ -801,7 +801,7 @@
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
-        window.resolveAdminMessage = resolveAdminMessage; // ADDED
+        window.resolveAdminMessage = resolveAdminMessage; // Logic updated
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -1090,11 +1090,9 @@
                 const data = store.adminMessages[store.currentUser] || {};
                 document.getElementById('admin-msg-input').value = data.msg || '';
                 
-                // Show resolution status to member
-                if (data.reply || data.resolved) {
+                if (data.reply) {
                     replyBox.classList.remove('hidden');
-                    let statusLabel = data.resolved ? '<span class="text-green-500 font-black">[RESOLVED] </span>' : '<span class="text-blue-600 font-black">ADMIN RESPONSE: </span>';
-                    document.getElementById('reply-text').innerHTML = `${statusLabel}${data.reply || 'Acknowledged.'}`;
+                    document.getElementById('reply-text').textContent = data.reply;
                 } else {
                     replyBox.classList.add('hidden');
                 }
@@ -1111,14 +1109,12 @@
                 if (data && data.msg) {
                     hasMessages = true;
                     const msgDiv = document.createElement('div');
-                    // Add conditional styling if resolved
-                    msgDiv.className = `p-2 rounded-lg border shadow-sm relative group transition-opacity ${data.resolved ? 'bg-slate-50 dark:bg-slate-900 border-green-500 opacity-70' : 'bg-white dark:bg-slate-800 border-amber-200 dark:border-amber-900'}`;
-                    
+                    msgDiv.className = "bg-white dark:bg-slate-800 p-2 rounded-lg border border-amber-200 dark:border-amber-900 shadow-sm relative group";
                     msgDiv.innerHTML = `
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-[10px] font-black ${data.resolved ? 'text-green-600' : 'text-amber-600'} uppercase tracking-tighter">${sender} ${data.resolved ? '✓' : ''}</span>
+                            <span class="text-[10px] font-black text-amber-600 uppercase tracking-tighter">${sender}</span>
                             <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                                <button onclick="resolveAdminMessage('${sender}')" class="${data.resolved ? 'text-green-500' : 'text-slate-400 hover:text-green-500'}" title="Toggle Resolved"><i class="fas fa-check-circle text-[9px]"></i></button>
+                                <button onclick="resolveAdminMessage('${sender}')" class="text-green-500 hover:text-green-700" title="Resolve & Remove"><i class="fas fa-check-circle text-[9px]"></i></button>
                                 <button onclick="replyToMember('${sender}')" class="text-blue-500 hover:text-blue-700" title="Reply"><i class="fas fa-reply text-[9px]"></i></button>
                                 <button onclick="clearAdminMessage('${sender}')" class="text-red-400 hover:text-red-600" title="Clear All"><i class="fas fa-trash-alt text-[9px]"></i></button>
                             </div>
@@ -1132,18 +1128,19 @@
             if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
+        // Logic Change: This now deletes the message immediately upon "Resolution"
         function resolveAdminMessage(sender) {
-            const existing = store.adminMessages[sender] || {};
-            store.adminMessages[sender] = { ...existing, resolved: !existing.resolved };
-            pushToCloud();
+            if (confirm(`Resolve and remove message from ${sender}?`)) {
+                delete store.adminMessages[sender];
+                pushToCloud();
+            }
         }
 
         function sendAdminMessage() {
             const val = document.getElementById('admin-msg-input').value.trim();
             if (!store.currentUser) return;
             const existingData = store.adminMessages[store.currentUser] || {};
-            // Reset resolved status when a new message is sent
-            store.adminMessages[store.currentUser] = { ...existingData, msg: val, resolved: false };
+            store.adminMessages[store.currentUser] = { ...existingData, msg: val };
             pushToCloud();
             alert("Message sent to Admin secure cloud.");
         }
