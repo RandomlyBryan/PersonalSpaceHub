@@ -176,6 +176,13 @@
         .cal-urgency-low { border-left-color: #39ff14 !important; background: rgba(57, 255, 20, 0.1); }
         .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
         .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
+        
+        /* Special Critical Task Style for Calendar */
+        .cal-task-critical { 
+            border-left-color: #f97316 !important; 
+            background: rgba(249, 115, 22, 0.15) !important;
+            border-style: dashed;
+        }
 
         .cal-actions-container {
             position: absolute;
@@ -272,7 +279,7 @@
 <body class="text-slate-800 antialiased flex flex-col h-screen w-screen overflow-hidden">
 
     <div id="login-overlay" class="fixed inset-0 flex items-center justify-center transition-opacity duration-500">
-        <div class="glass-panel p-8 rounded-3xl w-full max-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
+        <div class="glass-panel p-8 rounded-3xl w-full max-w-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-bold text-jokerGreen tracking-tighter">PersonalSpace</h1>
                 <p class="text-white/50 text-xs uppercase tracking-widest">Secure Entry</p>
@@ -626,7 +633,7 @@
     <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
             <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
-            <p class="text-xs text-slate-500 mb-4">Scheduled Events</p>
+            <p class="text-xs text-slate-500 mb-4">Scheduled Events & Critical Tasks</p>
             
             <input type="hidden" id="cal-date-val">
             
@@ -1105,17 +1112,38 @@
 
             for(let d=1; d<=daysInMonth; d++) {
                 const dateKey = `${store.calendarYear}-${String(store.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const events = store.events[dateKey] || [];
+                
                 const el = document.createElement('div');
                 el.className = `calendar-day ${new Date().getDate() === d && new Date().getMonth() === store.calendarMonth ? 'today' : ''}`;
                 el.innerHTML = `<div class="calendar-day-number">${d}</div>`;
                 
+                // 1. Render Private Schedule Events
+                const events = store.events[dateKey] || [];
                 events.forEach((evt, idx) => {
                     const data = parseEventData(evt);
                     const eDiv = document.createElement('div');
                     eDiv.className = `cal-event-item cal-urgency-${data.urgency || 'low'}`;
                     eDiv.innerHTML = `${data.time ? `<span class="cal-time">${data.time}</span>` : ''}<span>${data.text}</span>`;
                     el.appendChild(eDiv);
+                });
+
+                // 2. Render Critical Kanban Tasks (Priority 4 or 5)
+                const criticalTasks = store.kanbanTasks.filter(t => 
+                    t.assignedDate === dateKey && 
+                    t.priority >= 4 && 
+                    t.status !== 'done' && 
+                    (!store.currentUser || t.assignee === store.currentUser)
+                );
+
+                criticalTasks.forEach(task => {
+                    const tDiv = document.createElement('div');
+                    tDiv.className = `cal-event-item cal-task-critical`;
+                    tDiv.innerHTML = `<span class="cal-time text-orange-500"><i class="fas fa-bolt"></i> TASK</span><span>${task.title}</span>`;
+                    tDiv.onclick = (e) => { 
+                        e.stopPropagation(); 
+                        openTaskModal(task.id); 
+                    };
+                    el.appendChild(tDiv);
                 });
 
                 el.onclick = () => openCalendarModal(dateKey);
@@ -1137,13 +1165,13 @@
         function renderDayEvents(dateStr) {
             const list = document.getElementById('day-events-list');
             list.innerHTML = '';
+            
+            // Render Private Events
             const events = store.events[dateStr] || [];
-            if(!events.length) { list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No private events.</p>'; return; }
-
             events.forEach((evt, idx) => {
                 const data = parseEventData(evt);
                 const item = document.createElement('div');
-                item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 shadow-sm`;
+                item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 shadow-sm mb-2`;
                 item.innerHTML = `
                     <div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div>
                     <div class="flex gap-2 ml-2">
@@ -1153,6 +1181,22 @@
                 `;
                 list.appendChild(item);
             });
+
+            // Render Related Critical Tasks
+            const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateStr && t.priority >= 4);
+            tasks.forEach(task => {
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center bg-orange-50 dark:bg-orange-900/30 p-2 rounded text-xs border-l-4 border-orange-500 shadow-sm mb-2`;
+                item.innerHTML = `
+                    <div class="flex-1"><i class="fas fa-bolt mr-1"></i> [${task.status.toUpperCase()}] ${task.title}</div>
+                    <button onclick="openTaskModal('${task.id}')" class="text-orange-500 ml-2"><i class="fas fa-external-link-alt"></i></button>
+                `;
+                list.appendChild(item);
+            });
+
+            if(events.length === 0 && tasks.length === 0) {
+                list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No scheduled items today.</p>';
+            }
         }
 
         function addEvent() {
@@ -1204,11 +1248,16 @@
             document.getElementById('new-event-urgency').value = l; 
             // Reset borders
             ['low', 'medium', 'high'].forEach(u => {
-                document.getElementById(`btn-urgency-${u}`).classList.replace('bg-green-100', 'bg-green-50');
-                document.getElementById(`btn-urgency-${u}`).style.borderWidth = '1px';
+                const btn = document.getElementById(`btn-urgency-${u}`);
+                if(btn) {
+                    btn.classList.replace('bg-green-100', 'bg-green-50');
+                    btn.style.borderWidth = '1px';
+                }
             });
             const btn = document.getElementById(`btn-urgency-${l}`);
-            btn.style.borderWidth = '2px';
+            if(btn) {
+                btn.style.borderWidth = '2px';
+            }
         }
 
         function updateEventUrgency(d, i, u) { 
@@ -1430,11 +1479,15 @@
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
         function switchView(v) {
             ['dashboard', 'kanban'].forEach(x => {
-                document.getElementById(`view-${x}`).classList.add('hidden');
-                document.getElementById(`nav-${x}`).classList.remove('active');
+                const view = document.getElementById(`view-${x}`);
+                const nav = document.getElementById(`nav-${x}`);
+                if(view) view.classList.add('hidden');
+                if(nav) nav.classList.remove('active');
             });
-            document.getElementById(`view-${v}`).classList.remove('hidden');
-            document.getElementById(`nav-${v}`).classList.add('active');
+            const targetView = document.getElementById(`view-${v}`);
+            const targetNav = document.getElementById(`nav-${v}`);
+            if(targetView) targetView.classList.remove('hidden');
+            if(targetNav) targetNav.classList.add('active');
         }
         function openTaskModal(id) {
             document.getElementById('task-modal').classList.remove('hidden');
