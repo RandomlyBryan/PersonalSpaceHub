@@ -272,7 +272,7 @@
 <body class="text-slate-800 antialiased flex flex-col h-screen w-screen overflow-hidden">
 
     <div id="login-overlay" class="fixed inset-0 flex items-center justify-center transition-opacity duration-500">
-        <div class="glass-panel p-8 rounded-3xl w-full max-w-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
+        <div class="glass-panel p-8 rounded-3xl w-full max-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-bold text-jokerGreen tracking-tighter">PersonalSpace</h1>
                 <p class="text-white/50 text-xs uppercase tracking-widest">Secure Entry</p>
@@ -672,7 +672,7 @@
                     </button>
 
                     <button id="btn-add-event" onclick="addEvent()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-3 py-2 rounded-lg transition">
-                        <i class="fas fa-plus"></i>
+                        <i id="btn-add-icon" class="fas fa-plus"></i>
                     </button>
                 </div>
             </div>
@@ -1146,7 +1146,10 @@
                 item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 shadow-sm`;
                 item.innerHTML = `
                     <div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div>
-                    <button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400 ml-2"><i class="fas fa-trash"></i></button>
+                    <div class="flex gap-2 ml-2">
+                        <button onclick="initEditEvent('${dateStr}', ${idx})" class="text-amber-500"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button>
+                    </div>
                 `;
                 list.appendChild(item);
             });
@@ -1155,21 +1158,34 @@
         function addEvent() {
             const val = document.getElementById('new-event-input').value.trim();
             if (!val) return;
+            
             const startDayStr = document.getElementById('evt-start-date').value;
             const endDayStr = document.getElementById('evt-end-date').value;
             if(!startDayStr || !endDayStr) return alert("Please select start and end dates.");
+            
             const start = document.getElementById('new-event-start').value;
             const end = document.getElementById('new-event-end').value;
             const urgency = document.getElementById('new-event-urgency').value;
             const timeStr = start ? (end ? `${start} - ${end}` : start) : "";
-            let curr = new Date(startDayStr);
-            const stop = new Date(endDayStr);
-            while(curr <= stop) {
-                const dateKey = curr.toISOString().split('T')[0];
-                if (!store.events[dateKey]) store.events[dateKey] = [];
-                store.events[dateKey].push(JSON.stringify({ text: val, time: timeStr, urgency: urgency }));
-                curr.setDate(curr.getDate() + 1);
+            
+            const eventPayload = JSON.stringify({ text: val, time: timeStr, urgency: urgency });
+
+            // EDIT MODE
+            if (editingEventIdx !== null) {
+                const dateKey = document.getElementById('cal-date-val').value;
+                store.events[dateKey][editingEventIdx] = eventPayload;
+            } else {
+                // ADD MODE
+                let curr = new Date(startDayStr);
+                const stop = new Date(endDayStr);
+                while(curr <= stop) {
+                    const dateKey = curr.toISOString().split('T')[0];
+                    if (!store.events[dateKey]) store.events[dateKey] = [];
+                    store.events[dateKey].push(eventPayload);
+                    curr.setDate(curr.getDate() + 1);
+                }
             }
+
             saveUserDataToCloud();
             cancelEditMode();
             renderDayEvents(document.getElementById('cal-date-val').value);
@@ -1184,14 +1200,55 @@
         }
 
         function resolveEvent(d, i) { deleteEvent(d, i); }
-        function setCalUrgency(l) { document.getElementById('new-event-urgency').value = l; }
+        function setCalUrgency(l) { 
+            document.getElementById('new-event-urgency').value = l; 
+            // Reset borders
+            ['low', 'medium', 'high'].forEach(u => {
+                document.getElementById(`btn-urgency-${u}`).classList.replace('bg-green-100', 'bg-green-50');
+                document.getElementById(`btn-urgency-${u}`).style.borderWidth = '1px';
+            });
+            const btn = document.getElementById(`btn-urgency-${l}`);
+            btn.style.borderWidth = '2px';
+        }
+
         function updateEventUrgency(d, i, u) { 
             const data = parseEventData(store.events[d][i]); 
             data.urgency = u; store.events[d][i] = JSON.stringify(data); 
             saveUserDataToCloud(); renderCalendar();
         }
-        function initEditEvent() {} // Simplified
-        function cancelEditMode() { document.getElementById('new-event-input').value = ''; }
+
+        function initEditEvent(dateStr, idx) {
+            editingEventIdx = idx;
+            const data = parseEventData(store.events[dateStr][idx]);
+            
+            document.getElementById('new-event-input').value = data.text;
+            document.getElementById('new-event-urgency').value = data.urgency || 'low';
+            setCalUrgency(data.urgency || 'low');
+
+            if (data.time && data.time.includes(' - ')) {
+                const parts = data.time.split(' - ');
+                document.getElementById('new-event-start').value = parts[0];
+                document.getElementById('new-event-end').value = parts[1];
+            } else {
+                document.getElementById('new-event-start').value = data.time || '';
+                document.getElementById('new-event-end').value = '';
+            }
+
+            // UI Changes
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            document.getElementById('btn-add-icon').className = 'fas fa-check';
+            document.getElementById('btn-add-event').classList.replace('bg-green-500', 'bg-blue-500');
+        }
+
+        function cancelEditMode() { 
+            editingEventIdx = null;
+            document.getElementById('new-event-input').value = ''; 
+            document.getElementById('new-event-start').value = ''; 
+            document.getElementById('new-event-end').value = ''; 
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+            document.getElementById('btn-add-icon').className = 'fas fa-plus';
+            document.getElementById('btn-add-event').classList.replace('bg-blue-500', 'bg-green-500');
+        }
 
         // --- KANBAN & TASKS ---
         function addQuickTask() {
@@ -1300,9 +1357,11 @@
         function renderKanbanBoard() {
             ['todo', 'inprogress', 'done'].forEach(s => {
                 const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
+                if(!container) return;
                 container.innerHTML = '';
                 const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
-                document.getElementById(`count-${s}`).textContent = tasks.length;
+                const countBadge = document.getElementById(`count-${s}`);
+                if(countBadge) countBadge.textContent = tasks.length;
                 tasks.forEach(t => {
                     const el = document.createElement('div');
                     el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
@@ -1315,7 +1374,9 @@
         }
 
         function renderQuickTasks() {
-            const list = document.getElementById('quick-task-list'); list.innerHTML = '';
+            const list = document.getElementById('quick-task-list'); 
+            if(!list) return;
+            list.innerHTML = '';
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
                 const li = document.createElement('li');
