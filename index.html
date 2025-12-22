@@ -453,6 +453,10 @@
                                 <div id="admin-message-viewer" class="hidden flex-1 overflow-y-auto space-y-2 mb-2 pr-1">
                                     </div>
                                 <div id="member-message-sender" class="flex flex-col gap-2 flex-1">
+                                    <div id="admin-reply-display" class="hidden mb-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-[10px] italic">
+                                        <b class="text-blue-600 block mb-1">ADMIN RESPONSE:</b>
+                                        <span id="reply-text">...</span>
+                                    </div>
                                     <textarea id="admin-msg-input" 
                                         class="flex-1 w-full bg-amber-50 dark:bg-slate-900/50 border border-amber-200 dark:border-amber-900/50 rounded-lg p-2 resize-none focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-700 dark:text-slate-200 text-xs"
                                         placeholder="Send private note to Admin..."></textarea>
@@ -732,9 +736,8 @@
             avatars: {}, 
             focus: '',
             notes: '',
-            adminMessages: {}, // NEW: Store incoming messages for Admin
-            events: {}, // This will be the LOCAL USER events filter
-            allEvents: {}, // Temporary raw cloud data
+            adminMessages: {}, // New Object structure: { "User": { msg: "...", reply: "..." } }
+            events: {}, 
             passwords: {},
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
@@ -794,9 +797,10 @@
         window.changeAdminPassword = changeAdminPassword;
         window.changeMyPassword = changeMyPassword;
 
-        // NEW: ADMIN CHANNEL FUNCTIONS
+        // ADMIN CHANNEL FUNCTIONS
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
+        window.replyToMember = replyToMember;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -814,7 +818,7 @@
             }
         };
 
-        // --- UPDATED: EXPORT SUMMARY & FLUSH EXECUTED ---
+        // EXPORT SUMMARY & FLUSH EXECUTED
         window.exportSummaryReport = () => {
             if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
             
@@ -843,7 +847,6 @@
             content += "\n\n========================================================\n";
             content += "End of Report. Completed tasks will be removed from cloud.";
 
-            // Trigger Download
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -888,15 +891,13 @@
                     store.kanbanTasks = data.kanbanTasks || [];
                     store.avatars = data.avatars || {};
                     store.passwords = data.passwords || { "Admin": "1234" };
-                    store.adminMessages = data.adminMessages || {}; // Load admin messages
+                    store.adminMessages = data.adminMessages || {};
                     
                     const userKey = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
                     
-                    // Note and Focus logic
                     if(data.userData && data.userData[userKey]) {
                         store.notes = data.userData[userKey].notes || '';
                         store.focus = data.userData[userKey].focus || '';
-                        // CALENDAR PRIVACY: Load events from user path
                         store.events = data.userData[userKey].events || {};
                     } else {
                         store.notes = '';
@@ -1008,7 +1009,7 @@
                 kanbanTasks: store.kanbanTasks,
                 avatars: store.avatars,
                 passwords: store.passwords,
-                adminMessages: store.adminMessages // Include admin messages in global sync
+                adminMessages: store.adminMessages 
             });
             saveUserDataToCloud();
         }
@@ -1018,7 +1019,7 @@
             db.ref('projectData/userData/' + userKey).update({
                 notes: store.notes,
                 focus: store.focus,
-                events: store.events // Save private events
+                events: store.events 
             });
         }
 
@@ -1026,7 +1027,6 @@
         function switchUser(userName) {
             store.currentUser = userName || null;
             document.getElementById('current-user-name').textContent = userName || "Admin";
-            // Refresh listener path
             db.ref('projectData').once('value').then(snap => {
                const data = snap.val();
                if(data) {
@@ -1067,7 +1067,6 @@
                 const iconClass = store.currentUser ? "fa-user" : "fa-user-shield";
                 avatarContainer.innerHTML = `<i class="fas ${iconClass} text-white/50 text-2xl"></i>`;
             }
-            // Ensure overlay exists
             avatarContainer.innerHTML += `<div class="avatar-overlay absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 transition"><i class="fas fa-camera text-xs text-white"></i></div>`;
             avatarContainer.onclick = () => triggerAvatarUpload(name);
 
@@ -1075,20 +1074,26 @@
             const viewer = document.getElementById('admin-message-viewer');
             const sender = document.getElementById('member-message-sender');
             const title = document.getElementById('admin-channel-title');
+            const replyBox = document.getElementById('admin-reply-display');
 
             if (!store.currentUser) {
-                // Admin View
                 viewer.classList.remove('hidden');
                 sender.classList.add('hidden');
                 title.textContent = "Admin Mailbox";
                 renderAdminMailbox();
             } else {
-                // Member View
                 viewer.classList.add('hidden');
                 sender.classList.remove('hidden');
                 title.textContent = "Message to Admin";
-                // Pre-load existing message if any
-                document.getElementById('admin-msg-input').value = store.adminMessages[store.currentUser] || '';
+                
+                const data = store.adminMessages[store.currentUser] || {};
+                document.getElementById('admin-msg-input').value = data.msg || '';
+                if (data.reply) {
+                    replyBox.classList.remove('hidden');
+                    document.getElementById('reply-text').textContent = data.reply;
+                } else {
+                    replyBox.classList.add('hidden');
+                }
             }
         }
 
@@ -1098,36 +1103,48 @@
             let hasMessages = false;
 
             for (const sender in store.adminMessages) {
-                if (store.adminMessages[sender]) {
+                const data = store.adminMessages[sender];
+                if (data && data.msg) {
                     hasMessages = true;
                     const msgDiv = document.createElement('div');
                     msgDiv.className = "bg-white dark:bg-slate-800 p-2 rounded-lg border border-amber-200 dark:border-amber-900 shadow-sm relative group";
                     msgDiv.innerHTML = `
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[10px] font-black text-amber-600 uppercase tracking-tighter">${sender}</span>
-                            <button onclick="clearAdminMessage('${sender}')" class="text-red-400 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                            <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                <button onclick="replyToMember('${sender}')" class="text-blue-500 hover:text-blue-700" title="Reply"><i class="fas fa-reply text-[9px]"></i></button>
+                                <button onclick="clearAdminMessage('${sender}')" class="text-red-400 hover:text-red-600" title="Clear All"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-600 dark:text-slate-300 italic">"${store.adminMessages[sender]}"</p>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 italic mb-1">"${data.msg}"</p>
+                        ${data.reply ? `<div class="mt-1 pt-1 border-t border-slate-100 dark:border-slate-700 text-[9px] text-blue-500 font-bold">REPLIED: "${data.reply}"</div>` : ''}
                     `;
                     viewer.appendChild(msgDiv);
                 }
             }
-
-            if (!hasMessages) {
-                viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
-            }
+            if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
         function sendAdminMessage() {
             const val = document.getElementById('admin-msg-input').value.trim();
             if (!store.currentUser) return;
-            store.adminMessages[store.currentUser] = val;
+            const existingData = store.adminMessages[store.currentUser] || {};
+            store.adminMessages[store.currentUser] = { ...existingData, msg: val };
             pushToCloud();
             alert("Message sent to Admin secure cloud.");
         }
 
+        function replyToMember(sender) {
+            const existing = store.adminMessages[sender] || {};
+            const reply = prompt(`Reply to ${sender}:`, existing.reply || "");
+            if (reply !== null) {
+                store.adminMessages[sender] = { ...existing, reply: reply.trim() };
+                pushToCloud();
+            }
+        }
+
         function clearAdminMessage(sender) {
-            if (confirm(`Clear message from ${sender}?`)) {
+            if (confirm(`Clear all data for ${sender}?`)) {
                 delete store.adminMessages[sender];
                 pushToCloud();
             }
@@ -1164,7 +1181,7 @@
 
         function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
 
-        // --- CALENDAR LOGIC (PRIVATE PER USER) ---
+        // CALENDAR LOGIC
         function changeMonth(delta) {
             store.calendarMonth += delta;
             if(store.calendarMonth > 11) { store.calendarMonth = 0; store.calendarYear++; }
@@ -1183,24 +1200,16 @@
         function renderCalendar() {
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             document.getElementById('calendar-month-year').textContent = `${months[store.calendarMonth]} ${store.calendarYear}`;
-            
             const firstDay = new Date(store.calendarYear, store.calendarMonth, 1).getDay();
             const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
             const grid = document.getElementById('calendar-body');
             grid.innerHTML = '';
-
-            for(let i=0; i<firstDay; i++) {
-                grid.innerHTML += `<div class="bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700"></div>`;
-            }
-
+            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700"></div>`;
             for(let d=1; d<=daysInMonth; d++) {
                 const dateKey = `${store.calendarYear}-${String(store.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                
                 const el = document.createElement('div');
                 el.className = `calendar-day ${new Date().getDate() === d && new Date().getMonth() === store.calendarMonth ? 'today' : ''}`;
                 el.innerHTML = `<div class="calendar-day-number">${d}</div>`;
-                
-                // 1. Render Private Schedule Events
                 const events = store.events[dateKey] || [];
                 events.forEach((evt, idx) => {
                     const data = parseEventData(evt);
@@ -1209,27 +1218,15 @@
                     eDiv.innerHTML = `${data.time ? `<span class="cal-time">${data.time}</span>` : ''}<span>${data.text}</span>`;
                     el.appendChild(eDiv);
                 });
-
-                // 2. Render Critical Kanban Tasks (Priority 4 or 5)
-                const criticalTasks = store.kanbanTasks.filter(t => 
-                    t.assignedDate === dateKey && 
-                    t.priority >= 4 && 
-                    t.status !== 'done' && 
-                    (!store.currentUser || t.assignee === store.currentUser)
-                );
-
+                const criticalTasks = store.kanbanTasks.filter(t => t.assignedDate === dateKey && t.priority >= 4 && t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser));
                 criticalTasks.forEach(task => {
                     const tDiv = document.createElement('div');
                     tDiv.className = `cal-event-item cal-task-critical`;
                     const label = store.currentUser ? "TASK" : `TASK (${task.assignee || '?'})`;
                     tDiv.innerHTML = `<span class="cal-time text-orange-500"><i class="fas fa-bolt"></i> ${label}</span><span>${task.title}</span>`;
-                    tDiv.onclick = (e) => { 
-                        e.stopPropagation(); 
-                        openTaskModal(task.id); 
-                    };
+                    tDiv.onclick = (e) => { e.stopPropagation(); openTaskModal(task.id); };
                     el.appendChild(tDiv);
                 });
-
                 el.onclick = () => openCalendarModal(dateKey);
                 grid.appendChild(el);
             }
@@ -1249,62 +1246,40 @@
         function renderDayEvents(dateStr) {
             const list = document.getElementById('day-events-list');
             list.innerHTML = '';
-            
-            // Render Private Events
             const events = store.events[dateStr] || [];
             events.forEach((evt, idx) => {
                 const data = parseEventData(evt);
                 const item = document.createElement('div');
                 item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 shadow-sm mb-2`;
-                item.innerHTML = `
-                    <div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div>
-                    <div class="flex gap-2 ml-2">
-                        <button onclick="initEditEvent('${dateStr}', ${idx})" class="text-amber-500"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
+                item.innerHTML = `<div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div><div class="flex gap-2 ml-2"><button onclick="initEditEvent('${dateStr}', ${idx})" class="text-amber-500"><i class="fas fa-edit"></i></button><button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button></div>`;
                 list.appendChild(item);
             });
-
-            // Render Related Critical Tasks
             const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateStr && t.priority >= 4);
             tasks.forEach(task => {
                 const item = document.createElement('div');
                 item.className = `flex justify-between items-center bg-orange-50 dark:bg-orange-900/30 p-2 rounded text-xs border-l-4 border-orange-500 shadow-sm mb-2`;
                 const label = store.currentUser ? `[${task.status.toUpperCase()}]` : `[${task.status.toUpperCase()}] (${task.assignee || '?'})`;
-                item.innerHTML = `
-                    <div class="flex-1"><i class="fas fa-bolt mr-1"></i> ${label} ${task.title}</div>
-                    <button onclick="openTaskModal('${task.id}')" class="text-orange-500 ml-2"><i class="fas fa-external-link-alt"></i></button>
-                `;
+                item.innerHTML = `<div class="flex-1"><i class="fas fa-bolt mr-1"></i> ${label} ${task.title}</div><button onclick="openTaskModal('${task.id}')" class="text-orange-500 ml-2"><i class="fas fa-external-link-alt"></i></button>`;
                 list.appendChild(item);
             });
-
-            if(events.length === 0 && tasks.length === 0) {
-                list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No scheduled items today.</p>';
-            }
+            if(events.length === 0 && tasks.length === 0) list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No scheduled items today.</p>';
         }
 
         function addEvent() {
             const val = document.getElementById('new-event-input').value.trim();
             if (!val) return;
-            
             const startDayStr = document.getElementById('evt-start-date').value;
             const endDayStr = document.getElementById('evt-end-date').value;
             if(!startDayStr || !endDayStr) return alert("Please select start and end dates.");
-            
             const start = document.getElementById('new-event-start').value;
             const end = document.getElementById('new-event-end').value;
             const urgency = document.getElementById('new-event-urgency').value;
             const timeStr = start ? (end ? `${start} - ${end}` : start) : "";
-            
             const eventPayload = JSON.stringify({ text: val, time: timeStr, urgency: urgency });
-
-            // EDIT MODE
             if (editingEventIdx !== null) {
                 const dateKey = document.getElementById('cal-date-val').value;
                 store.events[dateKey][editingEventIdx] = eventPayload;
             } else {
-                // ADD MODE
                 let curr = new Date(startDayStr);
                 const stop = new Date(endDayStr);
                 while(curr <= stop) {
@@ -1314,7 +1289,6 @@
                     curr.setDate(curr.getDate() + 1);
                 }
             }
-
             saveUserDataToCloud();
             cancelEditMode();
             renderDayEvents(document.getElementById('cal-date-val').value);
@@ -1333,15 +1307,10 @@
             document.getElementById('new-event-urgency').value = l; 
             ['low', 'medium', 'high'].forEach(u => {
                 const btn = document.getElementById(`btn-urgency-${u}`);
-                if(btn) {
-                    btn.classList.replace('bg-green-100', 'bg-green-50');
-                    btn.style.borderWidth = '1px';
-                }
+                if(btn) { btn.classList.replace('bg-green-100', 'bg-green-50'); btn.style.borderWidth = '1px'; }
             });
             const btn = document.getElementById(`btn-urgency-${l}`);
-            if(btn) {
-                btn.style.borderWidth = '2px';
-            }
+            if(btn) btn.style.borderWidth = '2px';
         }
 
         function updateEventUrgency(d, i, u) { 
@@ -1353,11 +1322,9 @@
         function initEditEvent(dateStr, idx) {
             editingEventIdx = idx;
             const data = parseEventData(store.events[dateStr][idx]);
-            
             document.getElementById('new-event-input').value = data.text;
             document.getElementById('new-event-urgency').value = data.urgency || 'low';
             setCalUrgency(data.urgency || 'low');
-
             if (data.time && data.time.includes(' - ')) {
                 const parts = data.time.split(' - ');
                 document.getElementById('new-event-start').value = parts[0];
@@ -1366,8 +1333,6 @@
                 document.getElementById('new-event-start').value = data.time || '';
                 document.getElementById('new-event-end').value = '';
             }
-
-            // UI Changes
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
             document.getElementById('btn-add-icon').className = 'fas fa-check';
             document.getElementById('btn-add-event').classList.replace('bg-green-500', 'bg-blue-500');
@@ -1383,21 +1348,11 @@
             document.getElementById('btn-add-event').classList.replace('bg-blue-500', 'bg-green-500');
         }
 
-        // --- KANBAN & TASKS ---
+        // KANBAN & TASKS
         function addQuickTask() {
             const val = document.getElementById('quick-task-input').value.trim();
             if(val) {
-                store.kanbanTasks.push({
-                    id: Date.now().toString(), 
-                    title: val, 
-                    status: document.getElementById('quick-task-status').value,
-                    assignee: document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned",
-                    assignedDate: document.getElementById('quick-task-date').value || "",
-                    priority: 1, 
-                    lastMoved: Date.now(), 
-                    log: { inprogress: 0 }, 
-                    isPaused: false
-                });
+                store.kanbanTasks.push({ id: Date.now().toString(), title: val, status: document.getElementById('quick-task-status').value, assignee: document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned", assignedDate: document.getElementById('quick-task-date').value || "", priority: 1, lastMoved: Date.now(), log: { inprogress: 0 }, isPaused: false });
                 pushToCloud();
                 document.getElementById('quick-task-input').value = '';
                 document.getElementById('quick-task-date').value = '';
@@ -1408,9 +1363,7 @@
             const t = store.kanbanTasks.find(x => x.id === id);
             if(!t || t.status === newStatus) return;
             const now = Date.now();
-            if (t.status === 'inprogress' && !t.isPaused) {
-                t.log.inprogress = (t.log.inprogress || 0) + Math.floor((now - t.lastMoved) / 1000);
-            }
+            if (t.status === 'inprogress' && !t.isPaused) t.log.inprogress = (t.log.inprogress || 0) + Math.floor((now - t.lastMoved) / 1000);
             t.status = newStatus; t.lastMoved = now; t.isPaused = false;
             pushToCloud();
         }
@@ -1430,13 +1383,7 @@
 
         function saveTask() {
             const id = document.getElementById('task-id').value;
-            const data = {
-                title: document.getElementById('task-title').value,
-                description: document.getElementById('task-desc').value,
-                assignee: document.getElementById('task-assignee').value,
-                priority: parseInt(document.getElementById('task-priority').value),
-                assignedDate: document.getElementById('task-date').value
-            };
+            const data = { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value, assignee: document.getElementById('task-assignee').value, priority: parseInt(document.getElementById('task-priority').value), assignedDate: document.getElementById('task-date').value };
             if(id) Object.assign(store.kanbanTasks.find(x => x.id === id), data);
             else store.kanbanTasks.push({ id: Date.now().toString(), ...data, status: 'todo', lastMoved: Date.now(), log: { inprogress: 0 } });
             pushToCloud(); closeModal('task-modal');
@@ -1444,24 +1391,20 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
-        // --- RENDER HELPERS ---
+        // RENDER HELPERS
         function renderTeamList() {
             const list = document.getElementById('team-list');
             document.getElementById('member-count').textContent = store.users.length;
             list.innerHTML = '';
             document.getElementById('task-assignee').innerHTML = '<option value="">Unassigned</option>';
             document.getElementById('quick-task-assignee').innerHTML = '<option value="">Assign to...</option>';
-
             store.users.forEach((u, i) => {
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
-                
                 const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
                 const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
-
-                li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>
-                    ${resetBtn} ${removeBtn}`;
+                li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
                 document.getElementById('quick-task-assignee').add(new Option(u, u));
@@ -1472,19 +1415,7 @@
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
             if(t.status === 'inprogress' && !t.isPaused) timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved)/1000));
-
-            return `<div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2">
-                <div class="flex justify-between items-start">
-                    <h4 class="font-bold text-sm truncate">${t.title}</h4>
-                    <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500"><i class="fas fa-pen text-xs"></i></button>
-                </div>
-                <div class="flex justify-between items-end mt-2">
-                    <span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Unassigned'}</span>
-                    <div class="text-[10px] ${t.status === 'inprogress' ? 'text-purple-500 font-bold' : 'text-slate-400'}">
-                        <i class="fas fa-stopwatch mr-1"></i>${timerStr}
-                    </div>
-                </div>
-            </div>`;
+            return `<div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2"><div class="flex justify-between items-start"><h4 class="font-bold text-sm truncate">${t.title}</h4><button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500"><i class="fas fa-pen text-xs"></i></button></div><div class="flex justify-between items-end mt-2"><span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Unassigned'}</span><div class="text-[10px] ${t.status === 'inprogress' ? 'text-purple-500 font-bold' : 'text-slate-400'}"><i class="fas fa-stopwatch mr-1"></i>${timerStr}</div></div></div>`;
         }
 
         function renderKanbanBoard() {
@@ -1514,95 +1445,30 @@
             .forEach(t => {
                 const li = document.createElement('li');
                 li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
-                
-                const statusColors = {
-                    'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
-                    'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300'
-                };
-
-                li.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
-                        <div class="flex gap-2 shrink-0 ml-2">
-                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button>
-                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-wrap items-center justify-between gap-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">
-                                ${t.status === 'inprogress' ? 'Doing' : 'To Do'}
-                            </span>
-                            <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium">
-                                <i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}
-                            </span>
-                        </div>
-                        
-                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50">
-                            <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
-                        </div>
-                    </div>`;
+                const statusColors = { 'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400', 'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300' };
+                li.innerHTML = `<div class="flex items-center justify-between mb-2"><span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span><div class="flex gap-2 shrink-0 ml-2"><button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button><button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button></div></div><div class="flex flex-wrap items-center justify-between gap-y-2"><div class="flex items-center gap-2"><span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span><span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span></div><div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50"><i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}</div></div>`;
                 list.appendChild(li);
             });
         }
 
-        // --- UTILS ---
+        // UTILS
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
-        function updateClock() { 
-            const n = new Date(); 
-            document.getElementById('clock').textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'});
-            document.getElementById('date').textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
-        }
+        function updateClock() { const n = new Date(); document.getElementById('clock').textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); document.getElementById('date').textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
-        function loadTheme() {
-            document.body.classList.toggle('dark', store.theme === 'dark');
-            document.getElementById('theme-icon').className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)';
-        }
+        function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); document.getElementById('theme-icon').className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
-        function switchView(v) {
-            ['dashboard', 'kanban'].forEach(x => {
-                const view = document.getElementById(`view-${x}`);
-                const nav = document.getElementById(`nav-${x}`);
-                if(view) view.classList.add('hidden');
-                if(nav) nav.classList.remove('active');
-            });
-            const targetView = document.getElementById(`view-${v}`);
-            const targetNav = document.getElementById(`nav-${v}`);
-            if(targetView) targetView.classList.remove('hidden');
-            if(targetNav) targetNav.classList.add('active');
-        }
-        function openTaskModal(id) {
-            document.getElementById('task-modal').classList.remove('hidden');
-            const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''};
-            document.getElementById('task-id').value = id || '';
-            document.getElementById('task-title').value = t.title;
-            document.getElementById('task-desc').value = t.description;
-            document.getElementById('task-assignee').value = t.assignee || (store.currentUser || '');
-            document.getElementById('task-date').value = t.assignedDate || '';
-            setPriority(t.priority);
-            document.getElementById('btn-delete').classList.toggle('hidden', !id);
-        }
+        function switchView(v) { ['dashboard', 'kanban'].forEach(x => { const view = document.getElementById(`view-${x}`); const nav = document.getElementById(`nav-${x}`); if(view) view.classList.add('hidden'); if(nav) nav.classList.remove('active'); }); const targetView = document.getElementById(`view-${v}`); const targetNav = document.getElementById(`nav-${v}`); if(targetView) targetView.classList.remove('hidden'); if(targetNav) targetNav.classList.add('active'); }
+        function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); document.getElementById('btn-delete').classList.toggle('hidden', !id); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function setPriority(v) {
-            document.getElementById('task-priority').value = v;
-            document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v));
-        }
-        function addMember() { 
-            const n = document.getElementById('new-member-name').value.trim();
-            if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); document.getElementById('new-member-name').value=''; }
-        }
+        function setPriority(v) { document.getElementById('task-priority').value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
+        function addMember() { const n = document.getElementById('new-member-name').value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); document.getElementById('new-member-name').value=''; } }
         function removeMember(i) { if(confirm('Remove?')) { store.users.splice(i, 1); pushToCloud(); } }
         function clearFilters() { document.getElementById('date-range-picker')._flatpickr.clear(); renderKanbanBoard(); }
         function switchKanbanView(m) { store.kanbanMode = m; switchView('kanban'); renderKanbanBoard(); }
         function changeWeek(d) { store.weekViewStart.setDate(store.weekViewStart.getDate() + (d*7)); renderKanbanBoard(); }
         function jumpToWeek(d) { store.weekViewStart = d; renderKanbanBoard(); }
         function clearAllData() { if(confirm('Nuke everything?')) { db.ref('projectData').remove(); location.reload(); } }
-        function backupData() {
-            const blob = new Blob([JSON.stringify(store)], {type:'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='backup.json'; a.click();
-        }
+        function backupData() { const blob = new Blob([JSON.stringify(store)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='backup.json'; a.click(); }
         function triggerRestore() { alert('Restore disabled in cloud mode.'); }
         function handleRestore() {}
     </script>
