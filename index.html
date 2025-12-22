@@ -279,7 +279,7 @@
 <body class="text-slate-800 antialiased flex flex-col h-screen w-screen overflow-hidden">
 
     <div id="login-overlay" class="fixed inset-0 flex items-center justify-center transition-opacity duration-500">
-        <div class="glass-panel p-8 rounded-3xl w-full max-w-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
+        <div class="glass-panel p-8 rounded-3xl w-full max-sm:w-[90%] max-w-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-bold text-jokerGreen tracking-tighter">PersonalSpace</h1>
                 <p class="text-white/50 text-xs uppercase tracking-widest">Secure Entry</p>
@@ -444,6 +444,22 @@
                                     placeholder="Type your notes here (Private to you)..."
                                     onchange="saveNotes(this.value)"></textarea>
                                 <div class="text-[10px] text-right mt-1 text-slate-400" id="notes-status">Saved</div>
+                            </div>
+
+                            <div id="admin-channel-panel" class="glass-panel rounded-2xl p-4 h-1/4 flex flex-col min-h-[150px] border-t-4 border-amber-500">
+                                <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                                    <i class="fas fa-user-shield"></i> <span id="admin-channel-title">Secure Admin Channel</span>
+                                </h2>
+                                <div id="admin-message-viewer" class="hidden flex-1 overflow-y-auto space-y-2 mb-2 pr-1">
+                                    </div>
+                                <div id="member-message-sender" class="flex flex-col gap-2 flex-1">
+                                    <textarea id="admin-msg-input" 
+                                        class="flex-1 w-full bg-amber-50 dark:bg-slate-900/50 border border-amber-200 dark:border-amber-900/50 rounded-lg p-2 resize-none focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-700 dark:text-slate-200 text-xs"
+                                        placeholder="Send private note to Admin..."></textarea>
+                                    <button onclick="sendAdminMessage()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 rounded-lg text-[10px] transition transform active:scale-95 shadow-md">
+                                        SEND TO ADMIN
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-0">
@@ -716,6 +732,7 @@
             avatars: {}, 
             focus: '',
             notes: '',
+            adminMessages: {}, // NEW: Store incoming messages for Admin
             events: {}, // This will be the LOCAL USER events filter
             allEvents: {}, // Temporary raw cloud data
             passwords: {},
@@ -776,6 +793,10 @@
         window.togglePasswordVisibility = togglePasswordVisibility; 
         window.changeAdminPassword = changeAdminPassword;
         window.changeMyPassword = changeMyPassword;
+
+        // NEW: ADMIN CHANNEL FUNCTIONS
+        window.sendAdminMessage = sendAdminMessage;
+        window.clearAdminMessage = clearAdminMessage;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -867,6 +888,7 @@
                     store.kanbanTasks = data.kanbanTasks || [];
                     store.avatars = data.avatars || {};
                     store.passwords = data.passwords || { "Admin": "1234" };
+                    store.adminMessages = data.adminMessages || {}; // Load admin messages
                     
                     const userKey = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
                     
@@ -985,7 +1007,8 @@
                 users: store.users,
                 kanbanTasks: store.kanbanTasks,
                 avatars: store.avatars,
-                passwords: store.passwords 
+                passwords: store.passwords,
+                adminMessages: store.adminMessages // Include admin messages in global sync
             });
             saveUserDataToCloud();
         }
@@ -1046,8 +1069,68 @@
             }
             // Ensure overlay exists
             avatarContainer.innerHTML += `<div class="avatar-overlay absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 transition"><i class="fas fa-camera text-xs text-white"></i></div>`;
-            // Modify click for admin specifically as requested
             avatarContainer.onclick = () => triggerAvatarUpload(name);
+
+            // Handle Admin Secure Channel Visibility
+            const viewer = document.getElementById('admin-message-viewer');
+            const sender = document.getElementById('member-message-sender');
+            const title = document.getElementById('admin-channel-title');
+
+            if (!store.currentUser) {
+                // Admin View
+                viewer.classList.remove('hidden');
+                sender.classList.add('hidden');
+                title.textContent = "Admin Mailbox";
+                renderAdminMailbox();
+            } else {
+                // Member View
+                viewer.classList.add('hidden');
+                sender.classList.remove('hidden');
+                title.textContent = "Message to Admin";
+                // Pre-load existing message if any
+                document.getElementById('admin-msg-input').value = store.adminMessages[store.currentUser] || '';
+            }
+        }
+
+        function renderAdminMailbox() {
+            const viewer = document.getElementById('admin-message-viewer');
+            viewer.innerHTML = '';
+            let hasMessages = false;
+
+            for (const sender in store.adminMessages) {
+                if (store.adminMessages[sender]) {
+                    hasMessages = true;
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = "bg-white dark:bg-slate-800 p-2 rounded-lg border border-amber-200 dark:border-amber-900 shadow-sm relative group";
+                    msgDiv.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black text-amber-600 uppercase tracking-tighter">${sender}</span>
+                            <button onclick="clearAdminMessage('${sender}')" class="text-red-400 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 italic">"${store.adminMessages[sender]}"</p>
+                    `;
+                    viewer.appendChild(msgDiv);
+                }
+            }
+
+            if (!hasMessages) {
+                viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
+            }
+        }
+
+        function sendAdminMessage() {
+            const val = document.getElementById('admin-msg-input').value.trim();
+            if (!store.currentUser) return;
+            store.adminMessages[store.currentUser] = val;
+            pushToCloud();
+            alert("Message sent to Admin secure cloud.");
+        }
+
+        function clearAdminMessage(sender) {
+            if (confirm(`Clear message from ${sender}?`)) {
+                delete store.adminMessages[sender];
+                pushToCloud();
+            }
         }
 
         function updateDashboardUI() {
@@ -1138,7 +1221,6 @@
                 criticalTasks.forEach(task => {
                     const tDiv = document.createElement('div');
                     tDiv.className = `cal-event-item cal-task-critical`;
-                    // ADMIN ORIENTED: If admin, show the assignee name next to TASK
                     const label = store.currentUser ? "TASK" : `TASK (${task.assignee || '?'})`;
                     tDiv.innerHTML = `<span class="cal-time text-orange-500"><i class="fas fa-bolt"></i> ${label}</span><span>${task.title}</span>`;
                     tDiv.onclick = (e) => { 
@@ -1249,7 +1331,6 @@
         function resolveEvent(d, i) { deleteEvent(d, i); }
         function setCalUrgency(l) { 
             document.getElementById('new-event-urgency').value = l; 
-            // Reset borders
             ['low', 'medium', 'high'].forEach(u => {
                 const btn = document.getElementById(`btn-urgency-${u}`);
                 if(btn) {
