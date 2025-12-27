@@ -456,6 +456,33 @@
                         
                         <div class="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
                             
+                            <div class="glass-panel rounded-2xl p-4 shrink-0 border-t-4 border-jokerGreen">
+                                <h2 class="text-sm font-bold mb-3 flex items-center justify-between text-jokerGreen">
+                                    <span class="flex items-center gap-2"><i class="fas fa-stopwatch"></i> Focus Timer</span>
+                                    <button onclick="toggleLeave()" id="btn-leave-toggle" class="text-[9px] px-2 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition font-bold uppercase">Mark Leave</button>
+                                </h2>
+                                <div class="flex items-center justify-between bg-black/20 p-3 rounded-xl">
+                                    <div class="text-2xl font-black text-white tracking-widest" id="dash-timer-display">00:00:00</div>
+                                    <div class="flex gap-2">
+                                        <button onclick="toggleDashTimer()" id="dash-timer-btn" class="w-10 h-10 rounded-full bg-jokerGreen text-black flex items-center justify-center shadow-lg transition active:scale-90">
+                                            <i class="fas fa-play" id="dash-timer-icon"></i>
+                                        </button>
+                                        <button onclick="resetDashTimer()" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition">
+                                            <i class="fas fa-redo-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel rounded-2xl p-4 shrink-0 border-t-4 border-red-500">
+                                <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-red-500">
+                                    <i class="fas fa-plane-departure"></i> Team Out Today
+                                </h2>
+                                <div id="leave-list" class="flex flex-wrap gap-2">
+                                    <p class="text-[10px] text-slate-400 italic">Everyone is present.</p>
+                                </div>
+                            </div>
+
                             <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col min-h-[200px]">
                                 <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-purple-700 dark:text-purple-300">
                                     <i class="fas fa-sticky-note"></i> Quick Notes
@@ -772,12 +799,15 @@
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
-            weekViewStart: new Date()
+            weekViewStart: new Date(),
+            dashTimers: {}, // { "UserKey": { elapsed: 0, running: false, lastStart: 0 } }
+            leaveStatus: {} // { "UserName": true/false }
         };
         
         let draggedItem = null;
         let uploadingUser = null;
         let editingEventIdx = null; 
+        let tickerInterval = null;
 
         // --- CORE FUNCTIONS ---
         window.switchUser = switchUser;
@@ -826,6 +856,11 @@
         window.togglePasswordVisibility = togglePasswordVisibility; 
         window.changeAdminPassword = changeAdminPassword;
         window.changeMyPassword = changeMyPassword;
+
+        // DASHBOARD NEW FEATURES
+        window.toggleDashTimer = toggleDashTimer;
+        window.resetDashTimer = resetDashTimer;
+        window.toggleLeave = toggleLeave;
 
         // ADMIN CHANNEL FUNCTIONS
         window.sendAdminMessage = sendAdminMessage;
@@ -923,6 +958,8 @@
                     store.avatars = data.avatars || {};
                     store.passwords = data.passwords || { "Admin": "1234" };
                     store.adminMessages = data.adminMessages || {};
+                    store.dashTimers = data.dashTimers || {};
+                    store.leaveStatus = data.leaveStatus || {};
                     
                     const userKey = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
                     
@@ -941,6 +978,7 @@
                     updateDashboardUI();
                     updateUIForUser();
                     updateLoginDropdown();
+                    renderLeaveList();
                     
                     const savedUser = localStorage.getItem('ps_session_user');
                     if (savedUser && !store.currentUser) {
@@ -951,6 +989,7 @@
             });
 
             setInterval(updateKanbanTimers, 1000);
+            tickerInterval = setInterval(dashTimerTicker, 1000);
 
             flatpickr("#date-range-picker", {
                 mode: "range", dateFormat: "Y-m-d", theme: "dark",
@@ -1033,6 +1072,97 @@
             select.value = currentVal;
         }
 
+        // --- DASHBOARD TIMER & LEAVE ---
+        function toggleDashTimer() {
+            const name = store.currentUser || "Admin";
+            const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
+            const now = Date.now();
+            
+            if(!store.dashTimers[userKey]) {
+                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0 };
+            }
+
+            const t = store.dashTimers[userKey];
+            if (t.running) {
+                t.elapsed += Math.floor((now - t.lastStart) / 1000);
+                t.running = false;
+            } else {
+                t.lastStart = now;
+                t.running = true;
+            }
+            db.ref('projectData/dashTimers/' + userKey).set(t);
+        }
+
+        function resetDashTimer() {
+            if(!confirm("Reset focus timer?")) return;
+            const name = store.currentUser || "Admin";
+            const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
+            const t = { elapsed: 0, running: false, lastStart: 0 };
+            db.ref('projectData/dashTimers/' + userKey).set(t);
+        }
+
+        function dashTimerTicker() {
+            const name = store.currentUser || "Admin";
+            const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
+            const t = store.dashTimers[userKey] || { elapsed: 0, running: false, lastStart: 0 };
+            const display = document.getElementById('dash-timer-display');
+            const icon = document.getElementById('dash-timer-icon');
+            const btn = document.getElementById('dash-timer-btn');
+            
+            let totalSeconds = t.elapsed;
+            if (t.running) {
+                totalSeconds += Math.floor((Date.now() - t.lastStart) / 1000);
+                icon.className = 'fas fa-pause';
+                btn.classList.add('timer-active');
+            } else {
+                icon.className = 'fas fa-play';
+                btn.classList.remove('timer-active');
+            }
+
+            const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSeconds % 60).padStart(2, '0');
+            display.textContent = `${hrs}:${mins}:${secs}`;
+        }
+
+        function toggleLeave() {
+            const name = store.currentUser || "Admin";
+            const current = store.leaveStatus[name] || false;
+            store.leaveStatus[name] = !current;
+            db.ref('projectData/leaveStatus').set(store.leaveStatus);
+        }
+
+        function renderLeaveList() {
+            const container = document.getElementById('leave-list');
+            const name = store.currentUser || "Admin";
+            const leaveBtn = document.getElementById('btn-leave-toggle');
+            
+            // Update personal button
+            if (store.leaveStatus[name]) {
+                leaveBtn.textContent = "I'm Back";
+                leaveBtn.classList.replace('bg-red-500/20', 'bg-green-500');
+                leaveBtn.classList.replace('text-red-400', 'text-black');
+            } else {
+                leaveBtn.textContent = "Mark Leave";
+                leaveBtn.classList.replace('bg-green-500', 'bg-red-500/20');
+                leaveBtn.classList.replace('text-black', 'text-red-400');
+            }
+
+            // Update display list
+            container.innerHTML = '';
+            let count = 0;
+            for (const person in store.leaveStatus) {
+                if (store.leaveStatus[person]) {
+                    count++;
+                    const badge = document.createElement('div');
+                    badge.className = "px-2 py-1 rounded bg-red-500 text-white text-[10px] font-bold flex items-center gap-1 animate-pulse";
+                    badge.innerHTML = `<i class="fas fa-plane"></i> ${person}`;
+                    container.appendChild(badge);
+                }
+            }
+            if(count === 0) container.innerHTML = '<p class="text-[10px] text-slate-400 italic">Everyone is present.</p>';
+        }
+
         // --- DATA PUSH ---
         function pushToCloud() {
             db.ref('projectData').update({
@@ -1040,7 +1170,9 @@
                 kanbanTasks: store.kanbanTasks,
                 avatars: store.avatars,
                 passwords: store.passwords,
-                adminMessages: store.adminMessages 
+                adminMessages: store.adminMessages,
+                dashTimers: store.dashTimers,
+                leaveStatus: store.leaveStatus
             });
             saveUserDataToCloud();
         }
