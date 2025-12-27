@@ -177,6 +177,7 @@
         .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
         .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
         
+        /* Special Critical Task Style for Calendar */
         .cal-task-critical { 
             border-left-color: #f97316 !important; 
             background: rgba(249, 115, 22, 0.15) !important;
@@ -264,14 +265,17 @@
             font-weight: bold;
         }
         
+        /* Helper to hide admin tools */
         .admin-only { transition: all 0.3s; }
         .admin-only.hidden-tool { display: none !important; }
 
+        /* Login Screen Styles */
         #login-overlay {
             background: #10002b;
             z-index: 200;
         }
 
+        /* Logo Pulse Animation */
         .logo-glow {
             animation: logo-pulse 3s infinite ease-in-out;
         }
@@ -450,7 +454,7 @@
                     
                     <div class="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1 min-h-0">
                         
-                        <div class="lg:col-span-3 flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1">
+                        <div class="lg:col-span-3 flex flex-col gap-4 h-full min-h-0">
                             
                             <div class="glass-panel rounded-2xl p-4 shrink-0 border-t-4 border-jokerGreen">
                                 <h2 class="text-sm font-bold mb-3 flex items-center justify-between text-jokerGreen">
@@ -479,29 +483,30 @@
                                 </div>
                             </div>
 
-                            <div class="glass-panel rounded-2xl p-4 shrink-0 border-t-4 border-purple-400">
+                            <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col min-h-[200px]">
                                 <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-purple-700 dark:text-purple-300">
                                     <i class="fas fa-sticky-note"></i> Quick Notes
                                 </h2>
                                 <textarea id="notepad" 
-                                    class="w-full bg-purple-50 dark:bg-slate-900/50 border-none rounded-lg p-3 resize-none h-24 focus:ring-2 focus:ring-green-400 outline-none transition text-slate-700 dark:text-slate-200 text-sm"
-                                    placeholder="Type your notes here..."
+                                    class="flex-1 w-full bg-purple-50 dark:bg-slate-900/50 border-none rounded-lg p-3 resize-none focus:ring-2 focus:ring-green-400 outline-none transition text-slate-700 dark:text-slate-200 text-sm"
+                                    placeholder="Type your notes here (Private to you)..."
                                     onchange="saveNotes(this.value)"></textarea>
                                 <div class="text-[10px] text-right mt-1 text-slate-400" id="notes-status">Saved</div>
                             </div>
 
-                            <div id="admin-channel-panel" class="glass-panel rounded-2xl p-4 shrink-0 border-t-4 border-amber-500">
+                            <div id="admin-channel-panel" class="glass-panel rounded-2xl p-4 h-1/4 flex flex-col min-h-[150px] border-t-4 border-amber-500">
                                 <h2 class="text-sm font-bold mb-2 flex items-center gap-2 text-amber-600 dark:text-amber-400">
                                     <i class="fas fa-user-shield"></i> <span id="admin-channel-title">Secure Admin Channel</span>
                                 </h2>
-                                <div id="admin-message-viewer" class="hidden max-h-32 overflow-y-auto space-y-2 mb-2 pr-1"></div>
-                                <div id="member-message-sender" class="flex flex-col gap-2">
+                                <div id="admin-message-viewer" class="hidden flex-1 overflow-y-auto space-y-2 mb-2 pr-1">
+                                    </div>
+                                <div id="member-message-sender" class="flex flex-col gap-2 flex-1">
                                     <div id="admin-reply-display" class="hidden mb-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-[10px] italic">
                                         <b class="text-blue-600 block mb-1">ADMIN RESPONSE:</b>
                                         <span id="reply-text">...</span>
                                     </div>
                                     <textarea id="admin-msg-input" 
-                                        class="w-full bg-amber-50 dark:bg-slate-900/50 border border-amber-200 dark:border-amber-900/50 rounded-lg p-2 resize-none h-16 focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-700 dark:text-slate-200 text-xs"
+                                        class="flex-1 w-full bg-amber-50 dark:bg-slate-900/50 border border-amber-200 dark:border-amber-900/50 rounded-lg p-2 resize-none focus:ring-2 focus:ring-amber-400 outline-none transition text-slate-700 dark:text-slate-200 text-xs"
                                         placeholder="Send private note to Admin..."></textarea>
                                     <button onclick="sendAdminMessage()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-1.5 rounded-lg text-[10px] transition transform active:scale-95 shadow-md">
                                         SEND TO ADMIN
@@ -509,7 +514,7 @@
                                 </div>
                             </div>
 
-                            <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-[300px] border-t-4 border-jokerGreen">
+                            <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-0">
                                 <h2 class="text-sm font-bold mb-3 flex items-center gap-2 text-green-600 dark:text-green-400 shrink-0">
                                     <i class="fas fa-check-circle"></i> Quick Tasks
                                 </h2>
@@ -519,18 +524,24 @@
                                         class="w-full bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-green-500 outline-none dark:text-white">
                                     
                                     <div class="flex flex-wrap gap-2">
-                                        <input type="date" id="quick-task-date" class="flex-1 min-w-[100px] bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
+                                        <input type="date" id="quick-task-date" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
 
-                                        <select id="quick-task-assignee" class="flex-1 min-w-[100px] bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
+                                        <select id="quick-task-assignee" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
                                             <option value="">Unassigned</option>
                                         </select>
                                         
                                         <select id="quick-task-priority" class="flex-1 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
-                                            <option value="1">Low</option>
-                                            <option value="3">Med</option>
-                                            <option value="5">High</option>
+                                            <option value="1">Low Urgency</option>
+                                            <option value="3">Med Urgency</option>
+                                            <option value="5">High Urgency</option>
                                         </select>
 
+                                        <select id="quick-task-status" class="w-24 bg-white dark:bg-slate-700/50 border border-purple-200 dark:border-purple-600 rounded-lg px-2 py-1.5 text-[10px] font-bold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-green-500 outline-none cursor-pointer">
+                                            <option value="todo">To Do</option>
+                                            <option value="inprogress">Doing</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                        
                                         <button onclick="addQuickTask()" class="bg-jokerGreen hover:bg-green-400 text-black font-bold rounded-lg px-3 transition transform active:scale-95 shadow-lg shadow-green-500/30 text-xs">
                                             <i class="fas fa-plus"></i>
                                         </button>
@@ -539,7 +550,7 @@
                                 
                                 <ul id="quick-task-list" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0"></ul>
                             </div>
-                        </div>
+                            </div>
 
                         <div class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col h-full shrink-0 min-h-[250px]">
                             <div class="flex justify-between items-center mb-2 shrink-0">
@@ -789,7 +800,7 @@
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
             weekViewStart: new Date(),
-            dashTimers: {}, // { "UserKey": { elapsed: 0, running: false, lastStart: 0, lastDate: 'YYYY-MM-DD' } }
+            dashTimers: {}, // { "UserKey": { elapsed: 0, running: false, lastStart: 0 } }
             leaveStatus: {} // { "UserName": true/false }
         };
         
@@ -855,7 +866,7 @@
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
-        window.resolveAdminMessage = resolveAdminMessage; 
+        window.resolveAdminMessage = resolveAdminMessage; // Logic updated
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -873,9 +884,9 @@
             }
         };
 
-        // EXPORT SUMMARY & FLUSH EXECUTED (Updated to include daily focus timer)
+        // EXPORT SUMMARY & FLUSH EXECUTED
         window.exportSummaryReport = () => {
-            if(store.kanbanTasks.length === 0 && Object.keys(store.dashTimers).length === 0) return alert("No data available to report.");
+            if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
             
             const todo = store.kanbanTasks.filter(t => t.status === 'todo');
             const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
@@ -884,26 +895,6 @@
             let content = "PERSONAL SPACE - DETAILED PROJECT STATUS REPORT\n";
             content += `Generated On: ${new Date().toLocaleString()}\n`;
             content += "========================================================\n\n";
-
-            // Focus Timer Report Section
-            content += "[DAILY FOCUS TIMERS (DAILY LOG)]\n";
-            content += "Report of focus time spent today per member:\n";
-            
-            let hasTimers = false;
-            for(let userKey in store.dashTimers) {
-                const t = store.dashTimers[userKey];
-                const displayName = userKey.replace(/_/g, ' ');
-                const totalSecs = t.running ? t.elapsed + Math.floor((Date.now() - t.lastStart) / 1000) : t.elapsed;
-                
-                const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
-                const secs = String(totalSecs % 60).padStart(2, '0');
-                
-                content += `- ${displayName}: ${hrs}:${mins}:${secs}\n`;
-                hasTimers = true;
-            }
-            if(!hasTimers) content += "No focus time logged today.\n";
-            content += "\n--------------------------------------------------------\n\n";
 
             const getTaskDetails = (t) => {
                 const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
@@ -1086,10 +1077,9 @@
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
             const now = Date.now();
-            const todayStr = new Date().toISOString().slice(0, 10);
             
             if(!store.dashTimers[userKey]) {
-                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0, lastDate: todayStr };
+                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0 };
             }
 
             const t = store.dashTimers[userKey];
@@ -1099,7 +1089,6 @@
             } else {
                 t.lastStart = now;
                 t.running = true;
-                t.lastDate = todayStr;
             }
             db.ref('projectData/dashTimers/' + userKey).set(t);
         }
@@ -1108,32 +1097,14 @@
             if(!confirm("Reset focus timer?")) return;
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
-            const todayStr = new Date().toISOString().slice(0, 10);
-            const t = { elapsed: 0, running: false, lastStart: 0, lastDate: todayStr };
+            const t = { elapsed: 0, running: false, lastStart: 0 };
             db.ref('projectData/dashTimers/' + userKey).set(t);
         }
 
-        // New Logic: Automatic Daily Reset
         function dashTimerTicker() {
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
-            const todayStr = new Date().toISOString().slice(0, 10);
-            
-            // Check if timer exists, if not initialize
-            if(!store.dashTimers[userKey]) {
-                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0, lastDate: todayStr };
-            }
-
-            const t = store.dashTimers[userKey];
-
-            // AUTO RESET LOGIC: If date has changed, reset elapsed to 0
-            if (t.lastDate && t.lastDate !== todayStr) {
-                t.elapsed = 0;
-                t.running = false;
-                t.lastDate = todayStr;
-                db.ref('projectData/dashTimers/' + userKey).set(t);
-            }
-
+            const t = store.dashTimers[userKey] || { elapsed: 0, running: false, lastStart: 0 };
             const display = document.getElementById('dash-timer-display');
             const icon = document.getElementById('dash-timer-icon');
             const btn = document.getElementById('dash-timer-btn');
@@ -1319,6 +1290,7 @@
             if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
+        // Logic Change: This now deletes the message immediately upon "Resolution"
         function resolveAdminMessage(sender) {
             if (confirm(`Resolve and remove message from ${sender}?`)) {
                 delete store.adminMessages[sender];
@@ -1557,7 +1529,7 @@
                 store.kanbanTasks.push({ 
                     id: Date.now().toString(), 
                     title: val, 
-                    status: 'todo', 
+                    status: document.getElementById('quick-task-status').value, 
                     assignee: document.getElementById('quick-task-assignee').value || store.currentUser || "Unassigned", 
                     assignedDate: document.getElementById('quick-task-date').value || "", 
                     priority: parseInt(urgency), 
@@ -1631,6 +1603,7 @@
         }
 
         function renderKanbanBoard() {
+            // Visibility Toggle
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
             const badge = document.getElementById('tracker-badge');
@@ -1725,7 +1698,14 @@
             if(!list) return;
             list.innerHTML = '';
             
-            const priorityColors = { 1: 'text-green-500', 3: 'text-purple-500', 5: 'text-red-500' };
+            // Map priority to flag colors
+            const priorityColors = {
+                1: 'text-green-500', // Low
+                2: 'text-green-400',
+                3: 'text-purple-500', // Medium
+                4: 'text-orange-500',
+                5: 'text-red-500'     // High
+            };
 
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
