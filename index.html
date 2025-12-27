@@ -50,7 +50,6 @@
         @keyframes pulse-green { 0%, 100% { text-shadow: 0 0 0 rgba(57, 255, 20, 0); } 50% { text-shadow: 0 0 4px rgba(57, 255, 20, 0.5); } }
         #login-overlay { background: #10002b; z-index: 200; }
         .admin-only.hidden-tool { display: none !important; }
-        /* Calendar UI overrides */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; }
         .calendar-day { min-height: 80px; padding: 4px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
         .cal-event-item { font-size: 0.65rem; padding: 4px; border-radius: 3px; margin-top: 2px; }
@@ -107,10 +106,12 @@
             <div class="p-4 border-t border-purple-500/30">
                 <h3 class="text-xs font-bold text-green-400 uppercase mb-3 flex justify-between items-center">Team Members <span id="member-count" class="bg-purple-800 px-2 rounded-full">0</span></h3>
                 <div id="admin-tools-members" class="admin-only flex gap-2 mb-3">
-                    <input type="text" id="new-member-name" placeholder="Add member..." class="w-full bg-white/10 border rounded px-2 text-sm text-white">
-                    <button onclick="addMember()" class="bg-green-600 text-black px-2 rounded"><i class="fas fa-plus"></i></button>
+                    <input type="text" id="new-member-name" placeholder="Add member..." class="w-full bg-white/10 border rounded px-2 text-sm text-white focus:outline-none">
+                    <button onclick="addMember()" class="bg-green-600 text-black px-2 rounded hover:bg-green-400"><i class="fas fa-plus"></i></button>
                 </div>
-                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto"></ul>
+                <ul id="team-list" class="space-y-2 max-h-40 overflow-y-auto">
+                    <li class="text-white/30 text-xs italic text-center py-2">No members added yet</li>
+                </ul>
             </div>
             <div class="p-4 border-t border-purple-500/30">
                 <button onclick="changeMyPassword()" class="text-[10px] text-amber-400 block"><i class="fas fa-lock"></i> Update My Password</button>
@@ -125,14 +126,16 @@
                         <h1 class="text-3xl font-bold tracking-tight text-green-400" id="clock">00:00</h1>
                         <p class="text-sm opacity-90" id="date">Loading date...</p>
                     </div>
-                    <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg overflow-hidden cursor-pointer relative"></div>
+                    <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg overflow-hidden flex items-center justify-center">
+                        <i class="fas fa-user-circle text-white/20 text-4xl"></i>
+                    </div>
                 </header>
 
                 <div class="grid grid-cols-1 lg:grid-cols-10 gap-4 flex-1 min-h-0">
                     <div class="lg:col-span-3 flex flex-col gap-4 h-full">
                         <div class="glass-panel rounded-2xl p-4 h-1/3 flex flex-col">
                             <h2 class="text-sm font-bold mb-2 text-purple-700 dark:text-purple-300"><i class="fas fa-sticky-note"></i> Quick Notes</h2>
-                            <textarea id="notepad" class="flex-1 bg-purple-50 dark:bg-slate-900 border-none rounded-lg p-3 resize-none outline-none text-sm" placeholder="Notes..." onchange="saveNotes(this.value)"></textarea>
+                            <textarea id="notepad" class="flex-1 bg-purple-50 dark:bg-slate-900 border-none rounded-lg p-3 resize-none outline-none text-sm" placeholder="Private notes..." onchange="saveNotes(this.value)"></textarea>
                         </div>
                         <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col">
                             <h2 class="text-sm font-bold mb-3 text-green-600 dark:text-green-400"><i class="fas fa-check-circle"></i> Active Progress</h2>
@@ -153,11 +156,9 @@
                 <div class="flex justify-between items-center mb-6 text-white">
                     <h2 class="text-2xl font-bold text-green-400">Task Tracker</h2>
                     <div class="flex gap-2">
-                        <div id="kanban-filter-container" class="relative">
-                            <input type="text" id="date-range-picker" placeholder="Filter by date..." class="bg-black/40 border border-purple-500/50 text-white text-xs rounded px-4 py-2 outline-none w-48">
-                        </div>
-                        <button onclick="exportSummaryReport()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fas fa-file-export"></i> Export & Flush</button>
-                        <button onclick="openTaskModal()" class="bg-green-500 text-black font-bold px-4 py-2 rounded-lg text-sm"><i class="fas fa-plus"></i> New Task</button>
+                        <input type="text" id="date-range-picker" placeholder="Filter Date Range" class="bg-black/40 border border-purple-500/50 text-white text-xs rounded px-4 py-2 outline-none w-48">
+                        <button onclick="exportSummaryReport()" class="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg"><i class="fas fa-file-export"></i> Export & Flush</button>
+                        <button onclick="openTaskModal()" class="bg-green-500 text-black font-bold px-4 py-2 rounded-lg text-sm shadow-lg"><i class="fas fa-plus"></i> New Task</button>
                     </div>
                 </div>
                 <div id="kanban-status-view" class="flex-1 overflow-x-auto">
@@ -182,23 +183,21 @@
 
     <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 border-2 border-purple-500">
-            <h2 class="text-xl font-bold mb-4 dark:text-white">Task Details</h2>
-            <input type="hidden" id="task-id">
-            <input type="text" id="task-title" placeholder="Title" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 mb-3 outline-none dark:text-white">
+            <h2 class="text-xl font-bold mb-4 dark:text-white">New Project Task</h2>
+            <input type="text" id="task-title" placeholder="What needs doing?" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 mb-3 outline-none dark:text-white">
             <div class="grid grid-cols-2 gap-3 mb-3">
                 <select id="task-assignee" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 outline-none dark:text-white"></select>
                 <input type="date" id="task-date" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 outline-none dark:text-white">
             </div>
-            <textarea id="task-desc" placeholder="Description" rows="3" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 mb-4 outline-none dark:text-white"></textarea>
+            <textarea id="task-desc" placeholder="Details..." rows="3" class="w-full bg-slate-100 dark:bg-slate-700 rounded-lg p-3 mb-4 outline-none dark:text-white"></textarea>
             <div class="flex justify-end gap-2">
                 <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-500">Cancel</button>
-                <button onclick="saveTask()" class="bg-purple-600 text-white px-6 py-2 rounded-lg">Save Task</button>
+                <button onclick="saveTask()" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-bold">Create Task</button>
             </div>
         </div>
     </div>
 
     <script>
-        // FIREBASE & CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyCvfwF-_by5hoUIVoEowKwbzzKF3YkJWy0",
             authDomain: "personalspacehub-3a44d.firebaseapp.com",
@@ -208,7 +207,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // STATE
         const store = {
             theme: localStorage.getItem('nexus_theme') || 'light',
             currentUser: null,
@@ -218,9 +216,7 @@
             passwords: {},
             workLogs: [], 
             activeSessions: {}, 
-            notes: '',
-            calendarMonth: new Date().getMonth(),
-            calendarYear: new Date().getFullYear()
+            notes: ''
         };
 
         // UI HELPERS
@@ -238,7 +234,6 @@
             if (pass === (store.passwords[user] || "1234")) {
                 store.currentUser = user === "Admin" ? null : user;
                 document.getElementById('login-overlay').classList.add('hidden');
-                document.getElementById('current-user-name').textContent = user;
                 localStorage.setItem('ps_session_user', user);
                 updateUIForUser();
             } else { document.getElementById('login-error').classList.remove('hidden'); }
@@ -246,43 +241,31 @@
 
         function logout() { localStorage.removeItem('ps_session_user'); location.reload(); }
 
-        // --- NEW: ROLE-BASED REPORTING LOGIC ---
+        // --- EXPORT LOGIC ---
         function exportSummaryReport() {
             const picker = document.getElementById('date-range-picker')._flatpickr;
             const range = picker.selectedDates;
-            let start = range[0], end = range[1];
-
             const isMember = store.currentUser !== null;
             const actingUser = store.currentUser || "Admin";
 
-            let content = `PERSONAL SPACE - ${isMember ? 'INDIVIDUAL' : 'TEAM'} ACTIVITY REPORT\n`;
-            content += `Generated By: ${actingUser}\n`;
+            let content = `PERSONAL SPACE HUB - ${isMember ? 'MEMBER' : 'ADMIN'} REPORT\n`;
             content += `Export Date: ${new Date().toLocaleString()}\n`;
-            if (start) content += `Period: ${start.toDateString()} to ${end ? end.toDateString() : 'Present'}\n`;
             content += "========================================================\n\n";
 
-            // 1. WORK SESSION SUMMARY
-            content += isMember ? "[YOUR TRACKED HOURS]\n" : "[TEAM TOTAL HOURS SUMMARY]\n";
-            const usersToReport = isMember ? [actingUser] : ["Admin", ...store.users];
-            
-            usersToReport.forEach(u => {
+            content += isMember ? "[YOUR TRACKED TIME]\n" : "[TEAM TRACKED TIME SUMMARY]\n";
+            const users = isMember ? [actingUser] : ["Admin", ...store.users];
+            users.forEach(u => {
                 let logs = store.workLogs.filter(l => l.user === u);
-                if (start && end) {
-                    logs = logs.filter(l => { const d = new Date(l.date); return d >= start && d <= end; });
+                if (range.length === 2) {
+                    logs = logs.filter(l => { const d = new Date(l.date); return d >= range[0] && d <= range[1]; });
                 }
                 const total = logs.reduce((acc, curr) => acc + curr.duration, 0);
                 content += `${u.padEnd(15)} : ${formatTime(total)}\n`;
             });
 
-            // 2. TASK SUMMARY
-            content += `\n${isMember ? '[YOUR TASKS]' : '[ALL PROJECT TASKS]'}\n`;
-            const tasksToReport = isMember 
-                ? store.kanbanTasks.filter(t => t.assignee === actingUser) 
-                : store.kanbanTasks;
-
-            tasksToReport.forEach(t => {
-                content += `- ${t.title.padEnd(30)} [${t.status.toUpperCase()}] Assigned: ${t.assignee || 'Any'}\n`;
-            });
+            content += `\n${isMember ? '[YOUR ASSIGNED TASKS]' : '[ALL PROJECT TASKS]'}\n`;
+            const tasks = isMember ? store.kanbanTasks.filter(t => t.assignee === actingUser) : store.kanbanTasks;
+            tasks.forEach(t => { content += `- ${t.title.padEnd(30)} [${t.status.toUpperCase()}]\n`; });
 
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -290,14 +273,9 @@
             a.href = url;
             a.download = `${actingUser}_Report_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
-
-            if (!isMember && confirm("Flush finished tasks for the whole team?")) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
-                pushToCloud();
-            }
         }
 
-        // TIMER LOGIC
+        // --- TIMER ---
         function sessionAction(type) {
             const user = store.currentUser || "Admin";
             const session = store.activeSessions[user] || { isPlaying: false, lastStartTime: null, accumulatedTime: 0 };
@@ -308,12 +286,11 @@
                 if (session.isPlaying) session.accumulatedTime += Math.floor((now - session.lastStartTime)/1000);
                 session.isPlaying = false; session.lastStartTime = null;
             } else if (type === 'stop') {
-                if(!confirm("Finalize and log session?")) return;
+                if(!confirm("Finish and log this session?")) return;
                 let total = session.accumulatedTime + (session.isPlaying ? Math.floor((now - session.lastStartTime)/1000) : 0);
                 if (total > 0) store.workLogs.push({ user, duration: total, date: new Date().toISOString().split('T')[0], timestamp: now });
                 delete store.activeSessions[user];
-                pushToCloud();
-                return;
+                pushToCloud(); return;
             }
             store.activeSessions[user] = session;
             pushToCloud();
@@ -338,92 +315,110 @@
             pauseBtn.classList.toggle('hidden', !session.isPlaying);
         }
 
-        // FIREBASE SYNC
-        function pushToCloud() {
-            db.ref('projectData').update({
-                users: store.users, kanbanTasks: store.kanbanTasks, avatars: store.avatars,
-                passwords: store.passwords, workLogs: store.workLogs, activeSessions: store.activeSessions
-            });
-        }
+        // --- CORE LOGIC ---
+        function pushToCloud() { db.ref('projectData').update(store); }
 
         function updateUIForUser() {
             const name = store.currentUser || "Admin";
             document.getElementById('current-user-name').textContent = name;
             document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden-tool', store.currentUser !== null));
-            renderKanbanBoard();
+            
+            const avatarBox = document.getElementById('header-avatar');
+            if (store.avatars[name]) avatarBox.innerHTML = `<img src="${store.avatars[name]}" class="w-full h-full object-cover">`;
+            else avatarBox.innerHTML = `<i class="fas fa-user-circle text-white/20 text-4xl"></i>`;
+            
             renderTeamList();
+            renderKanbanBoard();
         }
 
-        // KANBAN
+        function renderTeamList() {
+            const list = document.getElementById('team-list');
+            const count = document.getElementById('member-count');
+            const select = document.getElementById('task-assignee');
+            
+            list.innerHTML = '';
+            select.innerHTML = '<option value="">Unassigned</option>';
+            count.textContent = store.users.length;
+
+            if (store.users.length === 0) {
+                list.innerHTML = '<li class="text-white/30 text-xs italic text-center py-2">No members added yet</li>';
+            } else {
+                store.users.forEach(u => {
+                    const li = document.createElement('li');
+                    li.className = "text-sm text-white/80 bg-white/5 p-2 rounded flex items-center gap-2";
+                    const avatar = store.avatars[u] ? `<img src="${store.avatars[u]}" class="w-5 h-5 rounded-full">` : `<i class="fas fa-user text-white/20"></i>`;
+                    li.innerHTML = `${avatar} <span>${u}</span>`;
+                    list.appendChild(li);
+                    select.add(new Option(u, u));
+                });
+            }
+        }
+
+        function addMember() {
+            const name = document.getElementById('new-member-name').value.trim();
+            if(name && !store.users.includes(name)) { 
+                store.users.push(name); 
+                store.passwords[name] = "1234";
+                pushToCloud(); 
+                document.getElementById('new-member-name').value = '';
+            }
+        }
+
+        function renderKanbanBoard() {
+            ['todo', 'inprogress', 'done'].forEach(s => {
+                const container = document.querySelector(`[ondrop="drop(event, '${s}')"]`);
+                if(!container) return;
+                const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
+                document.getElementById(`count-${s}`).textContent = tasks.length;
+                container.innerHTML = '';
+                tasks.forEach(t => {
+                    const el = document.createElement('div');
+                    el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 font-bold text-sm';
+                    el.draggable = true; el.ondragstart = (e) => draggedId = t.id;
+                    el.innerHTML = `${t.title}<div class="text-[9px] mt-2 opacity-60 uppercase">${t.assignee || 'Any'}</div>`;
+                    container.appendChild(el);
+                });
+            });
+        }
+
         let draggedId = null;
-        window.dragStart = (e, id) => { draggedId = id; e.target.classList.add('dragging'); };
         window.allowDrop = (e) => e.preventDefault();
         window.drop = (e, status) => {
             const task = store.kanbanTasks.find(t => t.id === draggedId);
             if (task) { task.status = status; pushToCloud(); }
         };
 
-        function renderKanbanBoard() {
-            ['todo', 'inprogress', 'done'].forEach(s => {
-                const container = document.querySelector(`[ondrop="drop(event, '${s}')"]`);
-                const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
-                document.getElementById(`count-${s}`).textContent = tasks.length;
-                container.innerHTML = '';
-                tasks.forEach(t => {
-                    const el = document.createElement('div');
-                    el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700';
-                    el.draggable = true; el.ondragstart = (e) => dragStart(e, t.id);
-                    el.innerHTML = `<b>${t.title}</b><div class="text-[10px] mt-2 opacity-60">${t.assignee || 'Unassigned'}</div>`;
-                    container.appendChild(el);
-                });
-            });
-        }
-
-        function renderTeamList() {
-            const list = document.getElementById('team-list');
-            list.innerHTML = '';
-            document.getElementById('member-count').textContent = store.users.length;
-            const assigneeSelect = document.getElementById('task-assignee');
-            assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
-            store.users.forEach(u => {
-                const li = document.createElement('li');
-                li.className = "text-sm text-white/80 bg-white/5 p-2 rounded flex justify-between";
-                li.innerHTML = `<span>${u}</span>`;
-                list.appendChild(li);
-                assigneeSelect.add(new Option(u, u));
-            });
-        }
-
-        function addMember() {
-            const name = document.getElementById('new-member-name').value.trim();
-            if(name && !store.users.includes(name)) { store.users.push(name); pushToCloud(); }
-        }
-
         function saveTask() {
-            const task = { id: Date.now().toString(), title: document.getElementById('task-title').value, assignee: document.getElementById('task-assignee').value, description: document.getElementById('task-desc').value, date: document.getElementById('task-date').value, status: 'todo' };
-            store.kanbanTasks.push(task); pushToCloud(); closeModal('task-modal');
+            const title = document.getElementById('task-title').value.trim();
+            if(!title) return;
+            store.kanbanTasks.push({ id: Date.now().toString(), title, assignee: document.getElementById('task-assignee').value, status: 'todo' });
+            pushToCloud(); closeModal('task-modal');
         }
 
         function openTaskModal() { document.getElementById('task-modal').classList.remove('hidden'); }
 
         // INIT
         document.addEventListener('DOMContentLoaded', () => {
-            loadTheme();
-            updateClock();
-            setInterval(updateClock, 1000);
-            setInterval(refreshSessionUI, 1000);
+            loadTheme(); updateClock(); setInterval(updateClock, 1000); setInterval(refreshSessionUI, 1000);
             flatpickr("#date-range-picker", { mode: "range", theme: "dark" });
 
             db.ref('projectData').on('value', snap => {
                 const data = snap.val();
                 if (data) {
-                    Object.assign(store, data);
-                    renderTeamList();
-                    renderKanbanBoard();
+                    store.users = data.users || [];
+                    store.kanbanTasks = data.kanbanTasks || [];
+                    store.avatars = data.avatars || {};
+                    store.passwords = data.passwords || { Admin: "1234" };
+                    store.workLogs = data.workLogs || [];
+                    store.activeSessions = data.activeSessions || {};
                     
                     const loginSelect = document.getElementById('login-username');
+                    const currentLogin = loginSelect.value;
                     loginSelect.innerHTML = '<option value="Admin">★ Admin</option>';
                     store.users.forEach(u => loginSelect.add(new Option(u, u)));
+                    loginSelect.value = currentLogin || "Admin";
+
+                    updateUIForUser();
                 }
             });
         });
