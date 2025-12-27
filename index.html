@@ -356,10 +356,25 @@
                     <button onclick="logout()" class="text-red-400 hover:text-red-300" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
 
-                <div id="work-session-panel" class="mt-4 p-3 bg-black/40 border border-green-400/30 rounded-xl">
-                    <h3 class="text-[10px] text-green-400 font-bold uppercase mb-2"><i class="fas fa-stopwatch mr-1"></i> Work Session</h3>
-                    <div id="global-timer-display" class="text-xl font-mono text-white mb-2 tracking-tighter">00:00:00</div>
-                    <button id="btn-toggle-global-timer" onclick="toggleGlobalWorkSession()" class="w-full bg-green-500 hover:bg-green-400 text-black text-[10px] font-bold py-1.5 rounded transition">PUNCH IN</button>
+                <div id="work-session-panel" class="mt-4 p-3 bg-black/40 border border-purple-500/30 rounded-xl">
+                    <h3 class="text-[10px] text-purple-400 font-bold uppercase mb-2 flex justify-between">
+                        <span>Work Session</span>
+                        <span id="session-status-badge" class="text-[8px] px-1 bg-slate-700 text-white rounded">Idle</span>
+                    </h3>
+                    <div id="global-timer-display" class="text-2xl font-mono text-white mb-3 tracking-tighter text-center">00:00:00</div>
+                    
+                    <div class="flex gap-2">
+                        <button id="btn-session-play" onclick="sessionAction('play')" class="flex-1 bg-green-500 hover:bg-green-400 text-black py-2 rounded-lg transition shadow-lg shadow-green-500/20">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="btn-session-pause" onclick="sessionAction('pause')" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-lg transition shadow-lg shadow-amber-500/20 hidden">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        <button id="btn-session-stop" onclick="sessionAction('stop')" class="bg-red-500 hover:bg-red-400 text-white px-4 py-2 rounded-lg transition disabled:opacity-30" disabled>
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </div>
+                    <p class="text-[8px] text-white/30 mt-2 text-center uppercase tracking-widest font-bold">Log session when finished</p>
                 </div>
             </div>
 
@@ -778,15 +793,14 @@
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
             weekViewStart: new Date(),
-            // --- NEW: CLOUD PERSISTENT TIME TRACKING ---
-            workLogs: [],
-            activeSessions: {} // { "UserName": { startTime: timestamp } }
+            // --- NEW: PERSISTENT TRACKING STATE ---
+            workLogs: [], // Finalized logs
+            activeSessions: {} // { "User": { isPlaying: bool, lastStartTime: ts, accumulatedTime: sec } }
         };
         
         let draggedItem = null;
         let uploadingUser = null;
         let editingEventIdx = null; 
-        let globalTimerInterval = null;
 
         // --- CORE FUNCTIONS ---
         window.switchUser = switchUser;
@@ -842,8 +856,8 @@
         window.replyToMember = replyToMember;
         window.resolveAdminMessage = resolveAdminMessage; 
 
-        // --- NEW: GLOBAL PERSISTENT TIMER ---
-        window.toggleGlobalWorkSession = toggleGlobalWorkSession;
+        // --- NEW: PERSISTENT PLAY/PAUSE TRACKER ---
+        window.sessionAction = sessionAction;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -861,56 +875,90 @@
             }
         };
 
-        // --- CLOUD-BASED GLOBAL TIMER LOGIC ---
-        function toggleGlobalWorkSession() {
+        // --- NEW PLAY/PAUSE LOGIC ---
+        function sessionAction(type) {
             const user = store.currentUser || "Admin";
-            const btn = document.getElementById('btn-toggle-global-timer');
+            const session = store.activeSessions[user] || { isPlaying: false, lastStartTime: null, accumulatedTime: 0 };
+            const now = Date.now();
 
-            if (!store.activeSessions[user]) {
-                // PUNCH IN: Save to Firebase
-                const sessionData = { startTime: Date.now() };
-                db.ref(`projectData/activeSessions/${user}`).set(sessionData);
-            } else {
-                // PUNCH OUT: Calculate duration, save log, delete session
-                const startTime = store.activeSessions[user].startTime;
-                const duration = Math.floor((Date.now() - startTime) / 1000);
+            if (type === 'play') {
+                session.isPlaying = true;
+                session.lastStartTime = now;
+                db.ref(`projectData/activeSessions/${user}`).set(session);
+            } 
+            else if (type === 'pause') {
+                if (session.isPlaying) {
+                    const elapsed = Math.floor((now - session.lastStartTime) / 1000);
+                    session.accumulatedTime += elapsed;
+                }
+                session.isPlaying = false;
+                session.lastStartTime = null;
+                db.ref(`projectData/activeSessions/${user}`).set(session);
+            }
+            else if (type === 'stop') {
+                if (!confirm("Finalize this session and add to report?")) return;
                 
-                const logEntry = {
-                    user: user,
-                    duration: duration,
-                    date: new Date().toISOString().split('T')[0],
-                    timestamp: Date.now()
-                };
+                let total = session.accumulatedTime;
+                if (session.isPlaying) {
+                    total += Math.floor((now - session.lastStartTime) / 1000);
+                }
 
-                store.workLogs.push(logEntry);
+                if (total > 0) {
+                    const logEntry = {
+                        user: user,
+                        duration: total,
+                        date: new Date().toISOString().split('T')[0],
+                        timestamp: now
+                    };
+                    store.workLogs.push(logEntry);
+                    pushToCloud();
+                }
                 db.ref(`projectData/activeSessions/${user}`).remove();
-                pushToCloud();
             }
         }
 
-        function runGlobalTimer() {
+        function refreshSessionUI() {
             const user = store.currentUser || "Admin";
+            const session = store.activeSessions[user];
             const display = document.getElementById('global-timer-display');
-            const btn = document.getElementById('btn-toggle-global-timer');
+            const playBtn = document.getElementById('btn-session-play');
+            const pauseBtn = document.getElementById('btn-session-pause');
+            const stopBtn = document.getElementById('btn-session-stop');
+            const badge = document.getElementById('session-status-badge');
 
-            if (store.activeSessions[user]) {
-                const start = store.activeSessions[user].startTime;
-                const diff = Math.floor((Date.now() - start) / 1000);
-                
-                const h = Math.floor(diff / 3600).toString().padStart(2, '0');
-                const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-                const s = (diff % 60).toString().padStart(2, '0');
-                
-                display.textContent = `${h}:${m}:${s}`;
-                display.classList.add('timer-active', 'text-green-400');
-                btn.textContent = "PUNCH OUT";
-                btn.classList.replace('bg-green-500', 'bg-red-500');
-            } else {
+            if (!session) {
                 display.textContent = "00:00:00";
-                display.classList.remove('timer-active', 'text-green-400');
-                btn.textContent = "PUNCH IN";
-                btn.classList.replace('bg-red-500', 'bg-green-500');
+                display.classList.remove('text-green-400', 'timer-active');
+                playBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                stopBtn.disabled = true;
+                badge.textContent = "Idle";
+                badge.className = "text-[8px] px-1 bg-slate-700 text-white rounded";
+                return;
             }
+
+            stopBtn.disabled = false;
+            let currentSecs = session.accumulatedTime;
+            
+            if (session.isPlaying) {
+                currentSecs += Math.floor((Date.now() - session.lastStartTime) / 1000);
+                playBtn.classList.add('hidden');
+                pauseBtn.classList.remove('hidden');
+                display.classList.add('text-green-400', 'timer-active');
+                badge.textContent = "Working";
+                badge.className = "text-[8px] px-1 bg-green-600 text-white rounded";
+            } else {
+                playBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                display.classList.remove('text-green-400', 'timer-active');
+                badge.textContent = "On Break";
+                badge.className = "text-[8px] px-1 bg-amber-600 text-white rounded";
+            }
+
+            const h = Math.floor(currentSecs / 3600).toString().padStart(2, '0');
+            const m = Math.floor((currentSecs % 3600) / 60).toString().padStart(2, '0');
+            const s = (currentSecs % 60).toString().padStart(2, '0');
+            display.textContent = `${h}:${m}:${s}`;
         }
 
         // EXPORT SUMMARY & FLUSH EXECUTED
@@ -923,26 +971,12 @@
                 endFilter = range[1];
             }
 
-            let content = "PERSONAL SPACE - DETAILED PROJECT STATUS REPORT\n";
-            content += `Generated On: ${new Date().toLocaleString()}\n`;
-            if (startFilter) content += `Period: ${startFilter.toDateString()} to ${endFilter.toDateString()}\n`;
+            let content = "PERSONAL SPACE - TEAM ACTIVITY REPORT\n";
+            content += `Export Date: ${new Date().toLocaleString()}\n`;
+            if (startFilter) content += `Filter: ${startFilter.toDateString()} to ${endFilter.toDateString()}\n`;
             content += "========================================================\n\n";
 
-            // 1. Task Summaries
-            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
-            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
-            const executed = store.kanbanTasks.filter(t => t.status === 'done');
-
-            content += "[PROJECT TASKS]\n";
-            const getTaskDetails = (t) => `- ${t.title} (${t.assignee || 'Unassigned'}) [${t.status.toUpperCase()}]`;
-            content += todo.map(getTaskDetails).join('\n') || "No tasks.";
-            content += "\n" + ongoing.map(getTaskDetails).join('\n');
-            content += "\n" + executed.map(getTaskDetails).join('\n');
-
-            // 2. MEMBER TRACKED TIME (HUBSTAFF STYLE)
-            content += "\n\n========================================================\n";
-            content += "[MEMBER WORK SESSION SUMMARY]\n";
-            
+            content += "[MEMBER TOTAL HOURS SUMMARY]\n";
             const usersToReport = [ "Admin", ...store.users ];
             usersToReport.forEach(user => {
                 let userLogs = store.workLogs.filter(l => l.user === user);
@@ -956,18 +990,23 @@
                 content += `${user.padEnd(15)} : ${formatTime(totalSeconds)}\n`;
             });
 
+            content += "\n[TASK STATUS OVERVIEW]\n";
+            store.kanbanTasks.forEach(t => {
+                content += `- ${t.title.padEnd(30)} [${t.status.toUpperCase()}] Assigned to: ${t.assignee || 'Unassigned'}\n`;
+            });
+
             content += "\n========================================================\n";
 
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Project_Report_${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = `Team_Report_${new Date().toISOString().slice(0,10)}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
-            if(confirm("Report exported. Flush Executed tasks?")) {
+            if(confirm("Flush Executed tasks?")) {
                 store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
                 pushToCloud();
                 renderKanbanBoard();
@@ -1032,7 +1071,7 @@
             });
 
             setInterval(updateKanbanTimers, 1000);
-            setInterval(runGlobalTimer, 1000); // Running global timer sync
+            setInterval(refreshSessionUI, 1000); // Continuous session UI sync
 
             flatpickr("#date-range-picker", {
                 mode: "range", dateFormat: "Y-m-d", theme: "dark",
@@ -1087,16 +1126,14 @@
             }
         }
 
-        // CONSTRAINT: ONLY ADMIN CAN DO PASSWORD RESET
         function resetMemberPassword(username) {
             if (store.currentUser !== null) {
-                return alert("Access Denied: Only the System Admin can reset passwords.");
+                return alert("Denied: Only System Admin can reset passwords.");
             }
-
-            if (confirm(`Reset ${username}'s password to default (1234)?`)) {
+            if (confirm(`Reset ${username}'s password to 1234?`)) {
                 store.passwords[username] = "1234";
                 db.ref('projectData/passwords').update(store.passwords);
-                alert(`${username}'s password has been reset.`);
+                alert(`${username}'s password reset.`);
             }
         }
 
@@ -1128,8 +1165,7 @@
                 avatars: store.avatars,
                 passwords: store.passwords,
                 adminMessages: store.adminMessages,
-                workLogs: store.workLogs,
-                activeSessions: store.activeSessions
+                workLogs: store.workLogs
             });
             saveUserDataToCloud();
         }
@@ -1231,9 +1267,9 @@
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[10px] font-black text-amber-600 uppercase tracking-tighter">${sender}</span>
                             <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                                <button onclick="resolveAdminMessage('${sender}')" class="text-green-500 hover:text-green-700" title="Resolve & Remove"><i class="fas fa-check-circle text-[9px]"></i></button>
+                                <button onclick="resolveAdminMessage('${sender}')" class="text-green-500 hover:text-green-700" title="Resolve"><i class="fas fa-check-circle text-[9px]"></i></button>
                                 <button onclick="replyToMember('${sender}')" class="text-blue-500 hover:text-blue-700" title="Reply"><i class="fas fa-reply text-[9px]"></i></button>
-                                <button onclick="clearAdminMessage('${sender}')" class="text-red-400 hover:text-red-600" title="Clear All"><i class="fas fa-trash-alt text-[9px]"></i></button>
+                                <button onclick="clearAdminMessage('${sender}')" class="text-red-400 hover:text-red-600" title="Clear"><i class="fas fa-trash-alt text-[9px]"></i></button>
                             </div>
                         </div>
                         <p class="text-xs text-slate-600 dark:text-slate-300 italic mb-1">"${data.msg}"</p>
@@ -1242,11 +1278,11 @@
                     viewer.appendChild(msgDiv);
                 }
             }
-            if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
+            if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No mail.</p>`;
         }
 
         function resolveAdminMessage(sender) {
-            if (confirm(`Resolve and remove message from ${sender}?`)) {
+            if (confirm(`Remove message from ${sender}?`)) {
                 delete store.adminMessages[sender];
                 pushToCloud();
             }
@@ -1258,7 +1294,7 @@
             const existingData = store.adminMessages[store.currentUser] || {};
             store.adminMessages[store.currentUser] = { ...existingData, msg: val };
             pushToCloud();
-            alert("Message sent to Admin secure cloud.");
+            alert("Message sent.");
         }
 
         function replyToMember(sender) {
@@ -1271,7 +1307,7 @@
         }
 
         function clearAdminMessage(sender) {
-            if (confirm(`Clear all data for ${sender}?`)) {
+            if (confirm(`Clear data for ${sender}?`)) {
                 delete store.adminMessages[sender];
                 pushToCloud();
             }
@@ -1291,7 +1327,7 @@
             if (input.files && input.files[0] && uploadingUser) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    if(e.target.result.length > 700000) return alert("Image too large.");
+                    if(e.target.result.length > 700000) return alert("Too large.");
                     store.avatars[uploadingUser] = e.target.result;
                     pushToCloud();
                 }
@@ -1331,7 +1367,7 @@
             const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
             const grid = document.getElementById('calendar-body');
             grid.innerHTML = '';
-            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700"></div>`;
+            for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200"></div>`;
             for(let d=1; d<=daysInMonth; d++) {
                 const dateKey = `${store.calendarYear}-${String(store.calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 const el = document.createElement('div');
@@ -1349,9 +1385,7 @@
                 criticalTasks.forEach(task => {
                     const tDiv = document.createElement('div');
                     tDiv.className = `cal-event-item cal-task-critical`;
-                    const label = store.currentUser ? "TASK" : `TASK (${task.assignee || '?'})`;
-                    tDiv.innerHTML = `<span class="cal-time text-orange-500"><i class="fas fa-bolt"></i> ${label}</span><span>${task.title}</span>`;
-                    tDiv.onclick = (e) => { e.stopPropagation(); openTaskModal(task.id); };
+                    tDiv.innerHTML = `<span class="cal-time text-orange-500"><i class="fas fa-bolt"></i> TASK</span><span>${task.title}</span>`;
                     el.appendChild(tDiv);
                 });
                 el.onclick = () => openCalendarModal(dateKey);
@@ -1377,19 +1411,11 @@
             events.forEach((evt, idx) => {
                 const data = parseEventData(evt);
                 const item = document.createElement('div');
-                item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 shadow-sm mb-2`;
-                item.innerHTML = `<div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div><div class="flex gap-2 ml-2"><button onclick="initEditEvent('${dateStr}', ${idx})" class="text-amber-500"><i class="fas fa-edit"></i></button><button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button></div>`;
+                item.className = `flex justify-between items-center bg-white dark:bg-slate-600 p-2 rounded text-xs border-l-4 border-purple-500 mb-2`;
+                item.innerHTML = `<div class="flex-1"><b>${data.time || ''}</b> ${data.text}</div><div class="flex gap-2"><button onclick="initEditEvent('${dateStr}', ${idx})" class="text-amber-500"><i class="fas fa-edit"></i></button><button onclick="deleteEvent('${dateStr}', ${idx})" class="text-red-400"><i class="fas fa-trash"></i></button></div>`;
                 list.appendChild(item);
             });
-            const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateStr && t.priority >= 4);
-            tasks.forEach(task => {
-                const item = document.createElement('div');
-                item.className = `flex justify-between items-center bg-orange-50 dark:bg-orange-900/30 p-2 rounded text-xs border-l-4 border-orange-500 shadow-sm mb-2`;
-                const label = store.currentUser ? `[${task.status.toUpperCase()}]` : `[${task.status.toUpperCase()}] (${task.assignee || '?'})`;
-                item.innerHTML = `<div class="flex-1"><i class="fas fa-bolt mr-1"></i> ${label} ${task.title}</div><button onclick="openTaskModal('${task.id}')" class="text-orange-500 ml-2"><i class="fas fa-external-link-alt"></i></button>`;
-                list.appendChild(item);
-            });
-            if(events.length === 0 && tasks.length === 0) list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No items today.</p>';
+            if(events.length === 0) list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">Empty.</p>';
         }
 
         function addEvent() {
@@ -1397,7 +1423,6 @@
             if (!val) return;
             const startDayStr = document.getElementById('evt-start-date').value;
             const endDayStr = document.getElementById('evt-end-date').value;
-            if(!startDayStr || !endDayStr) return alert("Select dates.");
             const start = document.getElementById('new-event-start').value;
             const end = document.getElementById('new-event-end').value;
             const urgency = document.getElementById('new-event-urgency').value;
@@ -1418,15 +1443,15 @@
             }
             saveUserDataToCloud();
             cancelEditMode();
-            renderDayEvents(document.getElementById('cal-date-val').value);
             renderCalendar();
+            closeModal('calendar-modal');
         }
 
         function deleteEvent(date, idx) {
             store.events[date].splice(idx, 1);
             saveUserDataToCloud();
-            renderDayEvents(date);
             renderCalendar();
+            renderDayEvents(date);
         }
 
         function resolveEvent(d, i) { deleteEvent(d, i); }
@@ -1434,7 +1459,7 @@
             document.getElementById('new-event-urgency').value = l; 
             ['low', 'medium', 'high'].forEach(u => {
                 const btn = document.getElementById(`btn-urgency-${u}`);
-                if(btn) { btn.classList.replace('bg-green-100', 'bg-green-50'); btn.style.borderWidth = '1px'; }
+                if(btn) btn.style.borderWidth = '1px';
             });
             const btn = document.getElementById(`btn-urgency-${l}`);
             if(btn) btn.style.borderWidth = '2px';
@@ -1452,27 +1477,15 @@
             document.getElementById('new-event-input').value = data.text;
             document.getElementById('new-event-urgency').value = data.urgency || 'low';
             setCalUrgency(data.urgency || 'low');
-            if (data.time && data.time.includes(' - ')) {
-                const parts = data.time.split(' - ');
-                document.getElementById('new-event-start').value = parts[0];
-                document.getElementById('new-event-end').value = parts[1];
-            } else {
-                document.getElementById('new-event-start').value = data.time || '';
-                document.getElementById('new-event-end').value = '';
-            }
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
             document.getElementById('btn-add-icon').className = 'fas fa-check';
-            document.getElementById('btn-add-event').classList.replace('bg-green-500', 'bg-blue-500');
         }
 
         function cancelEditMode() { 
             editingEventIdx = null;
             document.getElementById('new-event-input').value = ''; 
-            document.getElementById('new-event-start').value = ''; 
-            document.getElementById('new-event-end').value = ''; 
             document.getElementById('btn-cancel-edit').classList.add('hidden');
             document.getElementById('btn-add-icon').className = 'fas fa-plus';
-            document.getElementById('btn-add-event').classList.replace('bg-blue-500', 'bg-green-500');
         }
 
         // KANBAN & TASKS
@@ -1539,8 +1552,8 @@
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
-                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password"><i class="fas fa-undo-alt"></i></button>` : '';
-                const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
+                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto opacity-0 group-hover:opacity-100"><i class="fas fa-undo-alt"></i></button>` : '';
+                const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white ml-2 opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
                 li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
@@ -1552,21 +1565,15 @@
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
             if(t.status === 'inprogress' && !t.isPaused) timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved)/1000));
-            return `<div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2"><div class="flex justify-between items-start"><h4 class="font-bold text-sm truncate">${t.title}</h4><button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500"><i class="fas fa-pen text-xs"></i></button></div><div class="flex justify-between items-end mt-2"><span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Unassigned'}</span><div class="text-[10px] ${t.status === 'inprogress' ? 'text-purple-500 font-bold' : 'text-slate-400'}"><i class="fas fa-stopwatch mr-1"></i>${timerStr}</div></div></div>`;
+            return `<div class="border-l-4 ${t.status === 'done' ? 'border-green-500' : 'border-purple-500'} pl-2 font-bold text-sm truncate">${t.title}</div><div class="flex justify-between items-end mt-2"><span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Any'}</span><div class="text-[10px] text-slate-400"><i class="fas fa-stopwatch mr-1"></i>${timerStr}</div></div>`;
         }
 
         function renderKanbanBoard() {
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
-            const badge = document.getElementById('tracker-badge');
-            const subtitle = document.getElementById('tracker-subtitle');
-
             if (store.kanbanMode === 'status') {
                 statusView.classList.remove('hidden');
                 weekView.classList.add('hidden');
-                badge.textContent = "Status View";
-                subtitle.textContent = "Manage project progress";
-
                 ['todo', 'inprogress', 'done'].forEach(s => {
                     const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
                     if(!container) return;
@@ -1576,17 +1583,16 @@
                     if(countBadge) countBadge.textContent = tasks.length;
                     tasks.forEach(t => {
                         const el = document.createElement('div');
-                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
+                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700';
                         el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
                         el.innerHTML = createCardHTML(t);
+                        el.onclick = () => openTaskModal(t.id);
                         container.appendChild(el);
                     });
                 });
             } else {
                 statusView.classList.add('hidden');
                 weekView.classList.remove('hidden');
-                badge.textContent = "Week View";
-                subtitle.textContent = "Scheduled task timeline";
                 renderWeekView();
             }
             renderQuickTasks();
@@ -1594,34 +1600,22 @@
 
         function renderWeekView() {
             const container = document.getElementById('week-columns-container');
-            const rangeDisplay = document.getElementById('week-view-date-range');
             container.innerHTML = '';
             const start = new Date(store.weekViewStart);
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            rangeDisplay.textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
-            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             for (let i = 0; i < 7; i++) {
                 const currentDay = new Date(start);
                 currentDay.setDate(start.getDate() + i);
                 const dateKey = currentDay.toISOString().split('T')[0];
-                const isToday = new Date().toISOString().split('T')[0] === dateKey;
                 const col = document.createElement('div');
-                col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
-                col.innerHTML = `
-                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
-                        <h3 class="font-bold text-xs ${isToday ? 'text-jokerGreen' : 'text-slate-500'}">${days[currentDay.getDay()]}</h3>
-                        <p class="text-[10px] opacity-60">${currentDay.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p>
-                    </div>
-                    <div class="column-body p-2 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>
-                `;
+                col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 border-purple-500/30`;
+                col.innerHTML = `<div class="p-3 border-b text-xs font-bold">${currentDay.toLocaleDateString(undefined, {weekday:'short', day:'numeric'})}</div><div class="column-body p-2 flex-1 space-y-3" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>`;
                 const body = col.querySelector('.column-body');
                 const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateKey && (!store.currentUser || t.assignee === store.currentUser));
                 tasks.forEach(t => {
                     const el = document.createElement('div');
-                    el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
+                    el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded shadow-sm text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
-                    el.innerHTML = `<div class="font-bold truncate">${t.title}</div><div class="flex justify-between mt-2 opacity-60"><span>${t.assignee || 'Any'}</span><span>${formatTime(t.log.inprogress)}</span></div>`;
+                    el.innerHTML = t.title;
                     body.appendChild(el);
                 });
                 container.appendChild(col);
@@ -1632,31 +1626,11 @@
             const list = document.getElementById('quick-task-list'); 
             if(!list) return;
             list.innerHTML = '';
-            const priorityColors = { 1: 'text-green-500', 3: 'text-purple-500', 5: 'text-red-500' };
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
                 const li = document.createElement('li');
-                li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
-                li.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2 truncate">
-                            <i class="fas fa-flag ${priorityColors[t.priority] || 'text-slate-300'} text-[10px]"></i>
-                            <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
-                        </div>
-                        <div class="flex gap-2 shrink-0 ml-2">
-                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition"><i class="fas fa-check text-[10px]"></i></button>
-                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash text-[10px]"></i></button>
-                        </div>
-                    </div>
-                    <div class="flex wrap items-center justify-between gap-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
-                            <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100">
-                            <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
-                        </div>
-                    </div>`;
+                li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition';
+                li.innerHTML = `<div class="flex items-center justify-between mb-2 truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</div><div class="flex wrap items-center justify-between gap-y-2"><div class="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 uppercase">${t.status}</div><button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600"><i class="fas fa-check"></i></button></div>`;
                 list.appendChild(li);
             });
         }
@@ -1679,7 +1653,7 @@
         function jumpToWeek(d) { store.weekViewStart = d; renderKanbanBoard(); }
         function clearAllData() { if(confirm('Nuke everything?')) { db.ref('projectData').remove(); location.reload(); } }
         function backupData() { const blob = new Blob([JSON.stringify(store)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='backup.json'; a.click(); }
-        function triggerRestore() { alert('Disabled in cloud mode.'); }
+        function triggerRestore() { alert('Disabled.'); }
         function handleRestore() {}
     </script>
 </body>
