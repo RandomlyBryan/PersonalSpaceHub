@@ -355,14 +355,11 @@
                     <span id="current-user-name">Admin</span>
                     <button onclick="logout()" class="text-red-400 hover:text-red-300" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
-                
+
                 <div id="work-session-panel" class="mt-4 p-3 bg-black/40 border border-green-400/30 rounded-xl">
-                    <h3 class="text-[10px] text-green-400 font-bold uppercase mb-2"><i class="fas fa-stopwatch mr-1"></i> Active Session</h3>
-                    <div id="timer-display" class="text-xl font-mono text-white mb-2 tracking-tighter">00:00:00</div>
-                    <select id="session-task-select" class="w-full bg-white/10 border border-white/20 text-[10px] text-white rounded px-2 py-1 mb-2 outline-none">
-                        <option value="">Select Task to Track...</option>
-                    </select>
-                    <button id="btn-toggle-timer" onclick="toggleWorkSession()" class="w-full bg-green-500 hover:bg-green-400 text-black text-[10px] font-bold py-1.5 rounded transition">PUNCH IN</button>
+                    <h3 class="text-[10px] text-green-400 font-bold uppercase mb-2"><i class="fas fa-stopwatch mr-1"></i> Work Session</h3>
+                    <div id="global-timer-display" class="text-xl font-mono text-white mb-2 tracking-tighter">00:00:00</div>
+                    <button id="btn-toggle-global-timer" onclick="toggleGlobalWorkSession()" class="w-full bg-green-500 hover:bg-green-400 text-black text-[10px] font-bold py-1.5 rounded transition">PUNCH IN</button>
                 </div>
             </div>
 
@@ -689,7 +686,7 @@
     </div>
 
     <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-sm:w-[95%] max-w-sm p-6 shadow-2xl border border-purple-500">
             <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
             <p class="text-xs text-slate-500 mb-4">Scheduled Events & Critical Tasks</p>
             
@@ -774,22 +771,22 @@
             avatars: {}, 
             focus: '',
             notes: '',
-            adminMessages: {}, // { "User": { msg: "...", reply: "..." } }
+            adminMessages: {}, 
             events: {}, 
             passwords: {},
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
             weekViewStart: new Date(),
-            // --- NEW: TIME TRACKING STATE ---
-            workLogs: [], // Array of {user, taskId, taskTitle, duration, date, timestamp}
-            activeSession: null // {taskId, startTime}
+            // --- NEW: CLOUD PERSISTENT TIME TRACKING ---
+            workLogs: [],
+            activeSessions: {} // { "UserName": { startTime: timestamp } }
         };
         
         let draggedItem = null;
         let uploadingUser = null;
         let editingEventIdx = null; 
-        let timerInterval = null;
+        let globalTimerInterval = null;
 
         // --- CORE FUNCTIONS ---
         window.switchUser = switchUser;
@@ -845,8 +842,8 @@
         window.replyToMember = replyToMember;
         window.resolveAdminMessage = resolveAdminMessage; 
 
-        // --- NEW: TIME TRACKER FUNCTIONS ---
-        window.toggleWorkSession = toggleWorkSession;
+        // --- NEW: GLOBAL PERSISTENT TIMER ---
+        window.toggleGlobalWorkSession = toggleGlobalWorkSession;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -864,66 +861,60 @@
             }
         };
 
-        // --- TIME TRACKER LOGIC ---
-        function toggleWorkSession() {
-            const btn = document.getElementById('btn-toggle-timer');
-            const select = document.getElementById('session-task-select');
+        // --- CLOUD-BASED GLOBAL TIMER LOGIC ---
+        function toggleGlobalWorkSession() {
+            const user = store.currentUser || "Admin";
+            const btn = document.getElementById('btn-toggle-global-timer');
 
-            if (!store.activeSession) {
-                // PUNCH IN
-                const taskId = select.value;
-                if (!taskId) return alert("Please select a task to track time against.");
-                
-                store.activeSession = {
-                    taskId: taskId,
-                    startTime: Date.now()
-                };
-                btn.textContent = "PUNCH OUT";
-                btn.classList.replace('bg-green-500', 'bg-red-500');
-                select.disabled = true;
-                
-                timerInterval = setInterval(updateTimerDisplay, 1000);
+            if (!store.activeSessions[user]) {
+                // PUNCH IN: Save to Firebase
+                const sessionData = { startTime: Date.now() };
+                db.ref(`projectData/activeSessions/${user}`).set(sessionData);
             } else {
-                // PUNCH OUT
-                const duration = Math.floor((Date.now() - store.activeSession.startTime) / 1000);
-                const task = store.kanbanTasks.find(t => t.id === store.activeSession.taskId);
+                // PUNCH OUT: Calculate duration, save log, delete session
+                const startTime = store.activeSessions[user].startTime;
+                const duration = Math.floor((Date.now() - startTime) / 1000);
                 
                 const logEntry = {
-                    user: store.currentUser || "Admin",
-                    taskId: store.activeSession.taskId,
-                    taskTitle: task ? task.title : "Unknown Task",
+                    user: user,
                     duration: duration,
                     date: new Date().toISOString().split('T')[0],
                     timestamp: Date.now()
                 };
 
                 store.workLogs.push(logEntry);
-                store.activeSession = null;
-                
-                clearInterval(timerInterval);
-                document.getElementById('timer-display').textContent = "00:00:00";
-                btn.textContent = "PUNCH IN";
-                btn.classList.replace('bg-red-500', 'bg-green-500');
-                select.disabled = false;
-                
+                db.ref(`projectData/activeSessions/${user}`).remove();
                 pushToCloud();
             }
         }
 
-        function updateTimerDisplay() {
-            if (!store.activeSession) return;
-            const diff = Math.floor((Date.now() - store.activeSession.startTime) / 1000);
-            const h = Math.floor(diff / 3600).toString().padStart(2, '0');
-            const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            document.getElementById('timer-display').textContent = `${h}:${m}:${s}`;
+        function runGlobalTimer() {
+            const user = store.currentUser || "Admin";
+            const display = document.getElementById('global-timer-display');
+            const btn = document.getElementById('btn-toggle-global-timer');
+
+            if (store.activeSessions[user]) {
+                const start = store.activeSessions[user].startTime;
+                const diff = Math.floor((Date.now() - start) / 1000);
+                
+                const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                const s = (diff % 60).toString().padStart(2, '0');
+                
+                display.textContent = `${h}:${m}:${s}`;
+                display.classList.add('timer-active', 'text-green-400');
+                btn.textContent = "PUNCH OUT";
+                btn.classList.replace('bg-green-500', 'bg-red-500');
+            } else {
+                display.textContent = "00:00:00";
+                display.classList.remove('timer-active', 'text-green-400');
+                btn.textContent = "PUNCH IN";
+                btn.classList.replace('bg-red-500', 'bg-green-500');
+            }
         }
 
         // EXPORT SUMMARY & FLUSH EXECUTED
         window.exportSummaryReport = () => {
-            if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
-            
-            // Get Dates from Picker
             const picker = document.getElementById('date-range-picker')._flatpickr;
             const range = picker.selectedDates;
             let startFilter = null, endFilter = null;
@@ -932,31 +923,25 @@
                 endFilter = range[1];
             }
 
-            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
-            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
-            const executed = store.kanbanTasks.filter(t => t.status === 'done');
-
             let content = "PERSONAL SPACE - DETAILED PROJECT STATUS REPORT\n";
             content += `Generated On: ${new Date().toLocaleString()}\n`;
             if (startFilter) content += `Period: ${startFilter.toDateString()} to ${endFilter.toDateString()}\n`;
             content += "========================================================\n\n";
 
-            // 1. Task Section
-            const getTaskDetails = (t) => {
-                const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
-                return `- ${t.title}\n  Assignee: ${t.assignee || 'Unassigned'}\n  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
-            };
+            // 1. Task Summaries
+            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
+            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
+            const executed = store.kanbanTasks.filter(t => t.status === 'done');
 
-            content += "[STATUS: TO DO]\n";
-            content += todo.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
-            content += "\n\n[STATUS: ONGOING (IN PROGRESS)]\n";
-            content += ongoing.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
-            content += "\n\n[STATUS: EXECUTED (COMPLETED)]\n";
-            content += executed.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
+            content += "[PROJECT TASKS]\n";
+            const getTaskDetails = (t) => `- ${t.title} (${t.assignee || 'Unassigned'}) [${t.status.toUpperCase()}]`;
+            content += todo.map(getTaskDetails).join('\n') || "No tasks.";
+            content += "\n" + ongoing.map(getTaskDetails).join('\n');
+            content += "\n" + executed.map(getTaskDetails).join('\n');
 
-            // 2. NEW: TRACKED TIME SECTION (Calculated from workLogs)
+            // 2. MEMBER TRACKED TIME (HUBSTAFF STYLE)
             content += "\n\n========================================================\n";
-            content += "[MEMBER TRACKED TIME SUMMARY]\n";
+            content += "[MEMBER WORK SESSION SUMMARY]\n";
             
             const usersToReport = [ "Admin", ...store.users ];
             usersToReport.forEach(user => {
@@ -968,28 +953,21 @@
                     });
                 }
                 const totalSeconds = userLogs.reduce((acc, curr) => acc + curr.duration, 0);
-                content += `${user}: ${formatTime(totalSeconds)}\n`;
-                // Add task breakdown
-                const tasksForUser = [...new Set(userLogs.map(l => l.taskTitle))];
-                tasksForUser.forEach(tt => {
-                    const taskSecs = userLogs.filter(l => l.taskTitle === tt).reduce((a, c) => a + c.duration, 0);
-                    content += `  - ${tt}: ${formatTime(taskSecs)}\n`;
-                });
+                content += `${user.padEnd(15)} : ${formatTime(totalSeconds)}\n`;
             });
 
             content += "\n========================================================\n";
-            content += "End of Report. Completed tasks will be removed from cloud.";
 
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Project_Execution_Report_${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = `Project_Report_${new Date().toISOString().slice(0,10)}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
-            if(confirm("Report exported. Flush (Delete) the Executed column from cloud now?")) {
+            if(confirm("Report exported. Flush Executed tasks?")) {
                 store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
                 pushToCloud();
                 renderKanbanBoard();
@@ -1025,8 +1003,8 @@
                     store.avatars = data.avatars || {};
                     store.passwords = data.passwords || { "Admin": "1234" };
                     store.adminMessages = data.adminMessages || {};
-                    // NEW DATA:
                     store.workLogs = data.workLogs || [];
+                    store.activeSessions = data.activeSessions || {};
                     
                     const userKey = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
                     
@@ -1035,8 +1013,7 @@
                         store.focus = data.userData[userKey].focus || '';
                         store.events = data.userData[userKey].events || {};
                     } else {
-                        store.notes = '';
-                        store.events = {};
+                        store.notes = ''; store.events = {};
                     }
 
                     renderTeamList();
@@ -1045,7 +1022,6 @@
                     updateDashboardUI();
                     updateUIForUser();
                     updateLoginDropdown();
-                    updateSessionTasks(); // Update session task dropdown
                     
                     const savedUser = localStorage.getItem('ps_session_user');
                     if (savedUser && !store.currentUser) {
@@ -1056,6 +1032,7 @@
             });
 
             setInterval(updateKanbanTimers, 1000);
+            setInterval(runGlobalTimer, 1000); // Running global timer sync
 
             flatpickr("#date-range-picker", {
                 mode: "range", dateFormat: "Y-m-d", theme: "dark",
@@ -1112,9 +1089,8 @@
 
         // CONSTRAINT: ONLY ADMIN CAN DO PASSWORD RESET
         function resetMemberPassword(username) {
-            // Logic updated for strictly Admin check
             if (store.currentUser !== null) {
-                return alert("Access Denied: Only System Admin can reset passwords.");
+                return alert("Access Denied: Only the System Admin can reset passwords.");
             }
 
             if (confirm(`Reset ${username}'s password to default (1234)?`)) {
@@ -1144,20 +1120,6 @@
             select.value = currentVal;
         }
 
-        // --- NEW: SESSION TASK DROPDOWN UPDATER ---
-        function updateSessionTasks() {
-            const select = document.getElementById('session-task-select');
-            const current = select.value;
-            select.innerHTML = '<option value="">Select Task to Track...</option>';
-            
-            // Show only tasks assigned to the user that aren't done
-            const tasks = store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser));
-            tasks.forEach(t => {
-                select.add(new Option(t.title, t.id));
-            });
-            select.value = current;
-        }
-
         // --- DATA PUSH ---
         function pushToCloud() {
             db.ref('projectData').update({
@@ -1166,7 +1128,8 @@
                 avatars: store.avatars,
                 passwords: store.passwords,
                 adminMessages: store.adminMessages,
-                workLogs: store.workLogs // NEW
+                workLogs: store.workLogs,
+                activeSessions: store.activeSessions
             });
             saveUserDataToCloud();
         }
@@ -1198,7 +1161,6 @@
                     updateUIForUser();
                     renderCalendar();
                     renderKanbanBoard();
-                    updateSessionTasks();
                }
             });
         }
@@ -1329,7 +1291,7 @@
             if (input.files && input.files[0] && uploadingUser) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    if(e.target.result.length > 700000) return alert("Image too large (>500KB).");
+                    if(e.target.result.length > 700000) return alert("Image too large.");
                     store.avatars[uploadingUser] = e.target.result;
                     pushToCloud();
                 }
@@ -1427,7 +1389,7 @@
                 item.innerHTML = `<div class="flex-1"><i class="fas fa-bolt mr-1"></i> ${label} ${task.title}</div><button onclick="openTaskModal('${task.id}')" class="text-orange-500 ml-2"><i class="fas fa-external-link-alt"></i></button>`;
                 list.appendChild(item);
             });
-            if(events.length === 0 && tasks.length === 0) list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No scheduled items today.</p>';
+            if(events.length === 0 && tasks.length === 0) list.innerHTML = '<p class="text-xs text-center p-2 text-slate-400">No items today.</p>';
         }
 
         function addEvent() {
@@ -1435,7 +1397,7 @@
             if (!val) return;
             const startDayStr = document.getElementById('evt-start-date').value;
             const endDayStr = document.getElementById('evt-end-date').value;
-            if(!startDayStr || !endDayStr) return alert("Please select start and end dates.");
+            if(!startDayStr || !endDayStr) return alert("Select dates.");
             const start = document.getElementById('new-event-start').value;
             const end = document.getElementById('new-event-end').value;
             const urgency = document.getElementById('new-event-urgency').value;
@@ -1531,7 +1493,6 @@
                 });
                 pushToCloud();
                 document.getElementById('quick-task-input').value = '';
-                document.getElementById('quick-task-date').value = '';
             }
         }
 
@@ -1578,7 +1539,7 @@
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
-                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
+                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password"><i class="fas fa-undo-alt"></i></button>` : '';
                 const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
                 li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
@@ -1635,7 +1596,6 @@
             const container = document.getElementById('week-columns-container');
             const rangeDisplay = document.getElementById('week-view-date-range');
             container.innerHTML = '';
-            
             const start = new Date(store.weekViewStart);
             const end = new Date(start);
             end.setDate(start.getDate() + 6);
@@ -1661,16 +1621,7 @@
                     const el = document.createElement('div');
                     el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
-                    el.innerHTML = `
-                        <div class="flex justify-between items-start gap-1">
-                            <span class="font-bold truncate">${t.title}</span>
-                            <span class="text-[8px] px-1 rounded ${t.status === 'done' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-400'}">${t.status[0].toUpperCase()}</span>
-                        </div>
-                        <div class="flex justify-between mt-2 opacity-60">
-                             <span>${t.assignee || 'Any'}</span>
-                             <span>${formatTime(t.log.inprogress)}</span>
-                        </div>
-                    `;
+                    el.innerHTML = `<div class="font-bold truncate">${t.title}</div><div class="flex justify-between mt-2 opacity-60"><span>${t.assignee || 'Any'}</span><span>${formatTime(t.log.inprogress)}</span></div>`;
                     body.appendChild(el);
                 });
                 container.appendChild(col);
@@ -1681,12 +1632,11 @@
             const list = document.getElementById('quick-task-list'); 
             if(!list) return;
             list.innerHTML = '';
-            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
+            const priorityColors = { 1: 'text-green-500', 3: 'text-purple-500', 5: 'text-red-500' };
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
                 const li = document.createElement('li');
                 li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
-                const statusColors = { 'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400', 'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300' };
                 li.innerHTML = `
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2 truncate">
@@ -1694,16 +1644,16 @@
                             <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
                         </div>
                         <div class="flex gap-2 shrink-0 ml-2">
-                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button>
-                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
+                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition"><i class="fas fa-check text-[10px]"></i></button>
+                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash text-[10px]"></i></button>
                         </div>
                     </div>
                     <div class="flex wrap items-center justify-between gap-y-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
                             <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span>
                         </div>
-                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50">
+                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100">
                             <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
                         </div>
                     </div>`;
@@ -1729,7 +1679,7 @@
         function jumpToWeek(d) { store.weekViewStart = d; renderKanbanBoard(); }
         function clearAllData() { if(confirm('Nuke everything?')) { db.ref('projectData').remove(); location.reload(); } }
         function backupData() { const blob = new Blob([JSON.stringify(store)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='backup.json'; a.click(); }
-        function triggerRestore() { alert('Restore disabled in cloud mode.'); }
+        function triggerRestore() { alert('Disabled in cloud mode.'); }
         function handleRestore() {}
     </script>
 </body>
