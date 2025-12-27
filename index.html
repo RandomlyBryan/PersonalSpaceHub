@@ -793,15 +793,16 @@
             avatars: {}, 
             focus: '',
             notes: '',
-            adminMessages: {}, // { "User": { msg: "...", reply: "..." } }
+            adminMessages: {},
             events: {}, 
             passwords: {},
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
             weekViewStart: new Date(),
-            dashTimers: {}, // { "UserKey": { elapsed: 0, running: false, lastStart: 0 } }
-            leaveStatus: {} // { "UserName": true/false }
+            dashTimers: {}, 
+            leaveStatus: {},
+            timeHistory: {} // NEW: Track time per date
         };
         
         let draggedItem = null;
@@ -866,7 +867,7 @@
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
-        window.resolveAdminMessage = resolveAdminMessage; // Logic updated
+        window.resolveAdminMessage = resolveAdminMessage;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -896,6 +897,32 @@
             content += `Generated On: ${new Date().toLocaleString()}\n`;
             content += "========================================================\n\n";
 
+            // --- TIME TRACKING SUMMARY ---
+            content += "[FOCUS TIME TRACKING SUMMARY]\n";
+            const usersToReport = !store.currentUser ? store.users.concat(["Admin"]) : [store.currentUser];
+            
+            usersToReport.forEach(u => {
+                const uKey = u.replace(/[^a-zA-Z0-9]/g, '_');
+                const history = store.timeHistory ? store.timeHistory[uKey] || {} : {};
+                
+                const calcRange = (days) => {
+                    let total = 0;
+                    const now = new Date();
+                    for(let i=0; i<days; i++) {
+                        const d = new Date(); d.setDate(now.getDate() - i);
+                        const k = d.toISOString().split('T')[0];
+                        total += (history[k] || 0);
+                    }
+                    return formatTime(total);
+                };
+
+                content += `User: ${u}\n`;
+                content += `  - Last 7 Days:  ${calcRange(7)}\n`;
+                content += `  - Last 15 Days: ${calcRange(15)}\n`;
+                content += `  - Last 30 Days: ${calcRange(30)}\n\n`;
+            });
+            content += "--------------------------------------------------------\n\n";
+
             const getTaskDetails = (t) => {
                 const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
                 return `- ${t.title}\n  Assignee: ${t.assignee || 'Unassigned'}\n  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
@@ -911,7 +938,7 @@
             content += executed.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
 
             content += "\n\n========================================================\n";
-            content += "End of Report. Completed tasks will be removed from cloud.";
+            content += "End of Report.";
 
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -960,6 +987,7 @@
                     store.adminMessages = data.adminMessages || {};
                     store.dashTimers = data.dashTimers || {};
                     store.leaveStatus = data.leaveStatus || {};
+                    store.timeHistory = data.timeHistory || {};
                     
                     const userKey = (store.currentUser || "Admin").replace(/[^a-zA-Z0-9]/g, '_');
                     
@@ -1077,37 +1105,63 @@
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
             const now = Date.now();
+            const dateKey = new Date().toISOString().split('T')[0];
             
             if(!store.dashTimers[userKey]) {
-                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0 };
+                store.dashTimers[userKey] = { elapsed: 0, running: false, lastStart: 0, lastResetDate: dateKey };
             }
 
             const t = store.dashTimers[userKey];
             if (t.running) {
-                t.elapsed += Math.floor((now - t.lastStart) / 1000);
+                const sessionSeconds = Math.floor((now - t.lastStart) / 1000);
+                t.elapsed += sessionSeconds;
                 t.running = false;
+                // Save to history immediately on stop
+                updateTimeHistory(userKey, dateKey, t.elapsed);
             } else {
                 t.lastStart = now;
                 t.running = true;
+                t.lastResetDate = dateKey;
             }
             db.ref('projectData/dashTimers/' + userKey).set(t);
         }
 
+        function updateTimeHistory(userKey, dateKey, seconds) {
+            db.ref(`projectData/timeHistory/${userKey}/${dateKey}`).set(seconds);
+        }
+
         function resetDashTimer() {
-            if(!confirm("Reset focus timer?")) return;
+            if(!confirm("Reset focus timer for today? (Historical data will remain)")) return;
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
-            const t = { elapsed: 0, running: false, lastStart: 0 };
+            const dateKey = new Date().toISOString().split('T')[0];
+            const t = { elapsed: 0, running: false, lastStart: 0, lastResetDate: dateKey };
             db.ref('projectData/dashTimers/' + userKey).set(t);
+            updateTimeHistory(userKey, dateKey, 0);
         }
 
         function dashTimerTicker() {
             const name = store.currentUser || "Admin";
             const userKey = name.replace(/[^a-zA-Z0-9]/g, '_');
-            const t = store.dashTimers[userKey] || { elapsed: 0, running: false, lastStart: 0 };
+            const dateKey = new Date().toISOString().split('T')[0];
+            const t = store.dashTimers[userKey] || { elapsed: 0, running: false, lastStart: 0, lastResetDate: dateKey };
+            
             const display = document.getElementById('dash-timer-display');
             const icon = document.getElementById('dash-timer-icon');
             const btn = document.getElementById('dash-timer-btn');
+
+            // --- AUTO DAILY RESET LOGIC ---
+            if (t.lastResetDate && t.lastResetDate !== dateKey) {
+                // If it was running, stop it and save previous day's data
+                if (t.running) {
+                    // This is simplified: it attributes the time until reset to the previous day
+                    t.running = false;
+                }
+                t.elapsed = 0;
+                t.lastResetDate = dateKey;
+                db.ref('projectData/dashTimers/' + userKey).set(t);
+                return;
+            }
             
             let totalSeconds = t.elapsed;
             if (t.running) {
@@ -1137,7 +1191,6 @@
             const name = store.currentUser || "Admin";
             const leaveBtn = document.getElementById('btn-leave-toggle');
             
-            // Update personal button
             if (store.leaveStatus[name]) {
                 leaveBtn.textContent = "I'm Back";
                 leaveBtn.classList.replace('bg-red-500/20', 'bg-green-500');
@@ -1148,7 +1201,6 @@
                 leaveBtn.classList.replace('text-black', 'text-red-400');
             }
 
-            // Update display list
             container.innerHTML = '';
             let count = 0;
             for (const person in store.leaveStatus) {
@@ -1172,7 +1224,8 @@
                 passwords: store.passwords,
                 adminMessages: store.adminMessages,
                 dashTimers: store.dashTimers,
-                leaveStatus: store.leaveStatus
+                leaveStatus: store.leaveStatus,
+                timeHistory: store.timeHistory
             });
             saveUserDataToCloud();
         }
@@ -1233,7 +1286,6 @@
             avatarContainer.innerHTML += `<div class="avatar-overlay absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 transition"><i class="fas fa-camera text-xs text-white"></i></div>`;
             avatarContainer.onclick = () => triggerAvatarUpload(name);
 
-            // Handle Admin Secure Channel Visibility
             const viewer = document.getElementById('admin-message-viewer');
             const sender = document.getElementById('member-message-sender');
             const title = document.getElementById('admin-channel-title');
@@ -1290,7 +1342,6 @@
             if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
-        // Logic Change: This now deletes the message immediately upon "Resolution"
         function resolveAdminMessage(sender) {
             if (confirm(`Resolve and remove message from ${sender}?`)) {
                 delete store.adminMessages[sender];
@@ -1603,7 +1654,6 @@
         }
 
         function renderKanbanBoard() {
-            // Visibility Toggle
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
             const badge = document.getElementById('tracker-badge');
@@ -1698,14 +1748,7 @@
             if(!list) return;
             list.innerHTML = '';
             
-            // Map priority to flag colors
-            const priorityColors = {
-                1: 'text-green-500', // Low
-                2: 'text-green-400',
-                3: 'text-purple-500', // Medium
-                4: 'text-orange-500',
-                5: 'text-red-500'     // High
-            };
+            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
 
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
@@ -1738,7 +1781,12 @@
         }
 
         // UTILS
-        function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
+        function formatTime(s) { 
+            const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60; 
+            if(h > 0) return `${h}h ${m}m ${sec}s`;
+            if(m > 0) return `${m}m ${sec}s`;
+            return `${sec}s`;
+        }
         function updateClock() { const n = new Date(); document.getElementById('clock').textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); document.getElementById('date').textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
         function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); document.getElementById('theme-icon').className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
