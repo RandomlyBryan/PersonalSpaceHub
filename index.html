@@ -177,7 +177,6 @@
         .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
         .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
         
-        /* Special Critical Task Style for Calendar */
         .cal-task-critical { 
             border-left-color: #f97316 !important; 
             background: rgba(249, 115, 22, 0.15) !important;
@@ -265,17 +264,14 @@
             font-weight: bold;
         }
         
-        /* Helper to hide admin tools */
         .admin-only { transition: all 0.3s; }
         .admin-only.hidden-tool { display: none !important; }
 
-        /* Login Screen Styles */
         #login-overlay {
             background: #10002b;
             z-index: 200;
         }
 
-        /* Logo Pulse Animation */
         .logo-glow {
             animation: logo-pulse 3s infinite ease-in-out;
         }
@@ -426,6 +422,29 @@
                 <i class="fas fa-bars"></i>
             </button>
 
+            <div class="px-6 pt-4 shrink-0 flex items-center gap-4">
+                <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-4 border-l-4 border-jokerGreen shadow-lg">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] font-bold text-purple-500 dark:text-purple-400 uppercase tracking-widest">Global Session</span>
+                        <div id="global-timer-display" class="text-xl font-black font-mono text-slate-800 dark:text-white">00:00:00</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="global-timer-toggle" onclick="toggleGlobalTimer()" class="w-10 h-10 rounded-full bg-jokerGreen text-black flex items-center justify-center hover:scale-105 transition shadow-md">
+                            <i class="fas fa-play" id="global-timer-icon"></i>
+                        </button>
+                        <button onclick="resetGlobalTimer()" class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-500 flex items-center justify-center hover:bg-red-400 hover:text-white transition">
+                            <i class="fas fa-redo-alt text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="timer-status-pulse" class="hidden">
+                    <span class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                </div>
+            </div>
+
             <div id="view-dashboard" class="flex-1 overflow-hidden p-4 md:p-6 fade-in h-full flex flex-col">
                 
                 <header class="mb-4 text-white shrink-0">
@@ -438,7 +457,7 @@
                         <div class="flex items-center gap-4">
                             <div class="text-right">
                                 <p class="text-lg font-bold text-white leading-tight" id="greeting">Connecting...</p>
-                                <span id="dashboard-owner-badge" class="bg-green-500 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
+                                <span id="dashboard-owner-badge" class="bg-green-50 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
                             </div>
                             <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg flex items-center justify-center overflow-hidden shrink-0 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('Admin')">
                                 <i class="fas fa-user text-white/50 text-2xl"></i>
@@ -772,7 +791,12 @@
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
-            weekViewStart: new Date()
+            weekViewStart: new Date(),
+            
+            // NEW: Timer State
+            globalTimerActive: false,
+            globalTimerSeconds: 0,
+            globalTimerInterval: null
         };
         
         let draggedItem = null;
@@ -831,7 +855,11 @@
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
-        window.resolveAdminMessage = resolveAdminMessage; // Logic updated
+        window.resolveAdminMessage = resolveAdminMessage; 
+
+        // NEW: TIMER FUNCTIONS
+        window.toggleGlobalTimer = toggleGlobalTimer;
+        window.resetGlobalTimer = resetGlobalTimer;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -849,48 +877,63 @@
             }
         };
 
-        // EXPORT SUMMARY & FLUSH EXECUTED
+        // EXPORT SUMMARY & FLUSH EXECUTED (Updated for specific user reporting)
         window.exportSummaryReport = () => {
-            if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
+            const isUserAdmin = !store.currentUser; // Admin has null currentUser
+            const currentUser = store.currentUser || "Admin";
             
-            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
-            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
-            const executed = store.kanbanTasks.filter(t => t.status === 'done');
+            // Filter tasks based on identity
+            const tasksToReport = isUserAdmin 
+                ? store.kanbanTasks 
+                : store.kanbanTasks.filter(t => t.assignee === currentUser);
 
-            let content = "PERSONAL SPACE - DETAILED PROJECT STATUS REPORT\n";
+            if(tasksToReport.length === 0) return alert("No tasks available to report for this account.");
+            
+            let content = isUserAdmin 
+                ? "ADMIN CONSOLIDATED PROJECT REPORT (ALL MEMBERS)\n" 
+                : `MEMBER ACTIVITY REPORT: ${currentUser}\n`;
+                
             content += `Generated On: ${new Date().toLocaleString()}\n`;
             content += "========================================================\n\n";
 
             const getTaskDetails = (t) => {
                 const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
-                return `- ${t.title}\n  Assignee: ${t.assignee || 'Unassigned'}\n  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
+                const memberTag = isUserAdmin ? `  Member: ${t.assignee || 'Unassigned'}\n` : "";
+                return `- ${t.title}\n${memberTag}  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
             };
 
-            content += "[STATUS: TO DO]\n";
+            const todo = tasksToReport.filter(t => t.status === 'todo');
+            const ongoing = tasksToReport.filter(t => t.status === 'inprogress');
+            const executed = tasksToReport.filter(t => t.status === 'done');
+
+            content += `[STATUS: TO DO - Count: ${todo.length}]\n`;
             content += todo.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
             
-            content += "\n\n[STATUS: ONGOING (IN PROGRESS)]\n";
+            content += `\n\n[STATUS: ONGOING (IN PROGRESS) - Count: ${ongoing.length}]\n`;
             content += ongoing.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
 
-            content += "\n\n[STATUS: EXECUTED (COMPLETED)]\n";
+            content += `\n\n[STATUS: EXECUTED (COMPLETED) - Count: ${executed.length}]\n`;
             content += executed.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
 
             content += "\n\n========================================================\n";
-            content += "End of Report. Completed tasks will be removed from cloud.";
+            content += "End of Report.";
 
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Project_Execution_Report_${new Date().toISOString().slice(0,10)}.txt`;
+            a.download = isUserAdmin ? "Consolidated_Admin_Report.txt" : `${currentUser}_Execution_Report.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
 
-            if(confirm("Report exported. Flush (Delete) the Executed column from cloud now?")) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
-                pushToCloud();
-                renderKanbanBoard();
+            // Flush Logic: Only Admin can flush data from cloud
+            if(isUserAdmin && executed.length > 0) {
+                if(confirm("Admin: Flush (Delete) the Executed column from cloud now?")) {
+                    store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
+                    pushToCloud();
+                    renderKanbanBoard();
+                }
             }
         };
 
@@ -1005,7 +1048,14 @@
             }
         }
 
+        // FEATURE 2: ADMIN ONLY PASSWORD RESET
         function resetMemberPassword(username) {
+            // Check if current user is Admin (store.currentUser is null for Admin)
+            if (store.currentUser !== null) {
+                alert("Only the System Admin can reset member passwords.");
+                return;
+            }
+
             if (confirm(`Reset ${username}'s password to default (1234)?`)) {
                 store.passwords[username] = "1234";
                 db.ref('projectData/passwords').update(store.passwords);
@@ -1158,7 +1208,6 @@
             if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
-        // Logic Change: This now deletes the message immediately upon "Resolution"
         function resolveAdminMessage(sender) {
             if (confirm(`Resolve and remove message from ${sender}?`)) {
                 delete store.adminMessages[sender];
@@ -1221,6 +1270,43 @@
         }
 
         function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
+
+        // FEATURE 1: GLOBAL TIMER LOGIC
+        function toggleGlobalTimer() {
+            const icon = document.getElementById('global-timer-icon');
+            const pulse = document.getElementById('timer-status-pulse');
+            
+            if (store.globalTimerActive) {
+                store.globalTimerActive = false;
+                clearInterval(store.globalTimerInterval);
+                icon.className = 'fas fa-play';
+                pulse.classList.add('hidden');
+            } else {
+                store.globalTimerActive = true;
+                pulse.classList.remove('hidden');
+                icon.className = 'fas fa-pause';
+                store.globalTimerInterval = setInterval(() => {
+                    store.globalTimerSeconds++;
+                    updateGlobalTimerUI();
+                }, 1000);
+            }
+        }
+
+        function updateGlobalTimerUI() {
+            const s = store.globalTimerSeconds;
+            const h = Math.floor(s / 3600).toString().padStart(2, '0');
+            const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+            const sec = (s % 60).toString().padStart(2, '0');
+            document.getElementById('global-timer-display').textContent = `${h}:${m}:${sec}`;
+        }
+
+        function resetGlobalTimer() {
+            if(confirm("Reset global session timer?")) {
+                if(store.globalTimerActive) toggleGlobalTimer();
+                store.globalTimerSeconds = 0;
+                updateGlobalTimerUI();
+            }
+        }
 
         // CALENDAR LOGIC
         function changeMonth(delta) {
@@ -1454,8 +1540,11 @@
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
+                
+                // FEATURE 2 applied to UI Reset button visibility
                 const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
                 const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
+                
                 li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
@@ -1471,7 +1560,6 @@
         }
 
         function renderKanbanBoard() {
-            // Visibility Toggle
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
             const badge = document.getElementById('tracker-badge');
@@ -1566,14 +1654,7 @@
             if(!list) return;
             list.innerHTML = '';
             
-            // Map priority to flag colors
-            const priorityColors = {
-                1: 'text-green-500', // Low
-                2: 'text-green-400',
-                3: 'text-purple-500', // Medium
-                4: 'text-orange-500',
-                5: 'text-red-500'     // High
-            };
+            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
 
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
