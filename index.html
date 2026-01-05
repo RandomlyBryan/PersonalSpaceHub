@@ -414,7 +414,7 @@
                 </div>
                 
                 <div class="text-white/30 text-[10px] text-center mt-2 pt-2 border-t border-white/5">
-                    &copy; 2025 PersonalSpace
+                    &copy; 2026 PersonalSpace
                 </div>
             </div>
         </aside>
@@ -668,9 +668,14 @@
             </div>
 
             <div id="view-analytics" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex-col h-full">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-green-400 tracking-wide">Team Analytics</h2>
-                    <p class="text-sm text-white/70">Visual performance report for all members</p>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-green-400 tracking-wide">Team Analytics & Live Status</h2>
+                        <p class="text-sm text-white/70">Real-time monitoring of attendance, tasks, and breaks</p>
+                    </div>
+                    <button onclick="exportAnalyticsReport()" class="bg-jokerPurple hover:bg-purple-700 text-white px-5 py-2 rounded-xl transition flex items-center gap-2 text-sm border border-jokerGreen/30 font-bold shadow-lg">
+                        <i class="fas fa-file-download"></i> Export Analytics Report
+                    </button>
                 </div>
                 <div id="analytics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     </div>
@@ -731,7 +736,7 @@
     </div>
 
     <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-sm:max-w-xs max-w-sm p-6 shadow-2xl border border-purple-500">
             <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
             <p class="text-xs text-slate-500 mb-4">Scheduled Events & Critical Tasks</p>
             
@@ -900,6 +905,10 @@
         window.startShortBreak = startShortBreak;
         window.clockOut = clockOut;
         window.generateAttendanceReport = generateAttendanceReport;
+
+        // ANALYTICS FUNCTIONS
+        window.renderAnalytics = renderAnalytics;
+        window.exportAnalyticsReport = exportAnalyticsReport;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -1830,6 +1839,135 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
+        // TEAM ANALYTICS & LIVE STATUS LOGIC
+        async function renderAnalytics() {
+            const grid = document.getElementById('analytics-grid');
+            if (!grid) return;
+            grid.innerHTML = '<p class="text-white italic">Syncing live data...</p>';
+
+            const [sessionsSnap, attendanceSnap] = await Promise.all([
+                db.ref('projectData/activeSessions').once('value'),
+                db.ref('projectData/attendance').once('value')
+            ]);
+
+            const activeSessions = sessionsSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+
+            grid.innerHTML = store.users.map(user => {
+                const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+                const liveSession = activeSessions[userKey];
+                
+                // 1. Calculate Total Attendance (Lifetime)
+                let totalSeconds = 0;
+                Object.keys(attendanceData).forEach(date => {
+                    const sessions = attendanceData[date][userKey] || {};
+                    Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
+                });
+
+                // 2. Task Stats
+                const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
+                const ongoing = userTasks.filter(t => t.status === 'inprogress').length;
+                const pending = userTasks.filter(t => t.status === 'todo').length;
+
+                // 3. Live Status Logic
+                let statusBadge = `<span class="bg-slate-500/20 text-slate-400 text-[9px] px-2 py-1 rounded-full border border-slate-500/30">OFFLINE</span>`;
+                if (liveSession) {
+                    if (liveSession.isOnLunch) {
+                        statusBadge = `<span class="bg-orange-500 text-white text-[9px] px-2 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)] font-bold">ON LUNCH</span>`;
+                    } else if (liveSession.startTime) {
+                        statusBadge = `<span class="bg-green-500 text-black text-[9px] px-2 py-1 rounded-full font-bold">WORKING</span>`;
+                    }
+                }
+
+                return `
+                    <div class="glass-panel rounded-2xl p-5 border-t-4 ${liveSession ? 'border-jokerGreen' : 'border-slate-500'}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 dark:text-white">${user}</h3>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xl font-black text-jokerGreen">${(totalSeconds / 3600).toFixed(1)}h</div>
+                                <div class="text-[9px] text-slate-400 uppercase font-bold">Total Attendance</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                                    <div class="text-xl font-black text-purple-600 dark:text-purple-400">${ongoing}</div>
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Ongoing Tasks</div>
+                                </div>
+                                <div class="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+                                    <div class="text-xl font-black text-amber-600 dark:text-amber-400">${pending}</div>
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Pending Tasks</div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/20">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <span class="text-slate-400">Live Session Detail</span>
+                                    <span class="text-jokerGreen">${liveSession ? 'ACTIVE' : 'NO SESSION'}</span>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Break 1 Status:</span>
+                                        <span class="${liveSession?.break1Used ? 'text-blue-400 font-bold' : 'text-slate-400'}">${liveSession?.break1Used || 'Not Used'}</span>
+                                    </div>
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Break 2 Status:</span>
+                                        <span class="${liveSession?.break2Used ? 'text-blue-400 font-bold' : 'text-slate-400'}">${liveSession?.break2Used || 'Not Used'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function exportAnalyticsReport() {
+            const sessionsSnap = await db.ref('projectData/activeSessions').once('value');
+            const attendanceSnap = await db.ref('projectData/attendance').once('value');
+            const activeSessions = sessionsSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+
+            let report = `DETAILED TEAM ANALYTICS REPORT\nGenerated: ${new Date().toLocaleString()}\n`;
+            report += `========================================================\n\n`;
+
+            store.users.forEach(user => {
+                const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+                const live = activeSessions[userKey];
+                const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
+                
+                let totalSeconds = 0;
+                Object.keys(attendanceData).forEach(date => {
+                    const sessions = attendanceData[date][userKey] || {};
+                    Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
+                });
+
+                report += `MEMBER: ${user.toUpperCase()}\n`;
+                report += `--------------------------------------------------------\n`;
+                report += `Live Status:    ${live ? (live.isOnLunch ? 'ON LUNCH' : 'WORKING') : 'OFFLINE'}\n`;
+                report += `Total Work:     ${(totalSeconds / 3600).toFixed(2)} Hours\n`;
+                report += `Ongoing Tasks:  ${userTasks.filter(t => t.status === 'inprogress').length}\n`;
+                report += `Pending Tasks:  ${userTasks.filter(t => t.status === 'todo').length}\n`;
+                
+                if (live) {
+                    report += `Current Session Start: ${live.displayStart || 'N/A'}\n`;
+                    report += `Break 1: ${live.break1Used || 'Available'}\n`;
+                    report += `Break 2: ${live.break2Used || 'Available'}\n`;
+                }
+                report += `\n`;
+            });
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Team_Detailed_Analytics_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
         // RENDER HELPERS
         function renderTeamList() {
             const list = document.getElementById('team-list');
@@ -1988,66 +2126,6 @@
             });
         }
 
-        // NEW: Analytics Rendering Function
-        async function renderAnalytics() {
-            const grid = document.getElementById('analytics-grid');
-            if (!grid) return;
-            grid.innerHTML = '<p class="text-white italic">Gathering cloud data...</p>';
-
-            const attendanceSnap = await db.ref('projectData/attendance').once('value');
-            const attendanceData = attendanceSnap.val() || {};
-
-            const report = store.users.map(user => {
-                const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
-                let totalSeconds = 0;
-                Object.keys(attendanceData).forEach(date => {
-                    const sessions = attendanceData[date][userKey] || {};
-                    Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
-                });
-                const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
-                const doneTasks = userTasks.filter(t => t.status === 'done').length;
-                const totalTasks = userTasks.length;
-                const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
-                return { user, totalSeconds, doneTasks, totalTasks, completionRate };
-            });
-
-            grid.innerHTML = report.map(data => `
-                <div class="glass-panel rounded-2xl p-5 border-t-4 border-jokerPurple">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-800 dark:text-white">${data.user}</h3>
-                            <span class="text-[10px] text-purple-500 font-black uppercase tracking-widest">Team Member</span>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xl font-black text-jokerGreen">${(data.totalSeconds / 3600).toFixed(1)}h</div>
-                            <div class="text-[9px] text-slate-400 uppercase font-bold">Total Logged</div>
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <div class="flex justify-between text-[10px] mb-1 font-bold uppercase">
-                                <span class="text-slate-500">Execution Rate</span>
-                                <span class="text-jokerGreen">${data.completionRate}%</span>
-                            </div>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                <div class="bg-jokerGreen h-full transition-all duration-1000" style="width: ${data.completionRate}%"></div>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-center">
-                            <div class="bg-purple-50 dark:bg-purple-900/30 p-2 rounded-xl border border-purple-100 dark:border-purple-800">
-                                <div class="text-lg font-bold text-slate-700 dark:text-white">${data.doneTasks}</div>
-                                <div class="text-[8px] text-slate-400 uppercase font-bold">Executed</div>
-                            </div>
-                            <div class="bg-slate-50 dark:bg-slate-700/30 p-2 rounded-xl border border-slate-200 dark:border-slate-600">
-                                <div class="text-lg font-bold text-slate-700 dark:text-white">${data.totalTasks - data.doneTasks}</div>
-                                <div class="text-[8px] text-slate-400 uppercase font-bold">Pending</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
         // UTILS
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
         function updateClock() { const n = new Date(); const c = document.getElementById('clock'); if(c) c.textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); const d = document.getElementById('date'); if(d) d.textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
@@ -2055,7 +2133,6 @@
         function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); const ti = document.getElementById('theme-icon'); if(ti) ti.className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
         
-        // MODIFIED: Updated switchView to support Analytics
         function switchView(v) { 
             ['dashboard', 'kanban', 'analytics'].forEach(x => { 
                 const view = document.getElementById(`view-${x}`); 
@@ -2067,9 +2144,8 @@
             const targetNav = document.getElementById(`nav-${v}`); 
             if(targetView) targetView.classList.remove('hidden'); 
             if(targetNav) targetNav.classList.add('active'); 
-            
             if(v === 'kanban') renderKanbanBoard(); 
-            if(v === 'analytics') renderAnalytics(); // Render analytics when tab is selected
+            if(v === 'analytics') renderAnalytics(); 
         }
 
         function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); const dbel = document.getElementById('btn-delete'); if(dbel) dbel.classList.toggle('hidden', !id); }
