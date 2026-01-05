@@ -361,6 +361,9 @@
                 <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
                     <i class="fas fa-tasks w-5"></i> Task Tracker
                 </button>
+                <button onclick="generateDailyReport()" class="w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-green-500/20 text-sm font-bold border-l-4 border-transparent hover:border-jokerGreen">
+                    <i class="fas fa-file-alt w-5 text-jokerGreen"></i> Daily Summary
+                </button>
                 <button onclick="switchView('analytics')" id="nav-analytics" class="nav-item admin-only w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10 hidden-tool">
                     <i class="fas fa-chart-pie w-5"></i> Team Analytics
                 </button>
@@ -684,6 +687,23 @@
         </main>
     </div>
 
+    <div id="report-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden flex items-center justify-center z-[100] p-4">
+        <div class="glass-panel rounded-3xl w-full max-w-lg p-8 border-2 border-jokerGreen shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+            <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <h2 class="text-2xl font-black text-jokerGreen uppercase tracking-tighter">Daily Execution Report</h2>
+                <button onclick="closeModal('report-modal')" class="text-white/50 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="report-content" class="space-y-6 text-slate-200 overflow-y-auto max-h-[70vh] pr-2">
+                </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="copyReportToClipboard()" class="flex-1 bg-jokerPurple text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition">Copy to Clipboard</button>
+                <button onclick="closeModal('report-modal')" class="px-6 py-3 text-white/50 font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border-2 border-purple-500">
             <h2 class="text-xl font-bold mb-4 dark:text-white text-purple-800 tracking-wide" id="modal-title">Task Details</h2>
@@ -909,6 +929,10 @@
         // ANALYTICS FUNCTIONS
         window.renderAnalytics = renderAnalytics;
         window.exportAnalyticsReport = exportAnalyticsReport;
+        
+        // REPORT FUNCTION
+        window.generateDailyReport = generateDailyReport;
+        window.copyReportToClipboard = copyReportToClipboard;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -1985,6 +2009,80 @@
             a.href = URL.createObjectURL(blob);
             a.download = `Team_Detailed_Analytics_${new Date().toISOString().split('T')[0]}.txt`;
             a.click();
+        }
+
+        async function generateDailyReport() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            // 1. Calculate Total Hours Worked Today
+            const attendanceSnap = await db.ref(`projectData/attendance/${today}/${userKey}`).once('value');
+            const logs = attendanceSnap.val() || {};
+            let totalSecs = 0;
+            Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
+            
+            // 2. Completed Work Today
+            const completedTasks = store.kanbanTasks.filter(t => 
+                t.assignee === user && t.status === 'done' && t.assignedDate === today
+            );
+
+            // 3. Tasks Still in Progress / To Do for Today
+            const pendingToday = store.kanbanTasks.filter(t => 
+                t.assignee === user && t.status !== 'done' && t.assignedDate === today
+            );
+
+            // 4. Top 3 Priorities for Tomorrow
+            const priorityPool = store.kanbanTasks.filter(t => 
+                t.assignee === user && t.status !== 'done' && (t.assignedDate === today || t.assignedDate === tomorrowStr)
+            ).sort((a, b) => b.priority - a.priority).slice(0, 3);
+
+            const reportHtml = `
+                <div>
+                    <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest">Time Tracking</label>
+                    <p class="text-3xl font-mono font-black text-white">${formatTime(totalSecs)} <span class="text-sm font-normal text-white/40">Logged Today</span></p>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-purple-400 font-black uppercase tracking-widest block mb-2">Completed Work</label>
+                    <ul class="list-disc list-inside space-y-1 text-sm">
+                        ${completedTasks.length ? completedTasks.map(t => `<li>${t.title}</li>`).join('') : '<li class="italic text-white/30">No tasks completed today</li>'}
+                    </ul>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-amber-500 font-black uppercase tracking-widest block mb-2">Ongoing / Pending Today</label>
+                    <ul class="list-disc list-inside space-y-1 text-sm text-amber-100/80">
+                        ${pendingToday.length ? pendingToday.map(t => `<li>${t.title} <span class="text-[9px] opacity-50">[${t.status}]</span></li>`).join('') : '<li class="italic text-white/30">All daily tasks cleared</li>'}
+                    </ul>
+                </div>
+
+                <div class="bg-jokerPurple/20 p-4 rounded-2xl border border-jokerPurple/50">
+                    <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-2 italic">Top 3 Priorities for Tomorrow</label>
+                    <div class="space-y-2">
+                        ${priorityPool.length ? priorityPool.map((t, i) => `
+                            <div class="flex items-center gap-3">
+                                <span class="text-jokerGreen font-black">0${i+1}</span>
+                                <span class="text-sm">${t.title}</span>
+                                <span class="ml-auto text-[10px] text-white/30 italic">Priority Lvl ${t.priority}</span>
+                            </div>
+                        `).join('') : '<p class="text-sm italic text-white/30">No priorities scheduled</p>'}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('report-content').innerHTML = reportHtml;
+            document.getElementById('report-modal').classList.remove('hidden');
+        }
+
+        function copyReportToClipboard() {
+            const content = document.getElementById('report-content').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                alert("Report copied to clipboard!");
+            });
         }
 
         // RENDER HELPERS
