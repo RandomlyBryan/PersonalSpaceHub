@@ -599,6 +599,9 @@
                     </div>
 
                     <div class="flex gap-2">
+                        <button onclick="generateAttendanceReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
+                            <i class="fas fa-clock"></i> Attendance Report
+                        </button>
                         <button onclick="exportSummaryReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
                             <i class="fas fa-file-export"></i> Detailed Export & Flush
                         </button>
@@ -861,10 +864,11 @@
         window.replyToMember = replyToMember;
         window.resolveAdminMessage = resolveAdminMessage; 
 
-        // UPDATED TIMER FUNCTIONS
+        // UPDATED TIMER FUNCTIONS (PERSISTENT)
         window.clockIn = clockIn;
         window.toggleBreak = toggleBreak;
         window.clockOut = clockOut;
+        window.generateAttendanceReport = generateAttendanceReport;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -899,7 +903,7 @@
 
                 // Attendance Section
                 content += "[SECTION: ATTENDANCE & TIME CLOCK]\n";
-                content += "Date       | Member     | In       | Out      | Duration\n";
+                content += "Date        | Member     | In       | Out      | Duration\n";
                 content += "-----------|------------|----------|----------|----------\n";
 
                 let hasAttendance = false;
@@ -1206,6 +1210,9 @@
                     replyBox.classList.add('hidden');
                 }
             }
+            
+            // Check if timer should be resumed for this user
+            checkAndResumeTimer();
         }
 
         function renderAdminMailbox() {
@@ -1300,47 +1307,66 @@
 
         function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
 
-        // --- NEW CLOCK IN/OUT LOGIC ---
-        function clockIn() {
+        // --- UPDATED PERSISTENT GLOBAL TIMER FUNCTIONS ---
+        async function checkAndResumeTimer() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const snapshot = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const activeSession = snapshot.val();
+
+            if (activeSession && activeSession.startTime) {
+                startTimerInterval(activeSession.startTime);
+            } else {
+                clearInterval(store.globalTimerInterval);
+                store.globalTimerActive = false;
+                store.globalTimerSeconds = 0;
+                updateGlobalTimerUI();
+                document.getElementById('btn-clock-in').classList.remove('hidden');
+                document.getElementById('btn-break').classList.add('hidden');
+                document.getElementById('btn-clock-out').classList.add('hidden');
+                document.getElementById('timer-status-pulse').classList.add('hidden');
+            }
+        }
+
+        async function clockIn() {
             if (store.globalTimerActive) return;
-            
-            store.sessionStartTime = new Date().toLocaleTimeString();
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const startTime = Date.now();
+
+            await db.ref(`projectData/activeSessions/${userKey}`).set({
+                startTime: startTime,
+                displayStart: new Date().toLocaleTimeString()
+            });
+
+            startTimerInterval(startTime);
+        }
+
+        function startTimerInterval(startTime) {
             store.globalTimerActive = true;
-            
-            // UI Toggle
+            store.sessionStartTime = new Date(startTime).toLocaleTimeString();
+
             document.getElementById('btn-clock-in').classList.add('hidden');
-            document.getElementById('btn-break').classList.remove('hidden');
             document.getElementById('btn-clock-out').classList.remove('hidden');
             document.getElementById('timer-status-pulse').classList.remove('hidden');
+
+            if (store.globalTimerInterval) clearInterval(store.globalTimerInterval);
             
             store.globalTimerInterval = setInterval(() => {
-                store.globalTimerSeconds++;
+                const now = Date.now();
+                store.globalTimerSeconds = Math.floor((now - startTime) / 1000);
                 updateGlobalTimerUI();
             }, 1000);
         }
 
         function toggleBreak() {
-            const icon = document.getElementById('break-icon');
-            if (store.globalTimerActive) {
-                // Take Break
-                clearInterval(store.globalTimerInterval);
-                store.globalTimerActive = false;
-                icon.className = 'fas fa-play';
-                document.getElementById('timer-status-pulse').classList.add('hidden');
-            } else {
-                // Resume
-                store.globalTimerActive = true;
-                icon.className = 'fas fa-pause';
-                document.getElementById('timer-status-pulse').classList.remove('hidden');
-                store.globalTimerInterval = setInterval(() => {
-                    store.globalTimerSeconds++;
-                    updateGlobalTimerUI();
-                }, 1000);
-            }
+            // Simplified: Focus on persistent clock-in/out attendance tracking
+            alert("Break tracking consolidated into session duration.");
         }
 
-        function clockOut() {
-            if (!confirm("Are you sure you want to Clock Out and end this session?")) return;
+        async function clockOut() {
+            if (!confirm("End this session and log attendance?")) return;
 
             const endTime = new Date().toLocaleTimeString();
             const totalSeconds = store.globalTimerSeconds;
@@ -1358,24 +1384,68 @@
                 timestamp: Date.now()
             };
 
-            // Push to Firebase node 'attendance'
-            db.ref(`projectData/attendance/${today}/${userKey}`).push(logEntry)
-            .then(() => {
-                alert(`Clock-out successful. Total time: ${formatTime(totalSeconds)}`);
-                
-                // Reset State
-                clearInterval(store.globalTimerInterval);
-                store.globalTimerActive = false;
-                store.globalTimerSeconds = 0;
-                updateGlobalTimerUI();
-                
-                // Reset UI
-                document.getElementById('btn-clock-in').classList.remove('hidden');
-                document.getElementById('btn-break').classList.add('hidden');
-                document.getElementById('btn-clock-out').classList.add('hidden');
-                document.getElementById('timer-status-pulse').classList.add('hidden');
-                document.getElementById('break-icon').className = 'fas fa-pause';
+            await db.ref(`projectData/attendance/${today}/${userKey}`).push(logEntry);
+            await db.ref(`projectData/activeSessions/${userKey}`).remove();
+
+            clearInterval(store.globalTimerInterval);
+            store.globalTimerActive = false;
+            store.globalTimerSeconds = 0;
+            updateGlobalTimerUI();
+            
+            document.getElementById('btn-clock-in').classList.remove('hidden');
+            document.getElementById('btn-clock-out').classList.add('hidden');
+            document.getElementById('timer-status-pulse').classList.add('hidden');
+            
+            alert(`Clock-out successful. Total session: ${formatTime(totalSeconds)}`);
+        }
+
+        async function generateAttendanceReport() {
+            const picker = document.getElementById('date-range-picker')._flatpickr;
+            if (!picker.selectedDates.length) {
+                alert("Please select a date range using the calendar filter first!");
+                return;
+            }
+
+            const startDate = picker.selectedDates[0];
+            const endDate = picker.selectedDates[1] || startDate;
+            
+            const snap = await db.ref('projectData/attendance').once('value');
+            const attendanceData = snap.val() || {};
+            
+            let summary = {}; // { UserName: totalSeconds }
+
+            Object.keys(attendanceData).forEach(dateStr => {
+                const logDate = new Date(dateStr);
+                if (logDate >= startDate && logDate <= endDate) {
+                    const userLogs = attendanceData[dateStr];
+                    Object.keys(userLogs).forEach(uk => {
+                        const logs = userLogs[uk];
+                        Object.values(logs).forEach(l => {
+                            if(!summary[l.user]) summary[l.user] = 0;
+                            summary[l.user] += (l.rawSeconds || 0);
+                        });
+                    });
+                }
             });
+
+            let report = `CONSOLIDATED ATTENDANCE REPORT\n`;
+            report += `Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`;
+            report += `==========================================\n\n`;
+            report += `MEMBER NAME         | TOTAL TIME\n`;
+            report += `--------------------|--------------------\n`;
+
+            Object.keys(summary).forEach(name => {
+                const hours = (summary[name] / 3600).toFixed(2);
+                report += `${name.padEnd(20)} | ${hours} Hrs (${formatTime(summary[name])})\n`;
+            });
+
+            if (Object.keys(summary).length === 0) report += "No records found for this range.";
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Attendance_Summary_${startDate.toISOString().split('T')[0]}.txt`;
+            a.click();
         }
 
         function updateGlobalTimerUI() {
