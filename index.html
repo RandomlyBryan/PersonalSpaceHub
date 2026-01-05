@@ -1863,7 +1863,7 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
-        // --- UPDATED ANALYTICS: INCLUDES TO-DO LIST AND COMPLETION RATE ---
+        // --- UPDATED ANALYTICS ---
         async function renderAnalytics() {
             const grid = document.getElementById('analytics-grid');
             if (!grid) return;
@@ -1894,7 +1894,6 @@
                 const todoTasks = userTasks.filter(t => t.status === 'todo');
                 const doneCount = userTasks.filter(t => t.status === 'done').length;
                 
-                // Calculate Completion Rate (%)
                 const totalTasksCount = userTasks.length;
                 const completionRate = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
 
@@ -1908,7 +1907,6 @@
                     }
                 }
 
-                // Generate To-Do List Visuals
                 const todoListHTML = todoTasks.length > 0 
                     ? todoTasks.map(t => `<div class="text-[10px] py-1 border-b border-white/5 last:border-0 truncate text-slate-400 flex items-center gap-1"><i class="fas fa-circle text-[4px]"></i> ${t.title}</div>`).join('')
                     : `<div class="text-[10px] py-1 italic text-slate-500">No pending tasks</div>`;
@@ -2011,6 +2009,7 @@
             a.click();
         }
 
+        // --- UPDATED DAILY SUMMARY (CEO "IDEAL" VERSION) ---
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
@@ -2025,51 +2024,88 @@
             let totalSecs = 0;
             Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
             
-            // 2. Completed Work Today
-            const completedTasks = store.kanbanTasks.filter(t => 
-                t.assignee === user && t.status === 'done' && t.assignedDate === today
+            // 2. Extract Data for Categories
+            const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
+            const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
+            const ongoingTasks = allUserTasks.filter(t => t.status === 'inprogress');
+            
+            // Logic for Blockers: Look for "blocker" in description or high-priority overdue tasks
+            const blockers = allUserTasks.filter(t => 
+                (t.description && t.description.toLowerCase().includes('blocker')) || 
+                (t.priority >= 4 && t.status !== 'done' && t.assignedDate < today)
             );
 
-            // 3. Tasks Still in Progress / To Do for Today
-            const pendingToday = store.kanbanTasks.filter(t => 
-                t.assignee === user && t.status !== 'done' && t.assignedDate === today
-            );
-
-            // 4. Top 3 Priorities for Tomorrow
-            const priorityPool = store.kanbanTasks.filter(t => 
-                t.assignee === user && t.status !== 'done' && (t.assignedDate === today || t.assignedDate === tomorrowStr)
+            // Strategy: Tomorrow's focus
+            const strategy = allUserTasks.filter(t => 
+                t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
 
             const reportHtml = `
-                <div>
-                    <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest">Time Tracking</label>
-                    <p class="text-3xl font-mono font-black text-white">${formatTime(totalSecs)} <span class="text-sm font-normal text-white/40">Logged Today</span></p>
+                <div class="border-b border-jokerGreen/30 pb-4 mb-4">
+                    <h3 class="text-jokerGreen font-black text-xl uppercase tracking-tighter">Daily EOD Snapshot: ${user}</h3>
+                    <p class="text-[10px] text-white/50 uppercase font-bold">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
                 </div>
 
-                <div>
-                    <label class="text-[10px] text-purple-400 font-black uppercase tracking-widest block mb-2">Completed Work</label>
-                    <ul class="list-disc list-inside space-y-1 text-sm">
-                        ${completedTasks.length ? completedTasks.map(t => `<li>${t.title}</li>`).join('') : '<li class="italic text-white/30">No tasks completed today</li>'}
-                    </ul>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <label class="text-[9px] text-jokerGreen font-bold uppercase block mb-1">Time Metrics</label>
+                        <p class="text-2xl font-mono font-black text-white">${formatTime(totalSecs)}</p>
+                    </div>
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <label class="text-[9px] text-purple-400 font-bold uppercase block mb-1">Execution Score</label>
+                        <p class="text-2xl font-mono font-black text-white">${completedTasks.length} <span class="text-[10px] font-normal opacity-50">Tasks Closed</span></p>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="text-[10px] text-amber-500 font-black uppercase tracking-widest block mb-2">Ongoing / Pending Today</label>
-                    <ul class="list-disc list-inside space-y-1 text-sm text-amber-100/80">
-                        ${pendingToday.length ? pendingToday.map(t => `<li>${t.title} <span class="text-[9px] opacity-50">[${t.status}]</span></li>`).join('') : '<li class="italic text-white/30">All daily tasks cleared</li>'}
-                    </ul>
-                </div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="flex items-center gap-2 text-[11px] text-jokerGreen font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-check-circle"></i> Completed Work & Metrics
+                        </label>
+                        <div class="space-y-2 text-sm">
+                            ${completedTasks.length ? completedTasks.map(t => `
+                                <div class="bg-white/5 p-2 rounded border-l-2 border-jokerGreen">
+                                    <span class="font-bold text-white block">${t.title}</span>
+                                    <p class="text-[11px] text-white/60">${t.description || 'Task successfully delivered.'}</p>
+                                </div>
+                            `).join('') : '<p class="italic text-white/30 text-xs">No tasks finalized today.</p>'}
+                        </div>
+                    </div>
 
-                <div class="bg-jokerPurple/20 p-4 rounded-2xl border border-jokerPurple/50">
-                    <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-2 italic">Top 3 Priorities for Tomorrow</label>
-                    <div class="space-y-2">
-                        ${priorityPool.length ? priorityPool.map((t, i) => `
-                            <div class="flex items-center gap-3">
-                                <span class="text-jokerGreen font-black">0${i+1}</span>
-                                <span class="text-sm">${t.title}</span>
-                                <span class="ml-auto text-[10px] text-white/30 italic">Priority Lvl ${t.priority}</span>
-                            </div>
-                        `).join('') : '<p class="text-sm italic text-white/30">No priorities scheduled</p>'}
+                    <div>
+                        <label class="flex items-center gap-2 text-[11px] text-blue-400 font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-spinner"></i> Specific Project/Client Updates
+                        </label>
+                        <div class="space-y-2 text-sm text-blue-50">
+                            ${ongoingTasks.length ? ongoingTasks.map(t => `
+                                <div class="flex justify-between items-start gap-2 border-b border-white/5 pb-2">
+                                    <span>• <b>${t.title}</b>: ${t.status.toUpperCase()}</span>
+                                    <span class="text-[9px] opacity-50">Project Tracking</span>
+                                </div>
+                            `).join('') : '<p class="italic text-white/30 text-xs">No active project updates.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="${blockers.length ? 'bg-red-500/10 border border-red-500/30 p-3 rounded-xl' : ''}">
+                        <label class="flex items-center gap-2 text-[11px] text-red-500 font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-exclamation-triangle"></i> Clear Blockers
+                        </label>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-red-200/80">
+                            ${blockers.length ? blockers.map(t => `<li><b>${t.title}</b>: Needs clarification/resource.</li>`).join('') : '<li class="italic text-white/30 text-xs">No blockers reported.</li>'}
+                        </ul>
+                    </div>
+
+                    <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30">
+                        <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-3 italic">Strategy for Tomorrow</label>
+                        <div class="space-y-2">
+                            ${strategy.length ? strategy.map((t, i) => `
+                                <div class="flex items-center gap-3">
+                                    <span class="text-jokerGreen font-black">0${i+1}</span>
+                                    <span class="text-sm">${t.title}</span>
+                                    <span class="ml-auto text-[9px] text-white/30">Lvl ${t.priority}</span>
+                                </div>
+                            `).join('') : '<p class="text-sm italic text-white/30">Review priorities at shift start.</p>'}
+                        </div>
                     </div>
                 </div>
             `;
@@ -2081,7 +2117,7 @@
         function copyReportToClipboard() {
             const content = document.getElementById('report-content').innerText;
             navigator.clipboard.writeText(content).then(() => {
-                alert("Report copied to clipboard!");
+                alert("Professional EOD report copied to clipboard!");
             });
         }
 
