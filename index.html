@@ -432,9 +432,21 @@
                         <button id="btn-clock-in" onclick="clockIn()" class="w-10 h-10 rounded-full bg-jokerGreen text-black flex items-center justify-center hover:scale-105 transition shadow-md" title="Clock In">
                             <i class="fas fa-play"></i>
                         </button>
-                        <button id="btn-break" onclick="toggleBreak()" class="hidden w-10 h-10 rounded-full bg-amber-400 text-black flex items-center justify-center hover:scale-105 transition shadow-md" title="Break">
-                            <i id="break-icon" class="fas fa-pause"></i>
+                        
+                        <button id="btn-lunch" onclick="toggleLunch()" class="hidden w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md" title="Lunch Break">
+                            <i id="lunch-icon" class="fas fa-utensils"></i>
                         </button>
+
+                        <button id="btn-break-1" onclick="startShortBreak(1)" class="hidden w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md relative" title="15m Break 1">
+                            <span class="text-[9px] font-bold">B1</span>
+                            <div id="b1-timer" class="absolute -bottom-5 text-[9px] font-black text-blue-400 hidden">15:00</div>
+                        </button>
+
+                        <button id="btn-break-2" onclick="startShortBreak(2)" class="hidden w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md relative" title="15m Break 2">
+                            <span class="text-[9px] font-bold">B2</span>
+                            <div id="b2-timer" class="absolute -bottom-5 text-[9px] font-black text-blue-400 hidden">15:00</div>
+                        </button>
+
                         <button id="btn-clock-out" onclick="clockOut()" class="hidden w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md" title="Clock Out">
                             <i class="fas fa-stop"></i>
                         </button>
@@ -803,7 +815,12 @@
             globalTimerActive: false,
             globalTimerSeconds: 0,
             globalTimerInterval: null,
-            sessionStartTime: null
+            sessionStartTime: null,
+
+            // New Feature State
+            isOnLunch: false,
+            break1Used: false,
+            break2Used: false
         };
         
         let draggedItem = null;
@@ -866,7 +883,8 @@
 
         // UPDATED TIMER FUNCTIONS (PERSISTENT)
         window.clockIn = clockIn;
-        window.toggleBreak = toggleBreak;
+        window.toggleLunch = toggleLunch;
+        window.startShortBreak = startShortBreak;
         window.clockOut = clockOut;
         window.generateAttendanceReport = generateAttendanceReport;
 
@@ -903,8 +921,8 @@
 
                 // Attendance Section
                 content += "[SECTION: ATTENDANCE & TIME CLOCK]\n";
-                content += "Date        | Member     | In       | Out      | Duration\n";
-                content += "-----------|------------|----------|----------|----------\n";
+                content += "Date       | Member     | In       | Out      | Duration | B1 | B2\n";
+                content += "-----------|------------|----------|----------|----------|----|----\n";
 
                 let hasAttendance = false;
                 for (const date in attendanceData) {
@@ -914,7 +932,7 @@
                             const l = logs[id];
                             if (isUserAdmin || l.user === currentUser) {
                                 hasAttendance = true;
-                                content += `${l.date} | ${l.user.padEnd(10)} | ${l.start.padEnd(8)} | ${l.end.padEnd(8)} | ${l.duration}\n`;
+                                content += `${l.date} | ${l.user.padEnd(10)} | ${l.start.padEnd(8)} | ${l.end.padEnd(8)} | ${l.duration.padEnd(8)} | ${l.break1 || '-'} | ${l.break2 || '-'}\n`;
                             }
                         }
                     }
@@ -1277,7 +1295,8 @@
         }
 
         function updateDashboardUI() {
-            document.getElementById('notepad').value = store.notes;
+            const np = document.getElementById('notepad');
+            if(np) np.value = store.notes;
             renderQuickTasks(); 
         }
 
@@ -1316,17 +1335,65 @@
             const activeSession = snapshot.val();
 
             if (activeSession && activeSession.startTime) {
-                startTimerInterval(activeSession.startTime);
+                
+                // Handle Lunch UI and Logic
+                if (activeSession.isOnLunch) {
+                    store.isOnLunch = true;
+                    document.getElementById('lunch-icon').className = "fas fa-walking";
+                    document.getElementById('btn-lunch').classList.replace('bg-orange-500', 'bg-green-600');
+                    store.globalTimerSeconds = Math.floor(activeSession.elapsedBeforeLunch / 1000);
+                    updateGlobalTimerUI();
+                    clearInterval(store.globalTimerInterval);
+                } else {
+                    store.isOnLunch = false;
+                    document.getElementById('lunch-icon').className = "fas fa-utensils";
+                    document.getElementById('btn-lunch').classList.replace('bg-green-600', 'bg-orange-500');
+                    startTimerInterval(activeSession.startTime);
+                }
+
+                // Show Correct Buttons
+                document.getElementById('btn-clock-in').classList.add('hidden');
+                document.getElementById('btn-lunch').classList.remove('hidden');
+                document.getElementById('btn-break-1').classList.remove('hidden');
+                document.getElementById('btn-break-2').classList.remove('hidden');
+                document.getElementById('btn-clock-out').classList.remove('hidden');
+                document.getElementById('timer-status-pulse').classList.remove('hidden');
+
+                // Check used breaks
+                if (activeSession.break1Used) setBreakUsedUI(1, activeSession.break1Used);
+                if (activeSession.break2Used) setBreakUsedUI(2, activeSession.break2Used);
+
             } else {
                 clearInterval(store.globalTimerInterval);
                 store.globalTimerActive = false;
                 store.globalTimerSeconds = 0;
                 updateGlobalTimerUI();
-                document.getElementById('btn-clock-in').classList.remove('hidden');
-                document.getElementById('btn-break').classList.add('hidden');
-                document.getElementById('btn-clock-out').classList.add('hidden');
-                document.getElementById('timer-status-pulse').classList.add('hidden');
+                resetTimerUI();
             }
+        }
+
+        function resetTimerUI() {
+            document.getElementById('btn-clock-in').classList.remove('hidden');
+            document.getElementById('btn-lunch').classList.add('hidden');
+            document.getElementById('btn-break-1').classList.add('hidden');
+            document.getElementById('btn-break-2').classList.add('hidden');
+            document.getElementById('btn-clock-out').classList.add('hidden');
+            document.getElementById('timer-status-pulse').classList.add('hidden');
+            document.getElementById('b1-timer').classList.add('hidden');
+            document.getElementById('b2-timer').classList.add('hidden');
+            document.getElementById('btn-break-1').disabled = false;
+            document.getElementById('btn-break-2').disabled = false;
+            document.getElementById('btn-break-1').classList.remove('opacity-50', 'grayscale');
+            document.getElementById('btn-break-2').classList.remove('opacity-50', 'grayscale');
+        }
+
+        function setBreakUsedUI(num, time) {
+            const btn = document.getElementById(`btn-break-${num}`);
+            const timer = document.getElementById(`b${num}-timer`);
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'grayscale');
+            timer.classList.remove('hidden');
+            timer.textContent = "USED";
         }
 
         async function clockIn() {
@@ -1337,7 +1404,8 @@
 
             await db.ref(`projectData/activeSessions/${userKey}`).set({
                 startTime: startTime,
-                displayStart: new Date().toLocaleTimeString()
+                displayStart: new Date().toLocaleTimeString(),
+                isOnLunch: false
             });
 
             startTimerInterval(startTime);
@@ -1350,6 +1418,9 @@
             document.getElementById('btn-clock-in').classList.add('hidden');
             document.getElementById('btn-clock-out').classList.remove('hidden');
             document.getElementById('timer-status-pulse').classList.remove('hidden');
+            document.getElementById('btn-lunch').classList.remove('hidden');
+            document.getElementById('btn-break-1').classList.remove('hidden');
+            document.getElementById('btn-break-2').classList.remove('hidden');
 
             if (store.globalTimerInterval) clearInterval(store.globalTimerInterval);
             
@@ -1360,18 +1431,86 @@
             }, 1000);
         }
 
-        function toggleBreak() {
-            // Simplified: Focus on persistent clock-in/out attendance tracking
-            alert("Break tracking consolidated into session duration.");
+        async function toggleLunch() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const now = Date.now();
+            
+            const snap = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const session = snap.val();
+
+            if (!store.isOnLunch) {
+                if (!confirm("Start lunch break? Global timer will pause.")) return;
+                
+                const elapsedSoFar = now - session.startTime;
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    isOnLunch: true,
+                    elapsedBeforeLunch: elapsedSoFar,
+                    lunchStartRealTime: now
+                });
+                
+                store.isOnLunch = true;
+                document.getElementById('lunch-icon').className = "fas fa-walking";
+                document.getElementById('btn-lunch').classList.replace('bg-orange-500', 'bg-green-600');
+                clearInterval(store.globalTimerInterval);
+            } else {
+                const newStartTime = now - session.elapsedBeforeLunch;
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    isOnLunch: false,
+                    startTime: newStartTime
+                });
+                
+                store.isOnLunch = false;
+                document.getElementById('lunch-icon').className = "fas fa-utensils";
+                document.getElementById('btn-lunch').classList.replace('bg-green-600', 'bg-orange-500');
+                startTimerInterval(newStartTime);
+            }
+        }
+
+        async function startShortBreak(num) {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const btn = document.getElementById(`btn-break-${num}`);
+            const timerDisplay = document.getElementById(`b${num}-timer`);
+            
+            if (confirm(`Start your 15-minute Short Break ${num}? Global timer will CONTINUE.`)) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'grayscale');
+                timerDisplay.classList.remove('hidden');
+                
+                const breakTime = new Date().toLocaleTimeString();
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    [`break${num}Used`]: breakTime
+                });
+
+                let timeLeft = 15 * 60; 
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    const mins = Math.floor(timeLeft / 60);
+                    const secs = timeLeft % 60;
+                    timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        timerDisplay.textContent = "DONE";
+                    }
+                }, 1000);
+            }
         }
 
         async function clockOut() {
             if (!confirm("End this session and log attendance?")) return;
 
-            const endTime = new Date().toLocaleTimeString();
-            const totalSeconds = store.globalTimerSeconds;
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const snap = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const activeSession = snap.val();
+
+            if (!activeSession) return;
+
+            const endTime = new Date().toLocaleTimeString();
+            const totalSeconds = store.globalTimerSeconds;
             const today = new Date().toISOString().split('T')[0];
 
             const logEntry = {
@@ -1381,7 +1520,9 @@
                 end: endTime,
                 duration: formatTime(totalSeconds),
                 rawSeconds: totalSeconds,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                break1: activeSession.break1Used || "No",
+                break2: activeSession.break2Used || "No"
             };
 
             await db.ref(`projectData/attendance/${today}/${userKey}`).push(logEntry);
@@ -1391,10 +1532,7 @@
             store.globalTimerActive = false;
             store.globalTimerSeconds = 0;
             updateGlobalTimerUI();
-            
-            document.getElementById('btn-clock-in').classList.remove('hidden');
-            document.getElementById('btn-clock-out').classList.add('hidden');
-            document.getElementById('timer-status-pulse').classList.add('hidden');
+            resetTimerUI();
             
             alert(`Clock-out successful. Total session: ${formatTime(totalSeconds)}`);
         }
@@ -1431,7 +1569,7 @@
             let report = `CONSOLIDATED ATTENDANCE REPORT\n`;
             report += `Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`;
             report += `==========================================\n\n`;
-            report += `MEMBER NAME         | TOTAL TIME\n`;
+            report += `MEMBER NAME          | TOTAL TIME\n`;
             report += `--------------------|--------------------\n`;
 
             Object.keys(summary).forEach(name => {
