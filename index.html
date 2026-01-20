@@ -77,7 +77,22 @@
             color: #d8b4fe;
         } 
 
-        .column-body { min-height: 200px; transition: background-color 0.2s; }
+        /* Kanban Specific Fixes */
+        .kanban-column {
+            min-width: 320px;
+            max-width: 450px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .column-body { 
+            min-height: 200px; 
+            flex: 1;
+            overflow-y: auto;
+            transition: background-color 0.2s; 
+        }
         .column-body.drag-over { background-color: rgba(57, 255, 20, 0.15); border-radius: 0.5rem; }
         
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -177,7 +192,6 @@
         .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
         .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
         
-        /* Special Critical Task Style for Calendar */
         .cal-task-critical { 
             border-left-color: #f97316 !important; 
             background: rgba(249, 115, 22, 0.15) !important;
@@ -265,17 +279,14 @@
             font-weight: bold;
         }
         
-        /* Helper to hide admin tools */
         .admin-only { transition: all 0.3s; }
         .admin-only.hidden-tool { display: none !important; }
 
-        /* Login Screen Styles */
         #login-overlay {
             background: #10002b;
             z-index: 200;
         }
 
-        /* Logo Pulse Animation */
         .logo-glow {
             animation: logo-pulse 3s infinite ease-in-out;
         }
@@ -365,6 +376,12 @@
                 <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
                     <i class="fas fa-tasks w-5"></i> Task Tracker
                 </button>
+                <button onclick="generateDailyReport()" class="w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-green-500/20 text-sm font-bold border-l-4 border-transparent hover:border-jokerGreen">
+                    <i class="fas fa-file-alt w-5 text-jokerGreen"></i> Daily Summary
+                </button>
+                <button onclick="switchView('analytics')" id="nav-analytics" class="nav-item admin-only w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10 hidden-tool">
+                    <i class="fas fa-chart-pie w-5"></i> Team Analytics
+                </button>
             </nav>
 
             <div class="p-4 border-t border-purple-500/30">
@@ -415,7 +432,7 @@
                 </div>
                 
                 <div class="text-white/30 text-[10px] text-center mt-2 pt-2 border-t border-white/5">
-                    &copy; 2025 PersonalSpace
+                    &copy; 2026 PersonalSpace
                 </div>
             </div>
         </aside>
@@ -425,6 +442,44 @@
             <button onclick="document.getElementById('main-sidebar').classList.toggle('-translate-x-full')" class="md:hidden absolute top-4 left-4 z-50 text-white bg-purple-600 p-2 rounded-lg shadow-lg">
                 <i class="fas fa-bars"></i>
             </button>
+
+            <div class="px-6 pt-4 shrink-0 flex items-center gap-4">
+                <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-4 border-l-4 border-jokerGreen shadow-lg">
+                    <div class="flex flex-col">
+                        <span class="text-[9px] font-bold text-purple-500 dark:text-purple-400 uppercase tracking-widest">Global Session</span>
+                        <div id="global-timer-display" class="text-xl font-black font-mono text-slate-800 dark:text-white">00:00:00</div>
+                    </div>
+                    <div class="flex gap-2" id="timer-controls">
+                        <button id="btn-clock-in" onclick="clockIn()" class="w-10 h-10 rounded-full bg-jokerGreen text-black flex items-center justify-center hover:scale-105 transition shadow-md" title="Clock In">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        
+                        <button id="btn-lunch" onclick="toggleLunch()" class="hidden w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md" title="Lunch Break">
+                            <i id="lunch-icon" class="fas fa-utensils"></i>
+                        </button>
+
+                        <button id="btn-break-1" onclick="startShortBreak(1)" class="hidden w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md relative" title="15m Break 1">
+                            <span class="text-[9px] font-bold">B1</span>
+                            <div id="b1-timer" class="absolute -bottom-5 text-[9px] font-black text-blue-400 hidden">15:00</div>
+                        </button>
+
+                        <button id="btn-break-2" onclick="startShortBreak(2)" class="hidden w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md relative" title="15m Break 2">
+                            <span class="text-[9px] font-bold">B2</span>
+                            <div id="b2-timer" class="absolute -bottom-5 text-[9px] font-black text-blue-400 hidden">15:00</div>
+                        </button>
+
+                        <button id="btn-clock-out" onclick="clockOut()" class="hidden w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center hover:scale-105 transition shadow-md" title="Clock Out">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="timer-status-pulse" class="hidden">
+                    <span class="flex h-3 w-3 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                </div>
+            </div>
 
             <div id="view-dashboard" class="flex-1 overflow-hidden p-4 md:p-6 fade-in h-full flex flex-col">
                 
@@ -438,7 +493,7 @@
                         <div class="flex items-center gap-4">
                             <div class="text-right">
                                 <p class="text-lg font-bold text-white leading-tight" id="greeting">Connecting...</p>
-                                <span id="dashboard-owner-badge" class="bg-green-500 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
+                                <span id="dashboard-owner-badge" class="bg-green-50 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
                             </div>
                             <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg flex items-center justify-center overflow-hidden shrink-0 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('Admin')">
                                 <i class="fas fa-user text-white/50 text-2xl"></i>
@@ -577,6 +632,9 @@
                     </div>
 
                     <div class="flex gap-2">
+                        <button onclick="generateAttendanceReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
+                            <i class="fas fa-clock"></i> Attendance Report
+                        </button>
                         <button onclick="exportSummaryReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
                             <i class="fas fa-file-export"></i> Detailed Export & Flush
                         </button>
@@ -586,47 +644,79 @@
                     </div>
                 </div>
 
-                <div id="kanban-status-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[800px] md:min-w-0">
+                <div id="kanban-status-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-4 h-full">
+                    <div class="flex flex-row gap-6 h-full min-h-0">
                         
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-slate-400">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
+                        <div class="kanban-column glass-panel rounded-xl flex flex-col border-t-4 border-slate-400">
+                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 shrink-0">
                                 <h3 class="font-bold text-slate-700 dark:text-slate-200">To Do</h3>
                                 <span id="count-todo" class="bg-slate-200 dark:bg-slate-700 text-xs px-2 py-1 rounded-full">0</span>
                             </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
+                            <div class="column-body p-3 flex-1" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
                         </div>
 
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-purple-600">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
+                        <div class="kanban-column glass-panel rounded-xl flex flex-col border-t-4 border-purple-600">
+                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 shrink-0">
                                 <h3 class="font-bold text-purple-700 dark:text-purple-400">In Progress</h3>
                                 <span id="count-inprogress" class="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 text-xs px-2 py-1 rounded-full">0</span>
                             </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
+                            <div class="column-body p-3 flex-1" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
                         </div>
 
-                        <div class="glass-panel rounded-xl flex flex-col h-full border-t-4 border-green-500">
-                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50">
+                        <div class="kanban-column glass-panel rounded-xl flex flex-col border-t-4 border-green-500">
+                            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 shrink-0">
                                 <h3 class="font-bold text-green-600 dark:text-green-400">Executed</h3>
                                 <span id="count-done" class="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">0</span>
                             </div>
-                            <div class="column-body p-3 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
+                            <div class="column-body p-3 flex-1" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
                         </div>
 
                     </div>
                 </div>
 
                 <div id="kanban-week-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full hidden">
-                    <div class="flex items-center gap-4 mb-4 text-white">
+                    <div class="flex items-center gap-4 mb-4 text-white shrink-0">
                         <button onclick="changeWeek(-1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold"><i class="fas fa-chevron-left mr-2"></i> Prev Week</button>
                         <span id="week-view-date-range" class="text-sm font-bold text-green-400 tracking-wider uppercase">Loading...</span>
                         <button onclick="changeWeek(1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold">Next Week <i class="fas fa-chevron-right ml-2"></i></button>
                     </div>
-                    <div id="week-columns-container" class="grid grid-cols-7 gap-3 h-full min-w-[1200px]"></div>
+                    <div id="week-columns-container" class="flex flex-row gap-3 h-full min-w-max"></div>
                 </div>
 
             </div>
+
+            <div id="view-analytics" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex-col h-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-green-400 tracking-wide">Team Analytics & Live Status</h2>
+                        <p class="text-sm text-white/70">Real-time monitoring of attendance, tasks, and breaks</p>
+                    </div>
+                    <button onclick="exportAnalyticsReport()" class="bg-jokerPurple hover:bg-purple-700 text-white px-5 py-2 rounded-xl transition flex items-center gap-2 text-sm border border-jokerGreen/30 font-bold shadow-lg">
+                        <i class="fas fa-file-download"></i> Export Analytics Report
+                    </button>
+                </div>
+                <div id="analytics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+            </div>
+
         </main>
+    </div>
+
+    <div id="report-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden flex items-center justify-center z-[100] p-4">
+        <div class="glass-panel rounded-3xl w-full max-w-lg p-8 border-2 border-jokerGreen shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+            <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                <h2 class="text-2xl font-black text-jokerGreen uppercase tracking-tighter">Daily Execution Report</h2>
+                <button onclick="closeModal('report-modal')" class="text-white/50 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="report-content" class="space-y-6 text-slate-200 overflow-y-auto max-h-[70vh] pr-2">
+                </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="copyReportToClipboard()" class="flex-1 bg-jokerPurple text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition">Copy to Clipboard</button>
+                <button onclick="closeModal('report-modal')" class="px-6 py-3 text-white/50 font-bold">Close</button>
+            </div>
+        </div>
     </div>
 
     <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
@@ -681,7 +771,7 @@
     </div>
 
     <div id="calendar-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-purple-500">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-sm:max-w-xs max-w-sm p-6 shadow-2xl border border-purple-500">
             <h2 class="text-lg font-bold mb-1 dark:text-white text-purple-700 tracking-wider" id="cal-date-title">Date</h2>
             <p class="text-xs text-slate-500 mb-4">Scheduled Events & Critical Tasks</p>
             
@@ -766,13 +856,24 @@
             avatars: {}, 
             focus: '',
             notes: '',
-            adminMessages: {}, // { "User": { msg: "...", reply: "..." } }
+            adminMessages: {}, 
             events: {}, 
             passwords: {},
             calendarMonth: new Date().getMonth(),
             calendarYear: new Date().getFullYear(),
             kanbanMode: 'status',
-            weekViewStart: new Date()
+            weekViewStart: new Date(),
+            
+            // Timer State
+            globalTimerActive: false,
+            globalTimerSeconds: 0,
+            globalTimerInterval: null,
+            sessionStartTime: null,
+
+            // New Feature State
+            isOnLunch: false,
+            break1Used: false,
+            break2Used: false
         };
         
         let draggedItem = null;
@@ -831,7 +932,22 @@
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
-        window.resolveAdminMessage = resolveAdminMessage; // Logic updated
+        window.resolveAdminMessage = resolveAdminMessage; 
+
+        // UPDATED TIMER FUNCTIONS (PERSISTENT)
+        window.clockIn = clockIn;
+        window.toggleLunch = toggleLunch;
+        window.startShortBreak = startShortBreak;
+        window.clockOut = clockOut;
+        window.generateAttendanceReport = generateAttendanceReport;
+
+        // ANALYTICS FUNCTIONS
+        window.renderAnalytics = renderAnalytics;
+        window.exportAnalyticsReport = exportAnalyticsReport;
+        
+        // REPORT FUNCTION
+        window.generateDailyReport = generateDailyReport;
+        window.copyReportToClipboard = copyReportToClipboard;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -849,49 +965,91 @@
             }
         };
 
-        // EXPORT SUMMARY & FLUSH EXECUTED
+        // EXPORT SUMMARY REPORT (With Attendance Data)
         window.exportSummaryReport = () => {
-            if(store.kanbanTasks.length === 0) return alert("No tasks available to report.");
+            const isUserAdmin = !store.currentUser;
+            const currentUser = store.currentUser || "Admin";
             
-            const todo = store.kanbanTasks.filter(t => t.status === 'todo');
-            const ongoing = store.kanbanTasks.filter(t => t.status === 'inprogress');
-            const executed = store.kanbanTasks.filter(t => t.status === 'done');
+            db.ref('projectData/attendance').once('value').then(snap => {
+                const attendanceData = snap.val() || {};
+                
+                let content = isUserAdmin 
+                    ? "ADMIN CONSOLIDATED PROJECT & ATTENDANCE REPORT\n" 
+                    : `MEMBER ACTIVITY REPORT: ${currentUser}\n`;
+                    
+                content += `Generated On: ${new Date().toLocaleString()}\n`;
+                content += "========================================================\n\n";
 
-            let content = "PERSONAL SPACE - DETAILED PROJECT STATUS REPORT\n";
-            content += `Generated On: ${new Date().toLocaleString()}\n`;
-            content += "========================================================\n\n";
+                // Attendance Section
+                content += "[SECTION: ATTENDANCE & TIME CLOCK]\n";
+                content += "Date        | Member     | In        | Out      | Duration | B1 | B2\n";
+                content += "-----------|------------|----------|----------|----------|----|----\n";
 
-            const getTaskDetails = (t) => {
-                const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
-                return `- ${t.title}\n  Assignee: ${t.assignee || 'Unassigned'}\n  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
-            };
+                let hasAttendance = false;
+                for (const date in attendanceData) {
+                    for (const userKey in attendanceData[date]) {
+                        const logs = attendanceData[date][userKey];
+                        for (const id in logs) {
+                            const l = logs[id];
+                            if (isUserAdmin || l.user === currentUser) {
+                                hasAttendance = true;
+                                content += `${l.date} | ${l.user.padEnd(10)} | ${l.start.padEnd(8)} | ${l.end.padEnd(8)} | ${l.duration.padEnd(8)} | ${l.break1 || '-'} | ${l.break2 || '-'}\n`;
+                            }
+                        }
+                    }
+                }
+                if(!hasAttendance) content += "No attendance records found.\n";
 
-            content += "[STATUS: TO DO]\n";
-            content += todo.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
-            
-            content += "\n\n[STATUS: ONGOING (IN PROGRESS)]\n";
-            content += ongoing.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
+                // Tasks Section
+                content += "\n\n[SECTION: TASK PROGRESS]\n";
+                const tasksToReport = isUserAdmin 
+                    ? store.kanbanTasks 
+                    : store.kanbanTasks.filter(t => t.assignee === currentUser);
 
-            content += "\n\n[STATUS: EXECUTED (COMPLETED)]\n";
-            content += executed.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
+                if(tasksToReport.length === 0) {
+                    content += "No tasks available for this report.\n";
+                } else {
+                    const getTaskDetails = (t) => {
+                        const inProgTime = t.log && t.log.inprogress ? formatTime(t.log.inprogress) : "0m 0s";
+                        const memberTag = isUserAdmin ? `  Member: ${t.assignee || 'Unassigned'}\n` : "";
+                        return `- ${t.title}\n${memberTag}  Time Spent In-Progress: ${inProgTime}\n  Scheduled: ${t.assignedDate || 'Not set'}`;
+                    };
 
-            content += "\n\n========================================================\n";
-            content += "End of Report. Completed tasks will be removed from cloud.";
+                    const todo = tasksToReport.filter(t => t.status === 'todo');
+                    const ongoing = tasksToReport.filter(t => t.status === 'inprogress');
+                    const executed = tasksToReport.filter(t => t.status === 'done');
 
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Project_Execution_Report_${new Date().toISOString().slice(0,10)}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+                    content += `[STATUS: TO DO - Count: ${todo.length}]\n`;
+                    content += todo.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
+                    
+                    content += `\n\n[STATUS: ONGOING (IN PROGRESS) - Count: ${ongoing.length}]\n`;
+                    content += ongoing.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
 
-            if(confirm("Report exported. Flush (Delete) the Executed column from cloud now?")) {
-                store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
-                pushToCloud();
-                renderKanbanBoard();
-            }
+                    content += `\n\n[STATUS: EXECUTED (COMPLETED) - Count: ${executed.length}]\n`;
+                    content += executed.map(t => getTaskDetails(t)).join('\n\n') || "No tasks.";
+                }
+
+                content += "\n\n========================================================\n";
+                content += "End of Report.";
+
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = isUserAdmin ? "Consolidated_Admin_Report.txt" : `${currentUser}_Execution_Report.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Flush Executed (Admin Only)
+                if(isUserAdmin && store.kanbanTasks.some(t => t.status === 'done')) {
+                    if(confirm("Admin: Flush (Delete) the Executed column from cloud now?")) {
+                        store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
+                        pushToCloud();
+                        renderKanbanBoard();
+                    }
+                }
+            });
         };
 
         // --- INIT ---
@@ -1006,6 +1164,10 @@
         }
 
         function resetMemberPassword(username) {
+            if (store.currentUser !== null) {
+                alert("Only the System Admin can reset member passwords.");
+                return;
+            }
             if (confirm(`Reset ${username}'s password to default (1234)?`)) {
                 store.passwords[username] = "1234";
                 db.ref('projectData/passwords').update(store.passwords);
@@ -1127,6 +1289,9 @@
                     replyBox.classList.add('hidden');
                 }
             }
+            
+            // Check if timer should be resumed for this user
+            checkAndResumeTimer();
         }
 
         function renderAdminMailbox() {
@@ -1158,7 +1323,6 @@
             if (!hasMessages) viewer.innerHTML = `<p class="text-[10px] text-slate-400 italic text-center mt-4">No messages from team.</p>`;
         }
 
-        // Logic Change: This now deletes the message immediately upon "Resolution"
         function resolveAdminMessage(sender) {
             if (confirm(`Resolve and remove message from ${sender}?`)) {
                 delete store.adminMessages[sender];
@@ -1192,7 +1356,8 @@
         }
 
         function updateDashboardUI() {
-            document.getElementById('notepad').value = store.notes;
+            const np = document.getElementById('notepad');
+            if(np) np.value = store.notes;
             renderQuickTasks(); 
         }
 
@@ -1222,6 +1387,274 @@
 
         function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
 
+        // --- UPDATED PERSISTENT GLOBAL TIMER FUNCTIONS ---
+        async function checkAndResumeTimer() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const snapshot = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const activeSession = snapshot.val();
+
+            if (activeSession && activeSession.startTime) {
+                
+                // Handle Lunch UI and Logic
+                if (activeSession.isOnLunch) {
+                    store.isOnLunch = true;
+                    document.getElementById('lunch-icon').className = "fas fa-walking";
+                    document.getElementById('btn-lunch').classList.replace('bg-orange-500', 'bg-green-600');
+                    store.globalTimerSeconds = Math.floor(activeSession.elapsedBeforeLunch / 1000);
+                    updateGlobalTimerUI();
+                    clearInterval(store.globalTimerInterval);
+                } else {
+                    store.isOnLunch = false;
+                    document.getElementById('lunch-icon').className = "fas fa-utensils";
+                    document.getElementById('btn-lunch').classList.replace('bg-green-600', 'bg-orange-500');
+                    startTimerInterval(activeSession.startTime);
+                }
+
+                // Show Correct Buttons
+                document.getElementById('btn-clock-in').classList.add('hidden');
+                document.getElementById('btn-lunch').classList.remove('hidden');
+                document.getElementById('btn-break-1').classList.remove('hidden');
+                document.getElementById('btn-break-2').classList.remove('hidden');
+                document.getElementById('btn-clock-out').classList.remove('hidden');
+                document.getElementById('timer-status-pulse').classList.remove('hidden');
+
+                // Check used breaks
+                if (activeSession.break1Used) setBreakUsedUI(1, activeSession.break1Used);
+                if (activeSession.break2Used) setBreakUsedUI(2, activeSession.break2Used);
+
+            } else {
+                clearInterval(store.globalTimerInterval);
+                store.globalTimerActive = false;
+                store.globalTimerSeconds = 0;
+                updateGlobalTimerUI();
+                resetTimerUI();
+            }
+        }
+
+        function resetTimerUI() {
+            document.getElementById('btn-clock-in').classList.remove('hidden');
+            document.getElementById('btn-lunch').classList.add('hidden');
+            document.getElementById('btn-break-1').classList.add('hidden');
+            document.getElementById('btn-break-2').classList.add('hidden');
+            document.getElementById('btn-clock-out').classList.add('hidden');
+            document.getElementById('timer-status-pulse').classList.add('hidden');
+            document.getElementById('b1-timer').classList.add('hidden');
+            document.getElementById('b2-timer').classList.add('hidden');
+            document.getElementById('btn-break-1').disabled = false;
+            document.getElementById('btn-break-2').disabled = false;
+            document.getElementById('btn-break-1').classList.remove('opacity-50', 'grayscale');
+            document.getElementById('btn-break-2').classList.remove('opacity-50', 'grayscale');
+        }
+
+        function setBreakUsedUI(num, time) {
+            const btn = document.getElementById(`btn-break-${num}`);
+            const timer = document.getElementById(`b${num}-timer`);
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'grayscale');
+            timer.classList.remove('hidden');
+            timer.textContent = "USED";
+        }
+
+        async function clockIn() {
+            if (store.globalTimerActive) return;
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const startTime = Date.now();
+
+            await db.ref(`projectData/activeSessions/${userKey}`).set({
+                startTime: startTime,
+                displayStart: new Date().toLocaleTimeString(),
+                isOnLunch: false
+            });
+
+            startTimerInterval(startTime);
+        }
+
+        function startTimerInterval(startTime) {
+            store.globalTimerActive = true;
+            store.sessionStartTime = new Date(startTime).toLocaleTimeString();
+
+            document.getElementById('btn-clock-in').classList.add('hidden');
+            document.getElementById('btn-clock-out').classList.remove('hidden');
+            document.getElementById('timer-status-pulse').classList.remove('hidden');
+            document.getElementById('btn-lunch').classList.remove('hidden');
+            document.getElementById('btn-break-1').classList.remove('hidden');
+            document.getElementById('btn-break-2').classList.remove('hidden');
+
+            if (store.globalTimerInterval) clearInterval(store.globalTimerInterval);
+            
+            store.globalTimerInterval = setInterval(() => {
+                const now = Date.now();
+                store.globalTimerSeconds = Math.floor((now - startTime) / 1000);
+                updateGlobalTimerUI();
+            }, 1000);
+        }
+
+        async function toggleLunch() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const now = Date.now();
+            
+            const snap = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const session = snap.val();
+
+            if (!store.isOnLunch) {
+                if (!confirm("Start lunch break? Global timer will pause.")) return;
+                
+                const elapsedSoFar = now - session.startTime;
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    isOnLunch: true,
+                    elapsedBeforeLunch: elapsedSoFar,
+                    lunchStartRealTime: now
+                });
+                
+                store.isOnLunch = true;
+                document.getElementById('lunch-icon').className = "fas fa-walking";
+                document.getElementById('btn-lunch').classList.replace('bg-orange-500', 'bg-green-600');
+                clearInterval(store.globalTimerInterval);
+            } else {
+                const newStartTime = now - session.elapsedBeforeLunch;
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    isOnLunch: false,
+                    startTime: newStartTime
+                });
+                
+                store.isOnLunch = false;
+                document.getElementById('lunch-icon').className = "fas fa-utensils";
+                document.getElementById('btn-lunch').classList.replace('bg-green-600', 'bg-orange-500');
+                startTimerInterval(newStartTime);
+            }
+        }
+
+        async function startShortBreak(num) {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const btn = document.getElementById(`btn-break-${num}`);
+            const timerDisplay = document.getElementById(`b${num}-timer`);
+            
+            if (confirm(`Start your 15-minute Short Break ${num}? Global timer will CONTINUE.`)) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'grayscale');
+                timerDisplay.classList.remove('hidden');
+                
+                const breakTime = new Date().toLocaleTimeString();
+                await db.ref(`projectData/activeSessions/${userKey}`).update({
+                    [`break${num}Used`]: breakTime
+                });
+
+                let timeLeft = 15 * 60; 
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    const mins = Math.floor(timeLeft / 60);
+                    const secs = timeLeft % 60;
+                    timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        timerDisplay.textContent = "DONE";
+                    }
+                }, 1000);
+            }
+        }
+
+        async function clockOut() {
+            if (!confirm("End this session and log attendance?")) return;
+
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const snap = await db.ref(`projectData/activeSessions/${userKey}`).once('value');
+            const activeSession = snap.val();
+
+            if (!activeSession) return;
+
+            const endTime = new Date().toLocaleTimeString();
+            const totalSeconds = store.globalTimerSeconds;
+            const today = new Date().toISOString().split('T')[0];
+
+            const logEntry = {
+                user: user,
+                date: today,
+                start: store.sessionStartTime,
+                end: endTime,
+                duration: formatTime(totalSeconds),
+                rawSeconds: totalSeconds,
+                timestamp: Date.now(),
+                break1: activeSession.break1Used || "No",
+                break2: activeSession.break2Used || "No"
+            };
+
+            await db.ref(`projectData/attendance/${today}/${userKey}`).push(logEntry);
+            await db.ref(`projectData/activeSessions/${userKey}`).remove();
+
+            clearInterval(store.globalTimerInterval);
+            store.globalTimerActive = false;
+            store.globalTimerSeconds = 0;
+            updateGlobalTimerUI();
+            resetTimerUI();
+            
+            alert(`Clock-out successful. Total session: ${formatTime(totalSeconds)}`);
+        }
+
+        async function generateAttendanceReport() {
+            const picker = document.getElementById('date-range-picker')._flatpickr;
+            if (!picker.selectedDates.length) {
+                alert("Please select a date range using the calendar filter first!");
+                return;
+            }
+
+            const startDate = picker.selectedDates[0];
+            const endDate = picker.selectedDates[1] || startDate;
+            
+            const snap = await db.ref('projectData/attendance').once('value');
+            const attendanceData = snap.val() || {};
+            
+            let summary = {}; // { UserName: totalSeconds }
+
+            Object.keys(attendanceData).forEach(dateStr => {
+                const logDate = new Date(dateStr);
+                if (logDate >= startDate && logDate <= endDate) {
+                    const userLogs = attendanceData[dateStr];
+                    Object.keys(userLogs).forEach(uk => {
+                        const logs = userLogs[uk];
+                        Object.values(logs).forEach(l => {
+                            if(!summary[l.user]) summary[l.user] = 0;
+                            summary[l.user] += (l.rawSeconds || 0);
+                        });
+                    });
+                }
+            });
+
+            let report = `CONSOLIDATED ATTENDANCE REPORT\n`;
+            report += `Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`;
+            report += `==========================================\n\n`;
+            report += `MEMBER NAME          | TOTAL TIME\n`;
+            report += `--------------------|--------------------\n`;
+
+            Object.keys(summary).forEach(name => {
+                const hours = (summary[name] / 3600).toFixed(2);
+                report += `${name.padEnd(20)} | ${hours} Hrs (${formatTime(summary[name])})\n`;
+            });
+
+            if (Object.keys(summary).length === 0) report += "No records found for this range.";
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Attendance_Summary_${startDate.toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
+        function updateGlobalTimerUI() {
+            const s = store.globalTimerSeconds;
+            const h = Math.floor(s / 3600).toString().padStart(2, '0');
+            const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+            const sec = (s % 60).toString().padStart(2, '0');
+            document.getElementById('global-timer-display').textContent = `${h}:${m}:${sec}`;
+        }
+
         // CALENDAR LOGIC
         function changeMonth(delta) {
             store.calendarMonth += delta;
@@ -1240,10 +1673,12 @@
 
         function renderCalendar() {
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendar-month-year').textContent = `${months[store.calendarMonth]} ${store.calendarYear}`;
+            const monthLabel = document.getElementById('calendar-month-year');
+            if(monthLabel) monthLabel.textContent = `${months[store.calendarMonth]} ${store.calendarYear}`;
             const firstDay = new Date(store.calendarYear, store.calendarMonth, 1).getDay();
             const daysInMonth = new Date(store.calendarYear, store.calendarMonth + 1, 0).getDate();
             const grid = document.getElementById('calendar-body');
+            if(!grid) return;
             grid.innerHTML = '';
             for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="bg-slate-50/50 dark:bg-slate-800/50 border-r border-b border-slate-200 dark:border-slate-700"></div>`;
             for(let d=1; d<=daysInMonth; d++) {
@@ -1443,10 +1878,270 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
+        // --- UPDATED ANALYTICS ---
+        async function renderAnalytics() {
+            const grid = document.getElementById('analytics-grid');
+            if (!grid) return;
+            grid.innerHTML = '<p class="text-white italic">Syncing live data...</p>';
+
+            const [sessionsSnap, attendanceSnap] = await Promise.all([
+                db.ref('projectData/activeSessions').once('value'),
+                db.ref('projectData/attendance').once('value')
+            ]);
+
+            const activeSessions = sessionsSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+
+            grid.innerHTML = store.users.map(user => {
+                const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+                const liveSession = activeSessions[userKey];
+                
+                // 1. Calculate Total Attendance (Lifetime)
+                let totalSeconds = 0;
+                Object.keys(attendanceData).forEach(date => {
+                    const sessions = attendanceData[date][userKey] || {};
+                    Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
+                });
+
+                // 2. Task Details
+                const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
+                const ongoing = userTasks.filter(t => t.status === 'inprogress').length;
+                const todoTasks = userTasks.filter(t => t.status === 'todo');
+                const doneCount = userTasks.filter(t => t.status === 'done').length;
+                
+                const totalTasksCount = userTasks.length;
+                const completionRate = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
+
+                // 3. Live Status Logic
+                let statusBadge = `<span class="bg-slate-500/20 text-slate-400 text-[9px] px-2 py-1 rounded-full border border-slate-500/30">OFFLINE</span>`;
+                if (liveSession) {
+                    if (liveSession.isOnLunch) {
+                        statusBadge = `<span class="bg-orange-500 text-white text-[9px] px-2 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)] font-bold uppercase">On Lunch</span>`;
+                    } else if (liveSession.startTime) {
+                        statusBadge = `<span class="bg-green-500 text-black text-[9px] px-2 py-1 rounded-full font-bold uppercase">Working</span>`;
+                    }
+                }
+
+                const todoListHTML = todoTasks.length > 0 
+                    ? todoTasks.map(t => `<div class="text-[10px] py-1 border-b border-white/5 last:border-0 truncate text-slate-400 flex items-center gap-1"><i class="fas fa-circle text-[4px]"></i> ${t.title}</div>`).join('')
+                    : `<div class="text-[10px] py-1 italic text-slate-500">No pending tasks</div>`;
+
+                return `
+                    <div class="glass-panel rounded-2xl p-5 border-t-4 ${liveSession ? 'border-jokerGreen' : 'border-slate-500'}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 dark:text-white">${user}</h3>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xl font-black text-jokerGreen">${(totalSeconds / 3600).toFixed(1)}h</div>
+                                <div class="text-[9px] text-slate-400 uppercase font-bold">Total Work Time</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                                    <div class="text-xl font-black text-purple-600 dark:text-purple-400">${ongoing}</div>
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Doing</div>
+                                </div>
+                                <div class="bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                                    <div class="text-xl font-black text-jokerGreen">${completionRate}%</div>
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Execution Rate</div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-white/30 dark:bg-black/20 rounded-xl border border-white/10">
+                                <h4 class="text-[10px] font-black text-amber-500 uppercase mb-2 flex items-center gap-1">
+                                    <i class="fas fa-clipboard-list"></i> Pending Tasks (${todoTasks.length})
+                                </h4>
+                                <div class="max-h-24 overflow-y-auto pr-1">
+                                    ${todoListHTML}
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-white/50 dark:bg-black/20 rounded-xl border border-white/20">
+                                <div class="flex justify-between items-center text-[10px] font-bold uppercase mb-2">
+                                    <span class="text-slate-400">Session Log</span>
+                                    <span class="text-jokerGreen">${liveSession ? 'LIVE' : 'IDLE'}</span>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Break 1:</span>
+                                        <span class="${liveSession?.break1Used ? 'text-blue-400 font-bold' : 'text-slate-400'}">${liveSession?.break1Used || 'Available'}</span>
+                                    </div>
+                                    <div class="flex justify-between text-[11px]">
+                                        <span class="text-slate-500">Break 2:</span>
+                                        <span class="${liveSession?.break2Used ? 'text-blue-400 font-bold' : 'text-slate-400'}">${liveSession?.break2Used || 'Available'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function exportAnalyticsReport() {
+            const sessionsSnap = await db.ref('projectData/activeSessions').once('value');
+            const attendanceSnap = await db.ref('projectData/attendance').once('value');
+            const activeSessions = sessionsSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+
+            let report = `DETAILED TEAM ANALYTICS REPORT\nGenerated: ${new Date().toLocaleString()}\n`;
+            report += `========================================================\n\n`;
+
+            store.users.forEach(user => {
+                const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+                const live = activeSessions[userKey];
+                const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
+                
+                let totalSeconds = 0;
+                Object.keys(attendanceData).forEach(date => {
+                    const sessions = attendanceData[date][userKey] || {};
+                    Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
+                });
+
+                report += `MEMBER: ${user.toUpperCase()}\n`;
+                report += `--------------------------------------------------------\n`;
+                report += `Live Status:    ${live ? (live.isOnLunch ? 'ON LUNCH' : 'WORKING') : 'OFFLINE'}\n`;
+                report += `Total Work:     ${(totalSeconds / 3600).toFixed(2)} Hours\n`;
+                report += `Ongoing Tasks:  ${userTasks.filter(t => t.status === 'inprogress').length}\n`;
+                report += `Pending Tasks:  ${userTasks.filter(t => t.status === 'todo').length}\n`;
+                
+                if (live) {
+                    report += `Current Session Start: ${live.displayStart || 'N/A'}\n`;
+                    report += `Break 1: ${live.break1Used || 'Available'}\n`;
+                    report += `Break 2: ${live.break2Used || 'Available'}\n`;
+                }
+                report += `\n`;
+            });
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Team_Detailed_Analytics_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
+        // --- UPDATED DAILY SUMMARY (CEO "IDEAL" VERSION) ---
+        async function generateDailyReport() {
+            const user = store.currentUser || "Admin";
+            const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            // 1. Calculate Total Hours Worked Today
+            const attendanceSnap = await db.ref(`projectData/attendance/${today}/${userKey}`).once('value');
+            const logs = attendanceSnap.val() || {};
+            let totalSecs = 0;
+            Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
+            
+            // 2. Extract Data for Categories
+            const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
+            const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
+            const ongoingTasks = allUserTasks.filter(t => t.status === 'inprogress');
+            
+            // Logic for Blockers: Look for "blocker" in description or high-priority overdue tasks
+            const blockers = allUserTasks.filter(t => 
+                (t.description && t.description.toLowerCase().includes('blocker')) || 
+                (t.priority >= 4 && t.status !== 'done' && t.assignedDate < today)
+            );
+
+            // Strategy: Tomorrow's focus
+            const strategy = allUserTasks.filter(t => 
+                t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
+            ).sort((a, b) => b.priority - a.priority).slice(0, 3);
+
+            const reportHtml = `
+                <div class="border-b border-jokerGreen/30 pb-4 mb-4">
+                    <h3 class="text-jokerGreen font-black text-xl uppercase tracking-tighter">Daily EOD Snapshot: ${user}</h3>
+                    <p class="text-[10px] text-white/50 uppercase font-bold">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <label class="text-[9px] text-jokerGreen font-bold uppercase block mb-1">Time Metrics</label>
+                        <p class="text-2xl font-mono font-black text-white">${formatTime(totalSecs)}</p>
+                    </div>
+                    <div class="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <label class="text-[9px] text-purple-400 font-bold uppercase block mb-1">Execution Score</label>
+                        <p class="text-2xl font-mono font-black text-white">${completedTasks.length} <span class="text-[10px] font-normal opacity-50">Tasks Closed</span></p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="flex items-center gap-2 text-[11px] text-jokerGreen font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-check-circle"></i> Completed Work & Metrics
+                        </label>
+                        <div class="space-y-2 text-sm">
+                            ${completedTasks.length ? completedTasks.map(t => `
+                                <div class="bg-white/5 p-2 rounded border-l-2 border-jokerGreen">
+                                    <span class="font-bold text-white block">${t.title}</span>
+                                    <p class="text-[11px] text-white/60">${t.description || 'Task successfully delivered.'}</p>
+                                </div>
+                            `).join('') : '<p class="italic text-white/30 text-xs">No tasks finalized today.</p>'}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-[11px] text-blue-400 font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-spinner"></i> Specific Project/Client Updates
+                        </label>
+                        <div class="space-y-2 text-sm text-blue-50">
+                            ${ongoingTasks.length ? ongoingTasks.map(t => `
+                                <div class="flex justify-between items-start gap-2 border-b border-white/5 pb-2">
+                                    <span>• <b>${t.title}</b>: ${t.status.toUpperCase()}</span>
+                                    <span class="text-[9px] opacity-50">Project Tracking</span>
+                                </div>
+                            `).join('') : '<p class="italic text-white/30 text-xs">No active project updates.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="${blockers.length ? 'bg-red-500/10 border border-red-500/30 p-3 rounded-xl' : ''}">
+                        <label class="flex items-center gap-2 text-[11px] text-red-500 font-black uppercase tracking-widest mb-2">
+                            <i class="fas fa-exclamation-triangle"></i> Clear Blockers
+                        </label>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-red-200/80">
+                            ${blockers.length ? blockers.map(t => `<li><b>${t.title}</b>: Needs clarification/resource.</li>`).join('') : '<li class="italic text-white/30 text-xs">No blockers reported.</li>'}
+                        </ul>
+                    </div>
+
+                    <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30">
+                        <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-3 italic">Strategy for Tomorrow</label>
+                        <div class="space-y-2">
+                            ${strategy.length ? strategy.map((t, i) => `
+                                <div class="flex items-center gap-3">
+                                    <span class="text-jokerGreen font-black">0${i+1}</span>
+                                    <span class="text-sm">${t.title}</span>
+                                    <span class="ml-auto text-[9px] text-white/30">Lvl ${t.priority}</span>
+                                </div>
+                            `).join('') : '<p class="text-sm italic text-white/30">Review priorities at shift start.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('report-content').innerHTML = reportHtml;
+            document.getElementById('report-modal').classList.remove('hidden');
+        }
+
+        function copyReportToClipboard() {
+            const content = document.getElementById('report-content').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                alert("Professional EOD report copied to clipboard!");
+            });
+        }
+
         // RENDER HELPERS
         function renderTeamList() {
             const list = document.getElementById('team-list');
-            document.getElementById('member-count').textContent = store.users.length;
+            const mCount = document.getElementById('member-count');
+            if(mCount) mCount.textContent = store.users.length;
+            if(!list) return;
             list.innerHTML = '';
             document.getElementById('task-assignee').innerHTML = '<option value="">Unassigned</option>';
             document.getElementById('quick-task-assignee').innerHTML = '<option value="">Assign to...</option>';
@@ -1454,8 +2149,10 @@
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
                 const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
-                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password to default"><i class="fas fa-undo-alt"></i></button>` : '';
+                
+                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password"><i class="fas fa-undo-alt"></i></button>` : '';
                 const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
+                
                 li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
@@ -1471,7 +2168,6 @@
         }
 
         function renderKanbanBoard() {
-            // Visibility Toggle
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
             const badge = document.getElementById('tracker-badge');
@@ -1511,6 +2207,7 @@
         function renderWeekView() {
             const container = document.getElementById('week-columns-container');
             const rangeDisplay = document.getElementById('week-view-date-range');
+            if(!container) return;
             container.innerHTML = '';
             
             const start = new Date(store.weekViewStart);
@@ -1527,14 +2224,14 @@
                 const isToday = new Date().toISOString().split('T')[0] === dateKey;
 
                 const col = document.createElement('div');
-                col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
+                col.className = `kanban-column glass-panel rounded-xl flex flex-col border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
                 
                 col.innerHTML = `
-                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 shrink-0">
                         <h3 class="font-bold text-xs ${isToday ? 'text-jokerGreen' : 'text-slate-500'}">${days[currentDay.getDay()]}</h3>
                         <p class="text-[10px] opacity-60">${currentDay.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p>
                     </div>
-                    <div class="column-body p-2 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>
+                    <div class="column-body p-2 flex-1" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>
                 `;
 
                 const body = col.querySelector('.column-body');
@@ -1556,7 +2253,6 @@
                     `;
                     body.appendChild(el);
                 });
-
                 container.appendChild(col);
             }
         }
@@ -1566,14 +2262,7 @@
             if(!list) return;
             list.innerHTML = '';
             
-            // Map priority to flag colors
-            const priorityColors = {
-                1: 'text-green-500', // Low
-                2: 'text-green-400',
-                3: 'text-purple-500', // Medium
-                4: 'text-orange-500',
-                5: 'text-red-500'     // High
-            };
+            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
 
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
@@ -1607,22 +2296,38 @@
 
         // UTILS
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
-        function updateClock() { const n = new Date(); document.getElementById('clock').textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); document.getElementById('date').textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
+        function updateClock() { const n = new Date(); const c = document.getElementById('clock'); if(c) c.textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); const d = document.getElementById('date'); if(d) d.textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
-        function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); document.getElementById('theme-icon').className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
+        function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); const ti = document.getElementById('theme-icon'); if(ti) ti.className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
-        function switchView(v) { ['dashboard', 'kanban'].forEach(x => { const view = document.getElementById(`view-${x}`); const nav = document.getElementById(`nav-${x}`); if(view) view.classList.add('hidden'); if(nav) nav.classList.remove('active'); }); const targetView = document.getElementById(`view-${v}`); const targetNav = document.getElementById(`nav-${v}`); if(targetView) targetView.classList.remove('hidden'); if(targetNav) targetNav.classList.add('active'); if(v === 'kanban') renderKanbanBoard(); }
-        function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); document.getElementById('btn-delete').classList.toggle('hidden', !id); }
+        
+        function switchView(v) { 
+            ['dashboard', 'kanban', 'analytics'].forEach(x => { 
+                const view = document.getElementById(`view-${x}`); 
+                const nav = document.getElementById(`nav-${x}`); 
+                if(view) view.classList.add('hidden'); 
+                if(nav) nav.classList.remove('active'); 
+            }); 
+            const targetView = document.getElementById(`view-${v}`); 
+            const targetNav = document.getElementById(`nav-${v}`); 
+            if(targetView) targetView.classList.remove('hidden'); 
+            if(targetNav) targetNav.classList.add('active'); 
+            if(v === 'kanban') renderKanbanBoard(); 
+            if(v === 'analytics') renderAnalytics(); 
+        }
+
+        function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); const dbel = document.getElementById('btn-delete'); if(dbel) dbel.classList.toggle('hidden', !id); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function setPriority(v) { document.getElementById('task-priority').value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
-        function addMember() { const n = document.getElementById('new-member-name').value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); document.getElementById('new-member-name').value=''; } }
+        function setPriority(v) { const tp = document.getElementById('task-priority'); if(tp) tp.value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
+        function addMember() { const nInput = document.getElementById('new-member-name'); const n = nInput.value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); nInput.value=''; } }
         function removeMember(i) { if(confirm('Remove?')) { store.users.splice(i, 1); pushToCloud(); } }
-        function clearFilters() { document.getElementById('date-range-picker')._flatpickr.clear(); renderKanbanBoard(); }
+        function clearFilters() { const drp = document.getElementById('date-range-picker'); if(drp && drp._flatpickr) drp._flatpickr.clear(); renderKanbanBoard(); }
         
         function switchKanbanView(m) { 
             store.kanbanMode = m; 
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-view-${m}`).classList.add('active');
+            const targetBtn = document.getElementById(`btn-view-${m}`);
+            if(targetBtn) targetBtn.classList.add('active');
             renderKanbanBoard(); 
         }
 
