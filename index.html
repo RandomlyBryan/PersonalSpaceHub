@@ -592,42 +592,83 @@
             </div>
 
             <div id="view-kanban" class="flex-1 overflow-hidden p-4 md:p-6 fade-in hidden flex-col h-full">
-                
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0 text-white gap-4">
-                    <div class="flex-1">
-                        <h2 class="text-2xl font-bold flex items-center gap-2 text-green-400 tracking-wide">
-                            Task Tracker 
-                            <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Status View</span>
-                        </h2>
-                        <p class="text-sm opacity-80" id="tracker-subtitle">Manage project progress</p>
-                    </div>
+    
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 shrink-0 text-white gap-4">
+        <div class="flex-1">
+            <h2 class="text-2xl font-bold flex items-center gap-2 text-green-400 tracking-wide">
+                Task Tracker 
+                <span id="tracker-badge" class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80 font-normal font-sans">Status View</span>
+            </h2>
+            <p class="text-sm opacity-80" id="tracker-subtitle">Manage project progress</p>
+        </div>
 
-                    <div class="bg-black/40 p-1 rounded-lg flex text-xs font-bold items-center gap-2 border border-purple-500/50">
-                        <button onclick="switchKanbanView('status')" id="btn-view-status" class="view-btn active px-3 py-1.5 rounded text-white">Status</button>
-                        <button onclick="switchKanbanView('week')" id="btn-view-week" class="view-btn px-3 py-1.5 rounded text-white text-opacity-70 hover:text-opacity-100">Week View</button>
-                    </div>
+        <div class="bg-black/40 p-1 rounded-lg flex text-xs font-bold items-center gap-2 border border-purple-500/50">
+            <button onclick="switchKanbanView('status')" id="btn-view-status" class="view-btn active px-3 py-1.5 rounded text-white">Status</button>
+            <button onclick="switchKanbanView('week')" id="btn-view-week" class="view-btn px-3 py-1.5 rounded text-white text-opacity-70 hover:text-opacity-100">Week View</button>
+        </div>
 
-                    <div id="kanban-filter-container" class="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-purple-500/50">
-                            <div class="relative flex items-center">
-                                <i class="fas fa-calendar-alt text-green-400/70 text-xs absolute left-2 pointer-events-none"></i>
-                                <input type="text" id="date-range-picker" placeholder="Date / Filter..." 
-                                    class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-48 placeholder-white/50 cursor-pointer">
-                            </div>
-                            <button onclick="clearFilters()" class="text-xs text-white/50 hover:text-white px-2" title="Clear Filter"><i class="fas fa-times"></i></button>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button onclick="generateAttendanceReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
-                            <i class="fas fa-clock"></i> Attendance Report
-                        </button>
-                        <button onclick="exportSummaryReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
-                            <i class="fas fa-file-export"></i> Detailed Export & Flush
-                        </button>
-                        <button onclick="openTaskModal()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
-                            <i class="fas fa-plus"></i> New Task
-                        </button>
-                    </div>
+        <div id="kanban-filter-container" class="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-purple-500/50">
+                <div class="relative flex items-center">
+                    <i class="fas fa-calendar-alt text-green-400/70 text-xs absolute left-2 pointer-events-none"></i>
+                    <input type="text" id="date-range-picker" placeholder="Date / Filter..." 
+                        class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-48 placeholder-white/50 cursor-pointer">
                 </div>
+                <button onclick="clearFilters()" class="text-xs text-white/50 hover:text-white px-2" title="Clear Filter"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="flex gap-2">
+            <button onclick="generateAttendanceReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
+                <i class="fas fa-clock"></i>
+            </button>
+            <button onclick="exportSummaryReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm border border-white/10 font-bold">
+                <i class="fas fa-file-export"></i>
+            </button>
+            <button onclick="openTaskModal()" class="bg-green-500 hover:bg-green-600 text-black font-bold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2 text-sm">
+                <i class="fas fa-plus"></i> New Task
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-1 min-h-0 pb-4"> <div id="kanban-status-view" class="h-full overflow-x-auto overflow-y-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[800px] md:min-w-0">
+                
+                <div class="glass-panel rounded-2xl flex flex-col min-h-0 border-t-4 border-slate-400 shadow-xl">
+                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 rounded-t-2xl">
+                        <h3 class="font-bold text-slate-700 dark:text-slate-200">To Do</h3>
+                        <span id="count-todo" class="bg-slate-200 dark:bg-slate-700 text-xs px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div class="column-body p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar" ondrop="drop(event, 'todo', 'status')" ondragover="allowDrop(event)"></div>
+                </div>
+
+                <div class="glass-panel rounded-2xl flex flex-col min-h-0 border-t-4 border-purple-600 shadow-xl">
+                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 rounded-t-2xl">
+                        <h3 class="font-bold text-purple-700 dark:text-purple-400">In Progress</h3>
+                        <span id="count-inprogress" class="bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 text-xs px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div class="column-body p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar" ondrop="drop(event, 'inprogress', 'status')" ondragover="allowDrop(event)"></div>
+                </div>
+
+                <div class="glass-panel rounded-2xl flex flex-col min-h-0 border-t-4 border-green-500 shadow-xl">
+                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 rounded-t-2xl">
+                        <h3 class="font-bold text-green-600 dark:text-green-400">Executed</h3>
+                        <span id="count-done" class="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">0</span>
+                    </div>
+                    <div class="column-body p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar" ondrop="drop(event, 'done', 'status')" ondragover="allowDrop(event)"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="kanban-week-view" class="h-full overflow-x-auto overflow-y-hidden hidden">
+            <div class="flex items-center gap-4 mb-4 text-white">
+                <button onclick="changeWeek(-1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold"><i class="fas fa-chevron-left mr-2"></i> Prev Week</button>
+                <span id="week-view-date-range" class="text-sm font-bold text-green-400 tracking-wider uppercase">Loading...</span>
+                <button onclick="changeWeek(1)" class="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm transition font-bold">Next Week <i class="fas fa-chevron-right ml-2"></i></button>
+            </div>
+            <div id="week-columns-container" class="grid grid-cols-7 gap-3 h-full min-w-[1200px]"></div>
+        </div>
+    </div>
+</div>
 
                 <div id="kanban-status-view" class="flex-1 overflow-x-auto overflow-y-hidden pb-2 h-full">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 h-full min-w-[800px] md:min-w-0">
