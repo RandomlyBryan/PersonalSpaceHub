@@ -934,6 +934,10 @@
         window.generateDailyReport = generateDailyReport;
         window.copyReportToClipboard = copyReportToClipboard;
 
+        // TASK FIELD UPDATERS
+        window.updateTaskBlocker = updateTaskBlocker;
+        window.updateTaskNote = updateTaskNote;
+
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
         window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
@@ -1835,7 +1839,9 @@
                     priority: parseInt(urgency), 
                     lastMoved: Date.now(), 
                     log: { inprogress: 0 }, 
-                    isPaused: false 
+                    isPaused: false,
+                    blocker: "",
+                    note: ""
                 });
                 pushToCloud();
                 document.getElementById('quick-task-input').value = '';
@@ -1850,6 +1856,16 @@
             if (t.status === 'inprogress' && !t.isPaused) t.log.inprogress = (t.log.inprogress || 0) + Math.floor((now - t.lastMoved) / 1000);
             t.status = newStatus; t.lastMoved = now; t.isPaused = false;
             pushToCloud();
+        }
+
+        function updateTaskBlocker(id, val) {
+            const t = store.kanbanTasks.find(x => x.id === id);
+            if(t) { t.blocker = val; pushToCloud(); }
+        }
+
+        function updateTaskNote(id, val) {
+            const t = store.kanbanTasks.find(x => x.id === id);
+            if(t) { t.note = val; pushToCloud(); }
         }
 
         function toggleTaskPause(id) {
@@ -1868,8 +1884,11 @@
         function saveTask() {
             const id = document.getElementById('task-id').value;
             const data = { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value, assignee: document.getElementById('task-assignee').value, priority: parseInt(document.getElementById('task-priority').value), assignedDate: document.getElementById('task-date').value };
-            if(id) Object.assign(store.kanbanTasks.find(x => x.id === id), data);
-            else store.kanbanTasks.push({ id: Date.now().toString(), ...data, status: 'todo', lastMoved: Date.now(), log: { inprogress: 0 } });
+            if(id) {
+                const existing = store.kanbanTasks.find(x => x.id === id);
+                Object.assign(existing, data);
+            }
+            else store.kanbanTasks.push({ id: Date.now().toString(), ...data, status: 'todo', lastMoved: Date.now(), log: { inprogress: 0 }, blocker: "", note: "" });
             pushToCloud(); closeModal('task-modal');
         }
 
@@ -2021,7 +2040,7 @@
             a.click();
         }
 
-        // --- UPDATED DAILY SUMMARY ---
+        // --- UPDATED DAILY SUMMARY (Strategic Blockers & Updates) ---
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
@@ -2039,13 +2058,14 @@
             // 2. Extract Data for Categories
             const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
             const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
-            const ongoingTasks = allUserTasks.filter(t => t.status === 'inprogress');
             
-            const blockers = allUserTasks.filter(t => 
-                (t.description && t.description.toLowerCase().includes('blocker')) || 
-                (t.priority >= 4 && t.status !== 'done' && t.assignedDate < today)
-            );
+            // Strategic Updates: Pull from the dedicated "note" field
+            const updateItems = allUserTasks.filter(t => t.note && t.note.trim() !== "");
+            
+            // Blockers: Pull from the dedicated "blocker" field
+            const blockerItems = allUserTasks.filter(t => t.blocker && t.blocker.trim() !== "");
 
+            // Strategy: Tomorrow's focus
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
@@ -2070,7 +2090,7 @@
                 <div class="space-y-6">
                     <div>
                         <label class="flex items-center gap-2 text-[11px] text-jokerGreen font-black uppercase tracking-widest mb-2">
-                            <i class="fas fa-check-circle"></i> Completed Work & Metrics
+                            <i class="fas fa-check-circle"></i> Completed Work
                         </label>
                         <div class="space-y-2 text-sm">
                             ${completedTasks.length ? completedTasks.map(t => `
@@ -2084,25 +2104,30 @@
 
                     <div>
                         <label class="flex items-center gap-2 text-[11px] text-blue-400 font-black uppercase tracking-widest mb-2">
-                            <i class="fas fa-spinner"></i> Specific Project/Client Updates
+                            <i class="fas fa-spinner"></i> Project/Client Updates
                         </label>
                         <div class="space-y-2 text-sm text-blue-50">
-                            ${ongoingTasks.length ? ongoingTasks.map(t => `
-                                <div class="flex justify-between items-start gap-2 border-b border-white/5 pb-2">
-                                    <span>• <b>${t.title}</b>: ${t.status.toUpperCase()}</span>
-                                    <span class="text-[9px] opacity-50">Project Tracking</span>
+                            ${updateItems.length ? updateItems.map(t => `
+                                <div class="bg-blue-900/10 p-2 rounded border-l-2 border-blue-500">
+                                    <span class="text-[10px] uppercase font-bold block mb-1">${t.title}</span>
+                                    <p class="italic">"${t.note}"</p>
                                 </div>
-                            `).join('') : '<p class="italic text-white/30 text-xs">No active project updates.</p>'}
+                            `).join('') : '<p class="italic text-white/30 text-xs">No specific updates recorded.</p>'}
                         </div>
                     </div>
 
-                    <div class="${blockers.length ? 'bg-red-500/10 border border-red-500/30 p-3 rounded-xl' : ''}">
+                    <div>
                         <label class="flex items-center gap-2 text-[11px] text-red-500 font-black uppercase tracking-widest mb-2">
-                            <i class="fas fa-exclamation-triangle"></i> Clear Blockers
+                            <i class="fas fa-exclamation-triangle"></i> Reported Blockers
                         </label>
-                        <ul class="list-disc list-inside space-y-1 text-sm text-red-200/80">
-                            ${blockers.length ? blockers.map(t => `<li><b>${t.title}</b>: Needs clarification/resource.</li>`).join('') : '<li class="italic text-white/30 text-xs">No blockers reported.</li>'}
-                        </ul>
+                        <div class="space-y-2 text-sm">
+                            ${blockerItems.length ? blockerItems.map(t => `
+                                <div class="bg-red-900/10 p-2 rounded border-l-2 border-red-500">
+                                    <span class="text-[10px] uppercase font-bold text-red-400 block mb-1">${t.title}</span>
+                                    <p class="text-red-100">"${t.blocker}"</p>
+                                </div>
+                            `).join('') : '<p class="italic text-white/30 text-xs">No blockers reported.</p>'}
+                        </div>
                     </div>
 
                     <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30">
@@ -2276,6 +2301,24 @@
                             <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
                         </div>
                     </div>
+
+                    <div class="space-y-2 mb-3">
+                        <div class="flex flex-col">
+                            <label class="text-[8px] font-bold text-red-500 uppercase ml-1">Daily Blocker</label>
+                            <input type="text" value="${t.blocker || ''}" 
+                                onchange="updateTaskBlocker('${t.id}', this.value)"
+                                placeholder="Report a blocker..."
+                                class="w-full bg-red-500/5 dark:bg-red-500/10 border border-red-500/20 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-red-500">
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-[8px] font-bold text-blue-500 uppercase ml-1">Progress Update</label>
+                            <input type="text" value="${t.note || ''}" 
+                                onchange="updateTaskNote('${t.id}', this.value)"
+                                placeholder="Specific update for client..."
+                                class="w-full bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+
                     <div class="flex wrap items-center justify-between gap-y-2">
                         <div class="flex items-center gap-2">
                             <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
