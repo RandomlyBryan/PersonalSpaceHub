@@ -839,7 +839,6 @@
             databaseURL: "https://personalspacehub-3a44d-default-rtdb.firebaseio.com/"
         };
 
-        // Initialize Cloud Connection
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
@@ -860,13 +859,11 @@
             kanbanMode: 'status',
             weekViewStart: new Date(),
             
-            // Timer State
             globalTimerActive: false,
             globalTimerSeconds: 0,
             globalTimerInterval: null,
             sessionStartTime: null,
 
-            // New Feature State
             isOnLunch: false,
             break1Used: false,
             break2Used: false
@@ -875,6 +872,14 @@
         let draggedItem = null;
         let uploadingUser = null;
         let editingEventIdx = null; 
+
+        // --- TIMEZONE-SAFE HELPERS ---
+        function getLocalISOString(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
 
         // --- CORE FUNCTIONS ---
         window.switchUser = switchUser;
@@ -916,7 +921,6 @@
         window.initEditEvent = initEditEvent;
         window.cancelEditMode = cancelEditMode;
 
-        // AUTH
         window.handleLogin = handleLogin;
         window.logout = logout;
         window.resetMemberPassword = resetMemberPassword;
@@ -924,28 +928,23 @@
         window.changeAdminPassword = changeAdminPassword;
         window.changeMyPassword = changeMyPassword;
 
-        // ADMIN CHANNEL FUNCTIONS
         window.sendAdminMessage = sendAdminMessage;
         window.clearAdminMessage = clearAdminMessage;
         window.replyToMember = replyToMember;
         window.resolveAdminMessage = resolveAdminMessage; 
 
-        // UPDATED TIMER FUNCTIONS (PERSISTENT)
         window.clockIn = clockIn;
         window.toggleLunch = toggleLunch;
         window.startShortBreak = startShortBreak;
         window.clockOut = clockOut;
         window.generateAttendanceReport = generateAttendanceReport;
 
-        // ANALYTICS FUNCTIONS
         window.renderAnalytics = renderAnalytics;
         window.exportAnalyticsReport = exportAnalyticsReport;
         
-        // REPORT FUNCTION
         window.generateDailyReport = generateDailyReport;
         window.copyReportToClipboard = copyReportToClipboard;
 
-        // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
         window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
         window.allowDrop = (e) => { e.preventDefault(); e.target.closest('.column-body')?.classList.add('drag-over'); };
@@ -961,7 +960,6 @@
             }
         };
 
-        // EXPORT SUMMARY REPORT (With Attendance Data)
         window.exportSummaryReport = () => {
             const isUserAdmin = !store.currentUser;
             const currentUser = store.currentUser || "Admin";
@@ -976,7 +974,6 @@
                 content += `Generated On: ${new Date().toLocaleString()}\n`;
                 content += "========================================================\n\n";
 
-                // Attendance Section
                 content += "[SECTION: ATTENDANCE & TIME CLOCK]\n";
                 content += "Date        | Member     | In        | Out      | Duration | B1 | B2\n";
                 content += "-----------|------------|----------|----------|----------|----|----\n";
@@ -996,7 +993,6 @@
                 }
                 if(!hasAttendance) content += "No attendance records found.\n";
 
-                // Tasks Section
                 content += "\n\n[SECTION: TASK PROGRESS]\n";
                 const tasksToReport = isUserAdmin 
                     ? store.kanbanTasks 
@@ -1037,7 +1033,6 @@
                 a.click();
                 document.body.removeChild(a);
 
-                // Flush Executed (Admin Only)
                 if(isUserAdmin && store.kanbanTasks.some(t => t.status === 'done')) {
                     if(confirm("Admin: Flush (Delete) the Executed column from cloud now?")) {
                         store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
@@ -1048,7 +1043,6 @@
             });
         };
 
-        // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             loadTheme();
             updateClock();
@@ -1115,7 +1109,6 @@
             });
         });
 
-        // --- AUTH & USER LOGIC ---
         function togglePasswordVisibility() {
             const passInput = document.getElementById('login-password');
             const icon = document.getElementById('eye-icon');
@@ -1191,7 +1184,6 @@
             select.value = currentVal;
         }
 
-        // --- DATA PUSH ---
         function pushToCloud() {
             db.ref('projectData').update({
                 users: store.users,
@@ -1212,7 +1204,6 @@
             });
         }
 
-        // --- DASHBOARD UI UPDATES ---
         function switchUser(userName) {
             store.currentUser = userName || null;
             document.getElementById('current-user-name').textContent = userName || "Admin";
@@ -1241,7 +1232,6 @@
             const avatarContainer = document.getElementById('header-avatar');
             const adminTools = document.querySelectorAll('.admin-only');
 
-            // --- UI Modification for Quick Tasks ---
             const qtAssignee = document.getElementById('quick-task-assignee');
             const qtStatus = document.getElementById('quick-task-status');
 
@@ -1252,12 +1242,10 @@
             hint.textContent = store.currentUser ? "Private View" : "Admin View";
 
             if (!store.currentUser) {
-                // ADMIN: Show all tools
                 adminTools.forEach(el => el.classList.remove('hidden-tool'));
                 if(qtAssignee) qtAssignee.classList.remove('hidden');
                 if(qtStatus) qtStatus.classList.remove('hidden');
             } else {
-                // MEMBER: Hide admin tools and assignment dropdowns
                 adminTools.forEach(el => el.classList.add('hidden-tool'));
                 if(qtAssignee) qtAssignee.classList.add('hidden');
                 if(qtStatus) qtStatus.classList.add('hidden');
@@ -1272,7 +1260,6 @@
             avatarContainer.innerHTML += `<div class="avatar-overlay absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 transition"><i class="fas fa-camera text-xs text-white"></i></div>`;
             avatarContainer.onclick = () => triggerAvatarUpload(name);
 
-            // Handle Admin Secure Channel Visibility
             const viewer = document.getElementById('admin-message-viewer');
             const sender = document.getElementById('member-message-sender');
             const title = document.getElementById('admin-channel-title');
@@ -1395,7 +1382,6 @@
 
         function saveFocus(val) { store.focus = val; saveUserDataToCloud(); }
 
-        // --- UPDATED PERSISTENT GLOBAL TIMER FUNCTIONS ---
         async function checkAndResumeTimer() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
@@ -1404,8 +1390,6 @@
             const activeSession = snapshot.val();
 
             if (activeSession && activeSession.startTime) {
-                
-                // Handle Lunch UI and Logic
                 if (activeSession.isOnLunch) {
                     store.isOnLunch = true;
                     document.getElementById('lunch-icon').className = "fas fa-walking";
@@ -1420,7 +1404,6 @@
                     startTimerInterval(activeSession.startTime);
                 }
 
-                // Show Correct Buttons
                 document.getElementById('btn-clock-in').classList.add('hidden');
                 document.getElementById('btn-lunch').classList.remove('hidden');
                 document.getElementById('btn-break-1').classList.remove('hidden');
@@ -1428,7 +1411,6 @@
                 document.getElementById('btn-clock-out').classList.remove('hidden');
                 document.getElementById('timer-status-pulse').classList.remove('hidden');
 
-                // Check used breaks
                 if (activeSession.break1Used) setBreakUsedUI(1, activeSession.break1Used);
                 if (activeSession.break2Used) setBreakUsedUI(2, activeSession.break2Used);
 
@@ -1580,7 +1562,7 @@
 
             const endTime = new Date().toLocaleTimeString();
             const totalSeconds = store.globalTimerSeconds;
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalISOString(new Date());
 
             const logEntry = {
                 user: user,
@@ -1619,7 +1601,7 @@
             const snap = await db.ref('projectData/attendance').once('value');
             const attendanceData = snap.val() || {};
             
-            let summary = {}; // { UserName: totalSeconds }
+            let summary = {}; 
 
             Object.keys(attendanceData).forEach(dateStr => {
                 const logDate = new Date(dateStr);
@@ -1651,7 +1633,7 @@
             const blob = new Blob([report], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `Attendance_Summary_${startDate.toISOString().split('T')[0]}.txt`;
+            a.download = `Attendance_Summary_${getLocalISOString(startDate)}.txt`;
             a.click();
         }
 
@@ -1663,7 +1645,6 @@
             document.getElementById('global-timer-display').textContent = `${h}:${m}:${sec}`;
         }
 
-        // CALENDAR LOGIC
         function changeMonth(delta) {
             store.calendarMonth += delta;
             if(store.calendarMonth > 11) { store.calendarMonth = 0; store.calendarYear++; }
@@ -1767,7 +1748,7 @@
                 let curr = new Date(startDayStr);
                 const stop = new Date(endDayStr);
                 while(curr <= stop) {
-                    const dateKey = curr.toISOString().split('T')[0];
+                    const dateKey = getLocalISOString(curr);
                     if (!store.events[dateKey]) store.events[dateKey] = [];
                     store.events[dateKey].push(eventPayload);
                     curr.setDate(curr.getDate() + 1);
@@ -1832,7 +1813,6 @@
             document.getElementById('btn-add-event').classList.replace('bg-blue-500', 'bg-green-500');
         }
 
-        // KANBAN & TASKS
         function addQuickTask() {
             const val = document.getElementById('quick-task-input').value.trim();
             const urgency = document.getElementById('quick-task-priority').value;
@@ -1878,7 +1858,6 @@
         function updateTaskPriority(id, p) { const t = store.kanbanTasks.find(x => x.id === id); t.priority = parseInt(p); pushToCloud(); }
         function deleteQuickTask(id) { if(confirm('Delete?')) { store.kanbanTasks = store.kanbanTasks.filter(x => x.id !== id); pushToCloud(); } }
 
-        // REFINED SAVE LOGIC
         function saveTask() {
             const id = document.getElementById('task-id').value;
             const data = { 
@@ -1900,7 +1879,6 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
-        // --- UPDATED ANALYTICS ---
         async function renderAnalytics() {
             const grid = document.getElementById('analytics-grid');
             if (!grid) return;
@@ -1918,14 +1896,12 @@
                 const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
                 const liveSession = activeSessions[userKey];
                 
-                // 1. Calculate Total Attendance (Lifetime)
                 let totalSeconds = 0;
                 Object.keys(attendanceData).forEach(date => {
                     const sessions = attendanceData[date][userKey] || {};
                     Object.values(sessions).forEach(s => totalSeconds += (s.rawSeconds || 0));
                 });
 
-                // 2. Task Details
                 const userTasks = store.kanbanTasks.filter(t => t.assignee === user);
                 const ongoing = userTasks.filter(t => t.status === 'inprogress').length;
                 const todoTasks = userTasks.filter(t => t.status === 'todo');
@@ -1934,7 +1910,6 @@
                 const totalTasksCount = userTasks.length;
                 const completionRate = totalTasksCount > 0 ? Math.round((doneCount / totalTasksCount) * 100) : 0;
 
-                // 3. Live Status Logic
                 let statusBadge = `<span class="bg-slate-500/20 text-slate-400 text-[9px] px-2 py-1 rounded-full border border-slate-500/30">OFFLINE</span>`;
                 if (liveSession) {
                     if (liveSession.isOnLunch) {
@@ -2042,36 +2017,30 @@
             const blob = new Blob([report], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `Team_Detailed_Analytics_${new Date().toISOString().split('T')[0]}.txt`;
+            a.download = `Team_Detailed_Analytics_${getLocalISOString(new Date())}.txt`;
             a.click();
         }
 
-        // --- UPDATED DAILY SUMMARY (Strategic Blockers & Updates) ---
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalISOString(new Date());
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            const tomorrowStr = getLocalISOString(tomorrow);
 
-            // 1. Calculate Total Hours Worked Today
             const attendanceSnap = await db.ref(`projectData/attendance/${today}/${userKey}`).once('value');
             const logs = attendanceSnap.val() || {};
             let totalSecs = 0;
             Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
             
-            // 2. Extract Data for Categories
             const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
             const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
             
-            // Strategic Updates: Pull from the dedicated "note" field
             const updateItems = allUserTasks.filter(t => t.note && t.note.trim() !== "");
             
-            // Blockers: Pull from the dedicated "blocker" field
             const blockerItems = allUserTasks.filter(t => t.blocker && t.blocker.trim() !== "");
 
-            // Strategy: Tomorrow's focus
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
@@ -2162,7 +2131,6 @@
             });
         }
 
-        // RENDER HELPERS
         function renderTeamList() {
             const list = document.getElementById('team-list');
             const mCount = document.getElementById('member-count');
@@ -2191,7 +2159,6 @@
             let timerStr = formatTime(inProgTime);
             if(t.status === 'inprogress' && !t.isPaused) timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved)/1000));
             
-            // Clean board card view
             return `
                 <div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2">
                     <div class="flex justify-between items-start">
@@ -2260,8 +2227,10 @@
             for (let i = 0; i < 7; i++) {
                 const currentDay = new Date(start);
                 currentDay.setDate(start.getDate() + i);
-                const dateKey = currentDay.toISOString().split('T')[0];
-                const isToday = new Date().toISOString().split('T')[0] === dateKey;
+                
+                // TIMEZONE-SAFE FIX: Use getLocalISOString instead of toISOString
+                const dateKey = getLocalISOString(currentDay);
+                const isToday = getLocalISOString(new Date()) === dateKey;
 
                 const col = document.createElement('div');
                 col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
@@ -2336,7 +2305,6 @@
             });
         }
 
-        // UTILS
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
         function updateClock() { const n = new Date(); const c = document.getElementById('clock'); if(c) c.textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); const d = document.getElementById('date'); if(d) d.textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
@@ -2358,7 +2326,6 @@
             if(v === 'analytics') renderAnalytics(); 
         }
 
-        // UPDATED MODAL POPULATION
         function openTaskModal(id) { 
             document.getElementById('task-modal').classList.remove('hidden'); 
             const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:'', blocker:'', note:''}; 
@@ -2369,11 +2336,9 @@
             document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); 
             document.getElementById('task-date').value = t.assignedDate || ''; 
             
-            // Populate Blocker and Updates
             document.getElementById('task-blocker').value = t.blocker || '';
             document.getElementById('task-note').value = t.note || '';
             
-            // Show/Hide fields for members only
             document.getElementById('member-only-fields').classList.toggle('hidden', !store.currentUser);
             
             setPriority(t.priority); 
