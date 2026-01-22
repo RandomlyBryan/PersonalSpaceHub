@@ -1230,14 +1230,27 @@
             const avatarContainer = document.getElementById('header-avatar');
             const adminTools = document.querySelectorAll('.admin-only');
 
+            // --- UI Modification for Quick Tasks ---
+            const qtAssignee = document.getElementById('quick-task-assignee');
+            const qtStatus = document.getElementById('quick-task-status');
+
             const name = store.currentUser || "Admin";
             badge.textContent = `${name}'s Workspace`;
             badge.classList.remove('hidden');
             greeting.textContent = `Hello, ${name}.`;
             hint.textContent = store.currentUser ? "Private View" : "Admin View";
 
-            if (!store.currentUser) adminTools.forEach(el => el.classList.remove('hidden-tool'));
-            else adminTools.forEach(el => el.classList.add('hidden-tool'));
+            if (!store.currentUser) {
+                // ADMIN: Show all tools
+                adminTools.forEach(el => el.classList.remove('hidden-tool'));
+                if(qtAssignee) qtAssignee.classList.remove('hidden');
+                if(qtStatus) qtStatus.classList.remove('hidden');
+            } else {
+                // MEMBER: Hide admin tools and assignment dropdowns
+                adminTools.forEach(el => el.classList.add('hidden-tool'));
+                if(qtAssignee) qtAssignee.classList.add('hidden');
+                if(qtStatus) qtStatus.classList.add('hidden');
+            }
 
             if (store.avatars[name]) {
                 avatarContainer.innerHTML = `<img src="${store.avatars[name]}" class="w-full h-full object-cover">`;
@@ -1275,7 +1288,6 @@
                 }
             }
             
-            // Check if timer should be resumed for this user
             checkAndResumeTimer();
         }
 
@@ -1990,7 +2002,7 @@
                 report += `MEMBER: ${user.toUpperCase()}\n`;
                 report += `--------------------------------------------------------\n`;
                 report += `Live Status:    ${live ? (live.isOnLunch ? 'ON LUNCH' : 'WORKING') : 'OFFLINE'}\n`;
-                report += `Total Work:     ${(totalSeconds / 3600).toFixed(2)} Hours\n`;
+                report += `Total Work:      ${(totalSeconds / 3600).toFixed(2)} Hours\n`;
                 report += `Ongoing Tasks:  ${userTasks.filter(t => t.status === 'inprogress').length}\n`;
                 report += `Pending Tasks:  ${userTasks.filter(t => t.status === 'todo').length}\n`;
                 
@@ -2009,7 +2021,7 @@
             a.click();
         }
 
-        // --- UPDATED DAILY SUMMARY (CEO "IDEAL" VERSION) ---
+        // --- UPDATED DAILY SUMMARY ---
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
@@ -2029,13 +2041,11 @@
             const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
             const ongoingTasks = allUserTasks.filter(t => t.status === 'inprogress');
             
-            // Logic for Blockers: Look for "blocker" in description or high-priority overdue tasks
             const blockers = allUserTasks.filter(t => 
                 (t.description && t.description.toLowerCase().includes('blocker')) || 
                 (t.priority >= 4 && t.status !== 'done' && t.assignedDate < today)
             );
 
-            // Strategy: Tomorrow's focus
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
