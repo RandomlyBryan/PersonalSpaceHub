@@ -740,16 +740,27 @@
                 <p class="text-[10px] text-slate-400 mt-1" id="priority-text">Low Urgency</p>
             </div>
             
-            <div class="mb-6">
+            <div class="mb-3">
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
-                <textarea id="task-desc" rows="3" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"></textarea>
+                <textarea id="task-desc" rows="2" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"></textarea>
             </div>
 
-            <div class="flex justify-between">
+            <div id="member-only-fields" class="hidden border-t border-purple-100 dark:border-slate-700 pt-4 mt-4 space-y-3">
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-red-500 uppercase mb-1"><i class="fas fa-exclamation-triangle"></i> Daily Blocker</label>
+                    <input type="text" id="task-blocker" class="w-full bg-red-50 dark:bg-slate-900 border-none rounded-lg p-3 focus:ring-2 focus:ring-red-500 outline-none dark:text-white text-sm" placeholder="Type what is stopping progress...">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-bold text-blue-500 uppercase mb-1"><i class="fas fa-info-circle"></i> Progress Update</label>
+                    <input type="text" id="task-note" class="w-full bg-blue-50 dark:bg-slate-900 border-none rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none dark:text-white text-sm" placeholder="Provide a specific update for the client...">
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-6">
                 <button type="button" onclick="deleteCurrentTask()" id="btn-delete" class="text-red-500 hover:text-red-700 text-sm hidden">Delete Task</button>
                 <div class="flex gap-2 ml-auto">
                     <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-500 dark:text-slate-400">Cancel</button>
-                    <button onclick="saveTask()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium">Save</button>
+                    <button onclick="saveTask()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium">Save Details</button>
                 </div>
             </div>
         </div>
@@ -933,10 +944,6 @@
         // REPORT FUNCTION
         window.generateDailyReport = generateDailyReport;
         window.copyReportToClipboard = copyReportToClipboard;
-
-        // TASK FIELD UPDATERS
-        window.updateTaskBlocker = updateTaskBlocker;
-        window.updateTaskNote = updateTaskNote;
 
         // Drag & Drop
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
@@ -1858,16 +1865,6 @@
             pushToCloud();
         }
 
-        function updateTaskBlocker(id, val) {
-            const t = store.kanbanTasks.find(x => x.id === id);
-            if(t) { t.blocker = val; pushToCloud(); }
-        }
-
-        function updateTaskNote(id, val) {
-            const t = store.kanbanTasks.find(x => x.id === id);
-            if(t) { t.note = val; pushToCloud(); }
-        }
-
         function toggleTaskPause(id) {
             const t = store.kanbanTasks.find(x => x.id === id);
             if (!t || t.status !== 'inprogress') return;
@@ -1881,14 +1878,23 @@
         function updateTaskPriority(id, p) { const t = store.kanbanTasks.find(x => x.id === id); t.priority = parseInt(p); pushToCloud(); }
         function deleteQuickTask(id) { if(confirm('Delete?')) { store.kanbanTasks = store.kanbanTasks.filter(x => x.id !== id); pushToCloud(); } }
 
+        // REFINED SAVE LOGIC
         function saveTask() {
             const id = document.getElementById('task-id').value;
-            const data = { title: document.getElementById('task-title').value, description: document.getElementById('task-desc').value, assignee: document.getElementById('task-assignee').value, priority: parseInt(document.getElementById('task-priority').value), assignedDate: document.getElementById('task-date').value };
+            const data = { 
+                title: document.getElementById('task-title').value, 
+                description: document.getElementById('task-desc').value, 
+                assignee: document.getElementById('task-assignee').value, 
+                priority: parseInt(document.getElementById('task-priority').value), 
+                assignedDate: document.getElementById('task-date').value,
+                blocker: document.getElementById('task-blocker').value,
+                note: document.getElementById('task-note').value
+            };
             if(id) {
                 const existing = store.kanbanTasks.find(x => x.id === id);
                 Object.assign(existing, data);
             }
-            else store.kanbanTasks.push({ id: Date.now().toString(), ...data, status: 'todo', lastMoved: Date.now(), log: { inprogress: 0 }, blocker: "", note: "" });
+            else store.kanbanTasks.push({ id: Date.now().toString(), ...data, status: 'todo', lastMoved: Date.now(), log: { inprogress: 0 } });
             pushToCloud(); closeModal('task-modal');
         }
 
@@ -2185,28 +2191,7 @@
             let timerStr = formatTime(inProgTime);
             if(t.status === 'inprogress' && !t.isPaused) timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved)/1000));
             
-            const memberInputs = store.currentUser ? `
-                <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700 space-y-2">
-                    <div class="flex flex-col">
-                        <label class="text-[7px] font-bold text-red-500 uppercase">Blocker</label>
-                        <input type="text" value="${t.blocker || ''}" 
-                            onmousedown="event.stopPropagation()"
-                            onchange="updateTaskBlocker('${t.id}', this.value)"
-                            draggable="false"
-                            placeholder="Report blocker..."
-                            class="w-full bg-red-50/50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50 rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:border-red-500">
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="text-[7px] font-bold text-blue-500 uppercase">Update</label>
-                        <input type="text" value="${t.note || ''}" 
-                            onmousedown="event.stopPropagation()"
-                            onchange="updateTaskNote('${t.id}', this.value)"
-                            draggable="false"
-                            placeholder="Project note..."
-                            class="w-full bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/50 rounded px-1.5 py-0.5 text-[9px] focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>` : '';
-
+            // Clean board card view
             return `
                 <div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2">
                     <div class="flex justify-between items-start">
@@ -2219,7 +2204,6 @@
                             <i class="fas fa-stopwatch mr-1"></i>${timerStr}
                         </div>
                     </div>
-                    ${memberInputs}
                 </div>`;
         }
 
@@ -2298,22 +2282,6 @@
                     el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
                     
-                    const memberInputs = store.currentUser ? `
-                        <div class="mt-2 pt-1 border-t border-slate-100 dark:border-slate-700">
-                            <input type="text" value="${t.blocker || ''}" 
-                                onmousedown="event.stopPropagation()" 
-                                onchange="updateTaskBlocker('${t.id}', this.value)" 
-                                draggable="false"
-                                placeholder="B..." 
-                                class="w-full bg-red-50 text-[8px] p-0.5 rounded outline-none mb-1">
-                            <input type="text" value="${t.note || ''}" 
-                                onmousedown="event.stopPropagation()" 
-                                onchange="updateTaskNote('${t.id}', this.value)" 
-                                draggable="false"
-                                placeholder="U..." 
-                                class="w-full bg-blue-50 text-[8px] p-0.5 rounded outline-none">
-                        </div>` : '';
-
                     el.innerHTML = `
                         <div class="flex justify-between items-start gap-1">
                             <span class="font-bold truncate">${t.title}</span>
@@ -2323,7 +2291,6 @@
                              <span>${t.assignee || 'Any'}</span>
                              <span>${formatTime(t.log.inprogress)}</span>
                         </div>
-                        ${memberInputs}
                     `;
                     body.appendChild(el);
                 });
@@ -2391,7 +2358,29 @@
             if(v === 'analytics') renderAnalytics(); 
         }
 
-        function openTaskModal(id) { document.getElementById('task-modal').classList.remove('hidden'); const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:''}; document.getElementById('task-id').value = id || ''; document.getElementById('task-title').value = t.title; document.getElementById('task-desc').value = t.description; document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); document.getElementById('task-date').value = t.assignedDate || ''; setPriority(t.priority); const dbel = document.getElementById('btn-delete'); if(dbel) dbel.classList.toggle('hidden', !id); }
+        // UPDATED MODAL POPULATION
+        function openTaskModal(id) { 
+            document.getElementById('task-modal').classList.remove('hidden'); 
+            const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:'', blocker:'', note:''}; 
+            
+            document.getElementById('task-id').value = id || ''; 
+            document.getElementById('task-title').value = t.title; 
+            document.getElementById('task-desc').value = t.description; 
+            document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); 
+            document.getElementById('task-date').value = t.assignedDate || ''; 
+            
+            // Populate Blocker and Updates
+            document.getElementById('task-blocker').value = t.blocker || '';
+            document.getElementById('task-note').value = t.note || '';
+            
+            // Show/Hide fields for members only
+            document.getElementById('member-only-fields').classList.toggle('hidden', !store.currentUser);
+            
+            setPriority(t.priority); 
+            const dbel = document.getElementById('btn-delete'); 
+            if(dbel) dbel.classList.toggle('hidden', !id); 
+        }
+
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function setPriority(v) { const tp = document.getElementById('task-priority'); if(tp) tp.value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
         function addMember() { const nInput = document.getElementById('new-member-name'); const n = nInput.value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); nInput.value=''; } }
