@@ -877,12 +877,21 @@
         let uploadingUser = null;
         let editingEventIdx = null; 
 
-        // --- TIMEZONE-SAFE HELPERS ---
+        // --- HELPERS ---
         function getLocalISOString(date) {
             const y = date.getFullYear();
             const m = String(date.getMonth() + 1).padStart(2, '0');
             const d = String(date.getDate()).padStart(2, '0');
             return `${y}-${m}-${d}`;
+        }
+
+        // Night Shift Helper: Adjusts the date if call happens before 10:00 AM
+        function getLogicalShiftDate() {
+            const now = new Date();
+            if (now.getHours() < 10) { 
+                now.setDate(now.getDate() - 1); 
+            }
+            return getLocalISOString(now);
         }
 
         // --- CORE FUNCTIONS ---
@@ -1567,11 +1576,13 @@
 
             const endTime = new Date().toLocaleTimeString();
             const totalSeconds = store.globalTimerSeconds;
-            const today = getLocalISOString(new Date());
+            
+            // Apply Night Shift Logic to Attendance Logging
+            const shiftDate = getLogicalShiftDate();
 
             const logEntry = {
                 user: user,
-                date: today,
+                date: shiftDate,
                 start: store.sessionStartTime,
                 end: endTime,
                 duration: formatTime(totalSeconds),
@@ -1581,7 +1592,7 @@
                 break2: activeSession.break2Used || "No"
             };
 
-            await db.ref(`projectData/attendance/${today}/${userKey}`).push(logEntry);
+            await db.ref(`projectData/attendance/${shiftDate}/${userKey}`).push(logEntry);
             await db.ref(`projectData/activeSessions/${userKey}`).remove();
 
             clearInterval(store.globalTimerInterval);
@@ -1590,7 +1601,7 @@
             updateGlobalTimerUI();
             resetTimerUI();
             
-            alert(`Clock-out successful. Total session: ${formatTime(totalSeconds)}`);
+            alert(`Clock-out successful for Shift: ${shiftDate}. Total session: ${formatTime(totalSeconds)}`);
         }
 
         async function generateAttendanceReport() {
@@ -2102,23 +2113,28 @@
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
-            const today = getLocalISOString(new Date());
-            const tomorrow = new Date();
+            
+            // --- NIGHT SHIFT LOGIC: Determine Logical shiftDate ---
+            const shiftDate = getLogicalShiftDate();
+            
+            const tomorrow = new Date(shiftDate);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getLocalISOString(tomorrow);
+            // ----------------------------------------------------
 
-            const attendanceSnap = await db.ref(`projectData/attendance/${today}/${userKey}`).once('value');
+            const attendanceSnap = await db.ref(`projectData/attendance/${shiftDate}/${userKey}`).once('value');
             const logs = attendanceSnap.val() || {};
             let totalSecs = 0;
             Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
             
             const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
-            const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === today);
             
-            const updateItems = allUserTasks.filter(t => t.note && t.note.trim() !== "");
-            
-            const blockerItems = allUserTasks.filter(t => t.blocker && t.blocker.trim() !== "");
+            // Filter everything by the logical shift date
+            const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === shiftDate);
+            const updateItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.note && t.note.trim() !== "");
+            const blockerItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.blocker && t.blocker.trim() !== "");
 
+            // Strategy pulls from the logical "next day"
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
@@ -2126,7 +2142,7 @@
             const reportHtml = `
                 <div class="border-b border-jokerGreen/30 pb-4 mb-4">
                     <h3 class="text-jokerGreen font-black text-xl uppercase tracking-tighter">Daily EOD Snapshot: ${user}</h3>
-                    <p class="text-[10px] text-white/50 uppercase font-bold">${new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                    <p class="text-[10px] text-white/50 uppercase font-bold">Work Date: ${shiftDate}</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mb-6">
@@ -2165,7 +2181,7 @@
                                     <span class="text-[10px] uppercase font-bold block mb-1">${t.title}</span>
                                     <p class="italic">"${t.note}"</p>
                                 </div>
-                            `).join('') : '<p class="italic text-white/30 text-xs">No specific updates recorded.</p>'}
+                            `).join('') : '<p class="italic text-white/30 text-xs">No updates recorded for this shift.</p>'}
                         </div>
                     </div>
 
@@ -2179,12 +2195,12 @@
                                     <span class="text-[10px] uppercase font-bold text-red-400 block mb-1">${t.title}</span>
                                     <p class="text-red-100">"${t.blocker}"</p>
                                 </div>
-                            `).join('') : '<p class="italic text-white/30 text-xs">No blockers reported.</p>'}
+                            `).join('') : '<p class="italic text-white/30 text-xs">No blockers reported for this shift.</p>'}
                         </div>
                     </div>
 
                     <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30">
-                        <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-3 italic">Strategy for Tomorrow</label>
+                        <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-3 italic">Strategy for Next Shift</label>
                         <div class="space-y-2">
                             ${strategy.length ? strategy.map((t, i) => `
                                 <div class="flex items-center gap-3">
@@ -2236,12 +2252,10 @@
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
             
-            // Calculate live time if it's currently running
             if (t.status === 'inprogress' && !t.isPaused) {
                 timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved) / 1000));
             }
 
-            // Prepare the Pause/Play button only for In Progress tasks
             let pauseBtn = '';
             if (t.status === 'inprogress') {
                 const icon = t.isPaused ? 'fa-play' : 'fa-pause';
