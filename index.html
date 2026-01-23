@@ -2235,18 +2235,42 @@
         function createCardHTML(t) {
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
-            if(t.status === 'inprogress' && !t.isPaused) timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved)/1000));
             
+            // Calculate live time if it's currently running
+            if (t.status === 'inprogress' && !t.isPaused) {
+                timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved) / 1000));
+            }
+
+            // Prepare the Pause/Play button only for In Progress tasks
+            let pauseBtn = '';
+            if (t.status === 'inprogress') {
+                const icon = t.isPaused ? 'fa-play' : 'fa-pause';
+                const color = t.isPaused ? 'text-green-500' : 'text-amber-500';
+                const title = t.isPaused ? 'Resume Task' : 'Pause Task';
+                
+                pauseBtn = `
+                    <button onclick="event.stopPropagation(); toggleTaskPause('${t.id}')" 
+                            class="${color} hover:scale(1.1) transition ml-2" title="${title}">
+                        <i class="fas ${icon} text-xs"></i>
+                    </button>
+                `;
+            }
+
             return `
-                <div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2">
+                <div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? (t.isPaused ? 'border-amber-400' : 'border-purple-500') : 'border-slate-300'} pl-2">
                     <div class="flex justify-between items-start">
-                        <h4 class="font-bold text-sm truncate">${t.title}</h4>
-                        <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500"><i class="fas fa-pen text-xs"></i></button>
+                        <h4 class="font-bold text-sm truncate ${t.isPaused ? 'text-slate-400 italic' : ''}">${t.title}</h4>
+                        <div class="flex items-center">
+                            ${pauseBtn}
+                            <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2">
+                                <i class="fas fa-pen text-xs"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex justify-between items-end mt-2">
                         <span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Unassigned'}</span>
-                        <div class="text-[10px] ${t.status === 'inprogress' ? 'text-purple-500 font-bold' : 'text-slate-400'}">
-                            <i class="fas fa-stopwatch mr-1"></i>${timerStr}
+                        <div class="text-[10px] ${t.status === 'inprogress' ? (t.isPaused ? 'text-amber-500' : 'text-purple-500 font-bold') : 'text-slate-400'}">
+                            <i class="fas ${t.isPaused ? 'fa-pause-circle' : 'fa-stopwatch'} mr-1"></i>${timerStr}
                         </div>
                     </div>
                 </div>`;
