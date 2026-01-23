@@ -411,6 +411,10 @@
                         </button>
                     </div>
 
+                    <button onclick="generateDetailedAdminReport()" class="bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 text-[10px] py-1.5 rounded transition flex items-center justify-center gap-1 border border-amber-500/30 mt-2">
+                        <i class="fas fa-file-invoice"></i> Detailed Attendance Report
+                    </button>
+
                     <button onclick="clearAllData()" class="text-left text-[10px] text-red-300 hover:text-red-100 transition flex items-center gap-2 mt-1">
                         <i class="fas fa-trash-alt"></i> Nuke Cloud Data
                     </button>
@@ -938,6 +942,7 @@
         window.startShortBreak = startShortBreak;
         window.clockOut = clockOut;
         window.generateAttendanceReport = generateAttendanceReport;
+        window.generateDetailedAdminReport = generateDetailedAdminReport;
 
         window.renderAnalytics = renderAnalytics;
         window.exportAnalyticsReport = exportAnalyticsReport;
@@ -1637,6 +1642,79 @@
             a.click();
         }
 
+        async function generateDetailedAdminReport() {
+            const picker = document.getElementById('date-range-picker')._flatpickr;
+            if (!picker.selectedDates.length) {
+                alert("Please select a date range using the calendar filter (top of Task Tracker) first!");
+                return;
+            }
+
+            const startDate = picker.selectedDates[0];
+            const endDate = picker.selectedDates[1] || startDate;
+            const startCompare = new Date(startDate).setHours(0,0,0,0);
+            const endCompare = new Date(endDate).setHours(23,59,59,999);
+
+            const snap = await db.ref('projectData/attendance').once('value');
+            const attendanceData = snap.val() || {};
+            
+            let report = `DETAILED TEAM ATTENDANCE REPORT\n`;
+            report += `Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`;
+            report += `Generated: ${new Date().toLocaleString()}\n`;
+            report += `======================================================================\n\n`;
+
+            let grandTotalSeconds = 0;
+            const userSummaries = {};
+            const sortedDates = Object.keys(attendanceData).sort();
+
+            sortedDates.forEach(dateStr => {
+                const logDate = new Date(dateStr);
+                if (logDate.getTime() >= startCompare && logDate.getTime() <= endCompare) {
+                    report += `DATE: ${dateStr}\n`;
+                    report += `----------------------------------------------------------------------\n`;
+                    report += `MEMBER      | IN       | OUT      | BREAKS | DURATION\n`;
+                    
+                    const userLogs = attendanceData[dateStr];
+                    Object.keys(userLogs).forEach(uk => {
+                        const logs = userLogs[uk];
+                        Object.values(logs).forEach(l => {
+                            const b1 = l.break1 !== "No" ? "B1" : "--";
+                            const b2 = l.break2 !== "No" ? "B2" : "--";
+                            const breaks = `${b1}/${b2}`;
+                            
+                            report += `${l.user.padEnd(11)} | ${l.start.padEnd(8)} | ${l.end.padEnd(8)} | ${breaks.padEnd(6)} | ${l.duration}\n`;
+
+                            if(!userSummaries[l.user]) userSummaries[l.user] = 0;
+                            userSummaries[l.user] += (l.rawSeconds || 0);
+                            grandTotalSeconds += (l.rawSeconds || 0);
+                        });
+                    });
+                    report += `\n`;
+                }
+            });
+
+            report += `======================================================================\n`;
+            report += `USER SUMMARY (TOTAL COMPLETED HOURS)\n`;
+            report += `======================================================================\n`;
+            
+            Object.keys(userSummaries).forEach(user => {
+                const secs = userSummaries[user];
+                const hrs = (secs / 3600).toFixed(2);
+                report += `${user.padEnd(20)}: ${hrs} Hours (${formatTime(secs)})\n`;
+            });
+
+            report += `\nGRAND TOTAL OFFICE HOURS: ${(grandTotalSeconds / 3600).toFixed(2)} Hours\n`;
+            report += `======================================================================\n`;
+            report += `End of Report`;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Detailed_Attendance_${getLocalISOString(startDate)}_to_${getLocalISOString(endDate)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
         function updateGlobalTimerUI() {
             const s = store.globalTimerSeconds;
             const h = Math.floor(s / 3600).toString().padStart(2, '0');
@@ -2227,8 +2305,6 @@
             for (let i = 0; i < 7; i++) {
                 const currentDay = new Date(start);
                 currentDay.setDate(start.getDate() + i);
-                
-                // TIMEZONE-SAFE FIX: Use getLocalISOString instead of toISOString
                 const dateKey = getLocalISOString(currentDay);
                 const isToday = getLocalISOString(new Date()) === dateKey;
 
