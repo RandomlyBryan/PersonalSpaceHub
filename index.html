@@ -615,8 +615,36 @@
                         <div id="kanban-filter-container" class="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-purple-500/50">
                                 <div class="relative flex items-center">
                                     <i class="fas fa-calendar-alt text-green-400/70 text-xs absolute left-2 pointer-events-none"></i>
-                                    <input type="text" id="date-range-picker" placeholder="Date / Filter..." 
-                                        class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-48 placeholder-white/50 cursor-pointer">
+                                    <input type="text" id="date-range-picker" placeholder="Date Filter..." 
+                                        class="bg-white/10 border-none text-white text-xs rounded px-2 py-1 pl-6 outline-none w-32 placeholder-white/50 cursor-pointer">
+                                </div>
+                                
+                                <div class="flex items-center gap-2 border-l border-white/20 pl-2 ml-2">
+                                    <select id="filter-month" onchange="renderKanbanBoard()" class="bg-white/10 border-none text-white text-[10px] rounded px-2 py-1 outline-none cursor-pointer font-bold">
+                                        <option value="" class="text-slate-900">All Months</option>
+                                        <option value="0" class="text-slate-900">January</option>
+                                        <option value="1" class="text-slate-900">February</option>
+                                        <option value="2" class="text-slate-900">March</option>
+                                        <option value="3" class="text-slate-900">April</option>
+                                        <option value="4" class="text-slate-900">May</option>
+                                        <option value="5" class="text-slate-900">June</option>
+                                        <option value="6" class="text-slate-900">July</option>
+                                        <option value="7" class="text-slate-900">August</option>
+                                        <option value="8" class="text-slate-900">September</option>
+                                        <option value="9" class="text-slate-900">October</option>
+                                        <option value="10" class="text-slate-900">November</option>
+                                        <option value="11" class="text-slate-900">December</option>
+                                    </select>
+
+                                    <select id="filter-week" onchange="renderKanbanBoard()" class="bg-white/10 border-none text-white text-[10px] rounded px-2 py-1 outline-none cursor-pointer font-bold">
+                                        <option value="" class="text-slate-900">All Weeks</option>
+                                        <option value="1" class="text-slate-900">Week 1</option>
+                                        <option value="2" class="text-slate-900">Week 2</option>
+                                        <option value="3" class="text-slate-900">Week 3</option>
+                                        <option value="4" class="text-slate-900">Week 4</option>
+                                        <option value="5" class="text-slate-900">Week 5</option>
+                                    </select>
+                                    <button onclick="clearAllFilters()" class="text-red-400 hover:text-white transition text-xs ml-1" title="Clear Filters"><i class="fas fa-times-circle"></i></button>
                                 </div>
                         </div>
 
@@ -1122,6 +1150,50 @@
                 }
             });
         });
+
+        // --- NEW FILTERING LOGIC ---
+        function isTaskInSelectedWeek(taskDateStr) {
+            const monthVal = document.getElementById('filter-month').value;
+            const weekVal = document.getElementById('filter-week').value;
+
+            if (monthVal === "" && weekVal === "") return true;
+            if (!taskDateStr) return false;
+
+            const targetYear = store.calendarYear;
+            const targetMonth = monthVal !== "" ? parseInt(monthVal) : new Date(taskDateStr).getMonth();
+            
+            // If month is selected but task is in different month, hide it
+            if(monthVal !== "" && new Date(taskDateStr).getMonth() !== targetMonth) return false;
+            
+            // If no week selected, just month match is enough
+            if(weekVal === "") return true;
+
+            const weekNum = parseInt(weekVal);
+            const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
+            
+            // Sunday-Saturday logic: Find the Sunday of the week containing the 1st
+            const firstSunday = new Date(firstDayOfMonth);
+            firstSunday.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
+
+            const weekStart = new Date(firstSunday);
+            weekStart.setDate(firstSunday.getDate() + ((weekNum - 1) * 7));
+            weekStart.setHours(0,0,0,0);
+
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            weekEnd.setHours(23,59,59,999);
+
+            const taskDate = new Date(taskDateStr);
+            return taskDate >= weekStart && taskDate <= weekEnd;
+        }
+
+        function clearAllFilters() {
+            const picker = document.getElementById('date-range-picker')._flatpickr;
+            if(picker) picker.clear();
+            document.getElementById('filter-month').value = "";
+            document.getElementById('filter-week').value = "";
+            renderKanbanBoard();
+        }
 
         function togglePasswordVisibility() {
             const passInput = document.getElementById('login-password');
@@ -2295,6 +2367,9 @@
             const weekView = document.getElementById('kanban-week-view');
             const badge = document.getElementById('tracker-badge');
             const subtitle = document.getElementById('tracker-subtitle');
+            
+            const picker = document.getElementById('date-range-picker')._flatpickr;
+            const filterRange = picker?.selectedDates || [];
 
             if (store.kanbanMode === 'status') {
                 statusView.classList.remove('hidden');
@@ -2306,9 +2381,26 @@
                     const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
                     if(!container) return;
                     container.innerHTML = '';
-                    const tasks = store.kanbanTasks.filter(t => t.status === s && (!store.currentUser || t.assignee === store.currentUser));
+                    
+                    const tasks = store.kanbanTasks.filter(t => {
+                        const matchesStatus = t.status === s;
+                        const matchesUser = !store.currentUser || t.assignee === store.currentUser;
+                        
+                        // Apply Range, Month, and Week filtering
+                        let matchesRange = true;
+                        if(filterRange.length === 2 && t.assignedDate) {
+                            const d = new Date(t.assignedDate);
+                            matchesRange = d >= filterRange[0] && d <= filterRange[1];
+                        }
+                        
+                        const matchesLogicalFilter = isTaskInSelectedWeek(t.assignedDate);
+                        
+                        return matchesStatus && matchesUser && matchesRange && matchesLogicalFilter;
+                    });
+
                     const countBadge = document.getElementById(`count-${s}`);
                     if(countBadge) countBadge.textContent = tasks.length;
+                    
                     tasks.forEach(t => {
                         const el = document.createElement('div');
                         el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
