@@ -737,7 +737,7 @@
     </div>
 
     <div id="task-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border-2 border-purple-500">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border-2 border-purple-500 overflow-y-auto max-h-[90vh]">
             <h2 class="text-xl font-bold mb-4 dark:text-white text-purple-800 tracking-wide" id="modal-title">Task Details</h2>
             <input type="hidden" id="task-id">
             
@@ -777,6 +777,16 @@
                 <textarea id="task-desc" rows="2" class="w-full bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none dark:text-white"></textarea>
             </div>
 
+            <div id="duplicate-panel" class="hidden border-t-2 border-dashed border-purple-200 dark:border-slate-700 pt-4 mt-4 bg-purple-50/50 dark:bg-slate-900/30 p-3 rounded-xl">
+                <label class="block text-xs font-black text-purple-600 uppercase mb-2"><i class="fas fa-users-cog mr-1"></i> Distribute to Team</label>
+                <p class="text-[10px] text-slate-500 mb-3">Select members to create a copy for:</p>
+                <div id="duplicate-member-list" class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto mb-3 pr-1">
+                    </div>
+                <button onclick="confirmDuplicate()" class="w-full bg-purple-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-purple-700 transition shadow-lg">
+                    GENERATE TEAM COPIES
+                </button>
+            </div>
+
             <div id="member-only-fields" class="hidden border-t border-purple-100 dark:border-slate-700 pt-4 mt-4 space-y-3">
                 <div class="mb-3">
                     <label class="block text-xs font-bold text-red-500 uppercase mb-1"><i class="fas fa-exclamation-triangle"></i> Daily Blocker</label>
@@ -788,9 +798,14 @@
                 </div>
             </div>
 
-            <div class="flex justify-between mt-6">
-                <button type="button" onclick="deleteCurrentTask()" id="btn-delete" class="text-red-500 hover:text-red-700 text-sm hidden">Delete Task</button>
-                <div class="flex gap-2 ml-auto">
+            <div class="flex justify-between items-center mt-6">
+                <div class="flex gap-4">
+                    <button type="button" onclick="deleteCurrentTask()" id="btn-delete" class="text-red-500 hover:text-red-700 text-xs hidden">Delete</button>
+                    <button type="button" onclick="toggleDuplicateSection()" id="btn-duplicate-toggle" class="text-purple-500 hover:text-purple-700 text-xs flex items-center gap-1">
+                        <i class="fas fa-copy"></i> Duplicate
+                    </button>
+                </div>
+                <div class="flex gap-2">
                     <button onclick="closeModal('task-modal')" class="px-4 py-2 text-slate-500 dark:text-slate-400">Cancel</button>
                     <button onclick="saveTask()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium">Save Details</button>
                 </div>
@@ -913,7 +928,6 @@
             return `${y}-${m}-${d}`;
         }
 
-        // Night Shift Helper: Adjusts the date if call happens before 10:00 AM
         function getLogicalShiftDate() {
             const now = new Date();
             if (now.getHours() < 10) { 
@@ -986,6 +1000,10 @@
         
         window.generateDailyReport = generateDailyReport;
         window.copyReportToClipboard = copyReportToClipboard;
+
+        // NEW DUPLICATION WINDOW FUNCTIONS
+        window.toggleDuplicateSection = toggleDuplicateSection;
+        window.confirmDuplicate = confirmDuplicate;
 
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
         window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
@@ -1151,7 +1169,7 @@
             });
         });
 
-        // --- NEW FILTERING LOGIC ---
+        // --- FILTERING LOGIC ---
         function isTaskInSelectedWeek(taskDateStr) {
             const monthVal = document.getElementById('filter-month').value;
             const weekVal = document.getElementById('filter-week').value;
@@ -1162,16 +1180,12 @@
             const targetYear = store.calendarYear;
             const targetMonth = monthVal !== "" ? parseInt(monthVal) : new Date(taskDateStr).getMonth();
             
-            // If month is selected but task is in different month, hide it
             if(monthVal !== "" && new Date(taskDateStr).getMonth() !== targetMonth) return false;
-            
-            // If no week selected, just month match is enough
             if(weekVal === "") return true;
 
             const weekNum = parseInt(weekVal);
             const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
             
-            // Sunday-Saturday logic: Find the Sunday of the week containing the 1st
             const firstSunday = new Date(firstDayOfMonth);
             firstSunday.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
 
@@ -1649,7 +1663,6 @@
             const endTime = new Date().toLocaleTimeString();
             const totalSeconds = store.globalTimerSeconds;
             
-            // Apply Night Shift Logic to Attendance Logging
             const shiftDate = getLogicalShiftDate();
 
             const logEntry = {
@@ -2040,6 +2053,70 @@
 
         function deleteCurrentTask() { deleteQuickTask(document.getElementById('task-id').value); closeModal('task-modal'); }
 
+        // --- NEW DUPLICATION LOGIC ---
+        function toggleDuplicateSection() {
+            const panel = document.getElementById('duplicate-panel');
+            const memberList = document.getElementById('duplicate-member-list');
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                memberList.innerHTML = '';
+                store.users.forEach(user => {
+                    const currentAssignee = document.getElementById('task-assignee').value;
+                    if (user === currentAssignee) return;
+
+                    const div = document.createElement('div');
+                    div.className = "flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded border border-slate-100 dark:border-slate-700";
+                    div.innerHTML = `
+                        <input type="checkbox" value="${user}" class="duplicate-check w-3 h-3 accent-purple-600">
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300 truncate">${user}</span>
+                    `;
+                    memberList.appendChild(div);
+                });
+                if (memberList.innerHTML === '') memberList.innerHTML = '<p class="col-span-2 text-[10px] italic text-slate-400">No other team members found.</p>';
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function confirmDuplicate() {
+            const selectedChecks = document.querySelectorAll('.duplicate-check:checked');
+            if (selectedChecks.length === 0) return alert("Select members to duplicate task to.");
+
+            const baseTitle = document.getElementById('task-title').value;
+            const baseDesc = document.getElementById('task-desc').value;
+            const basePriority = parseInt(document.getElementById('task-priority').value);
+            const baseDate = document.getElementById('task-date').value;
+
+            if (!baseTitle) return alert("Please enter a task title first.");
+
+            selectedChecks.forEach(checkbox => {
+                const memberName = checkbox.value;
+                const newId = Date.now().toString() + Math.floor(Math.random() * 1000);
+                
+                store.kanbanTasks.push({
+                    id: newId,
+                    title: baseTitle,
+                    description: baseDesc,
+                    status: 'todo',
+                    assignee: memberName,
+                    assignedDate: baseDate,
+                    priority: basePriority,
+                    lastMoved: Date.now(),
+                    log: { inprogress: 0 },
+                    isPaused: false,
+                    blocker: "",
+                    note: ""
+                });
+            });
+
+            pushToCloud();
+            alert(`Duplicated for ${selectedChecks.length} team members.`);
+            toggleDuplicateSection();
+            closeModal('task-modal');
+            renderKanbanBoard();
+        }
+
         async function renderAnalytics() {
             const grid = document.getElementById('analytics-grid');
             if (!grid) return;
@@ -2185,14 +2262,11 @@
         async function generateDailyReport() {
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            // --- NIGHT SHIFT LOGIC: Determine Logical shiftDate ---
             const shiftDate = getLogicalShiftDate();
             
             const tomorrow = new Date(shiftDate);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getLocalISOString(tomorrow);
-            // ----------------------------------------------------
 
             const attendanceSnap = await db.ref(`projectData/attendance/${shiftDate}/${userKey}`).once('value');
             const logs = attendanceSnap.val() || {};
@@ -2200,13 +2274,10 @@
             Object.values(logs).forEach(l => totalSecs += (l.rawSeconds || 0));
             
             const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
-            
-            // Filter everything by the logical shift date
             const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === shiftDate);
             const updateItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.note && t.note.trim() !== "");
             const blockerItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.blocker && t.blocker.trim() !== "");
 
-            // Strategy pulls from the logical "next day"
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
@@ -2216,7 +2287,6 @@
                     <h3 class="text-jokerGreen font-black text-xl uppercase tracking-tighter">Daily EOD Snapshot: ${user}</h3>
                     <p class="text-[10px] text-white/50 uppercase font-bold">Work Date: ${shiftDate}</p>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-white/5 p-3 rounded-xl border border-white/10">
                         <label class="text-[9px] text-jokerGreen font-bold uppercase block mb-1">Time Metrics</label>
@@ -2227,7 +2297,6 @@
                         <p class="text-2xl font-mono font-black text-white">${completedTasks.length} <span class="text-[10px] font-normal opacity-50">Tasks Closed</span></p>
                     </div>
                 </div>
-
                 <div class="space-y-6">
                     <div>
                         <label class="flex items-center gap-2 text-[11px] text-jokerGreen font-black uppercase tracking-widest mb-2">
@@ -2237,12 +2306,11 @@
                             ${completedTasks.length ? completedTasks.map(t => `
                                 <div class="bg-white/5 p-2 rounded border-l-2 border-jokerGreen">
                                     <span class="font-bold text-white block">${t.title}</span>
-                                    <p class="text-[11px] text-white/60">${t.description || 'Task successfully delivered.'}</p>
+                                    <p class="text-[11px] text-white/60">${t.description || 'Task delivered.'}</p>
                                 </div>
                             `).join('') : '<p class="italic text-white/30 text-xs">No tasks finalized today.</p>'}
                         </div>
                     </div>
-
                     <div>
                         <label class="flex items-center gap-2 text-[11px] text-blue-400 font-black uppercase tracking-widest mb-2">
                             <i class="fas fa-spinner"></i> Project/Client Updates
@@ -2253,39 +2321,11 @@
                                     <span class="text-[10px] uppercase font-bold block mb-1">${t.title}</span>
                                     <p class="italic">"${t.note}"</p>
                                 </div>
-                            `).join('') : '<p class="italic text-white/30 text-xs">No updates recorded for this shift.</p>'}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="flex items-center gap-2 text-[11px] text-red-500 font-black uppercase tracking-widest mb-2">
-                            <i class="fas fa-exclamation-triangle"></i> Reported Blockers
-                        </label>
-                        <div class="space-y-2 text-sm">
-                            ${blockerItems.length ? blockerItems.map(t => `
-                                <div class="bg-red-900/10 p-2 rounded border-l-2 border-red-500">
-                                    <span class="text-[10px] uppercase font-bold text-red-400 block mb-1">${t.title}</span>
-                                    <p class="text-red-100">"${t.blocker}"</p>
-                                </div>
-                            `).join('') : '<p class="italic text-white/30 text-xs">No blockers reported for this shift.</p>'}
-                        </div>
-                    </div>
-
-                    <div class="bg-purple-900/30 p-4 rounded-2xl border border-purple-500/30">
-                        <label class="text-[10px] text-jokerGreen font-black uppercase tracking-widest block mb-3 italic">Strategy for Next Shift</label>
-                        <div class="space-y-2">
-                            ${strategy.length ? strategy.map((t, i) => `
-                                <div class="flex items-center gap-3">
-                                    <span class="text-jokerGreen font-black">0${i+1}</span>
-                                    <span class="text-sm">${t.title}</span>
-                                    <span class="ml-auto text-[9px] text-white/30">Lvl ${t.priority}</span>
-                                </div>
-                            `).join('') : '<p class="text-sm italic text-white/30">Review priorities at shift start.</p>'}
+                            `).join('') : '<p class="italic text-white/30 text-xs">No updates recorded.</p>'}
                         </div>
                     </div>
                 </div>
             `;
-
             document.getElementById('report-content').innerHTML = reportHtml;
             document.getElementById('report-modal').classList.remove('hidden');
         }
@@ -2293,7 +2333,7 @@
         function copyReportToClipboard() {
             const content = document.getElementById('report-content').innerText;
             navigator.clipboard.writeText(content).then(() => {
-                alert("Professional EOD report copied to clipboard!");
+                alert("Report copied to clipboard!");
             });
         }
 
@@ -2323,41 +2363,27 @@
         function createCardHTML(t) {
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
-            
             if (t.status === 'inprogress' && !t.isPaused) {
                 timerStr = formatTime(inProgTime + Math.floor((Date.now() - t.lastMoved) / 1000));
             }
-
             let pauseBtn = '';
             if (t.status === 'inprogress') {
                 const icon = t.isPaused ? 'fa-play' : 'fa-pause';
                 const color = t.isPaused ? 'text-green-500' : 'text-amber-500';
-                const title = t.isPaused ? 'Resume Task' : 'Pause Task';
-                
-                pauseBtn = `
-                    <button onclick="event.stopPropagation(); toggleTaskPause('${t.id}')" 
-                            class="${color} hover:scale(1.1) transition ml-2" title="${title}">
-                        <i class="fas ${icon} text-xs"></i>
-                    </button>
-                `;
+                pauseBtn = `<button onclick="event.stopPropagation(); toggleTaskPause('${t.id}')" class="${color} ml-2"><i class="fas ${icon} text-xs"></i></button>`;
             }
-
             return `
-                <div class="border-l-4 ${t.status === 'done' ? 'border-green-500 opacity-60' : t.status === 'inprogress' ? (t.isPaused ? 'border-amber-400' : 'border-purple-500') : 'border-slate-300'} pl-2">
+                <div class="border-l-4 ${t.status === 'done' ? 'border-green-500' : t.status === 'inprogress' ? 'border-purple-500' : 'border-slate-300'} pl-2">
                     <div class="flex justify-between items-start">
-                        <h4 class="font-bold text-sm truncate ${t.isPaused ? 'text-slate-400 italic' : ''}">${t.title}</h4>
+                        <h4 class="font-bold text-sm truncate">${t.title}</h4>
                         <div class="flex items-center">
                             ${pauseBtn}
-                            <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2">
-                                <i class="fas fa-pen text-xs"></i>
-                            </button>
+                            <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2"><i class="fas fa-pen text-xs"></i></button>
                         </div>
                     </div>
                     <div class="flex justify-between items-end mt-2">
-                        <span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Unassigned'}</span>
-                        <div class="text-[10px] ${t.status === 'inprogress' ? (t.isPaused ? 'text-amber-500' : 'text-purple-500 font-bold') : 'text-slate-400'}">
-                            <i class="fas ${t.isPaused ? 'fa-pause-circle' : 'fa-stopwatch'} mr-1"></i>${timerStr}
-                        </div>
+                        <span class="text-[10px] bg-purple-100 dark:bg-purple-900 px-2 rounded-full">${t.assignee || 'Any'}</span>
+                        <div class="text-[10px] text-slate-400"><i class="fas fa-stopwatch mr-1"></i>${timerStr}</div>
                     </div>
                 </div>`;
         }
@@ -2365,45 +2391,30 @@
         function renderKanbanBoard() {
             const statusView = document.getElementById('kanban-status-view');
             const weekView = document.getElementById('kanban-week-view');
-            const badge = document.getElementById('tracker-badge');
-            const subtitle = document.getElementById('tracker-subtitle');
-            
             const picker = document.getElementById('date-range-picker')._flatpickr;
             const filterRange = picker?.selectedDates || [];
 
             if (store.kanbanMode === 'status') {
                 statusView.classList.remove('hidden');
                 weekView.classList.add('hidden');
-                badge.textContent = "Status View";
-                subtitle.textContent = "Manage project progress";
-
                 ['todo', 'inprogress', 'done'].forEach(s => {
                     const container = document.querySelector(`[ondrop="drop(event, '${s}', 'status')"]`);
                     if(!container) return;
                     container.innerHTML = '';
-                    
                     const tasks = store.kanbanTasks.filter(t => {
                         const matchesStatus = t.status === s;
                         const matchesUser = !store.currentUser || t.assignee === store.currentUser;
-                        
-                        // Apply Range, Month, and Week filtering
                         let matchesRange = true;
                         if(filterRange.length === 2 && t.assignedDate) {
                             const d = new Date(t.assignedDate);
                             matchesRange = d >= filterRange[0] && d <= filterRange[1];
                         }
-                        
-                        const matchesLogicalFilter = isTaskInSelectedWeek(t.assignedDate);
-                        
-                        return matchesStatus && matchesUser && matchesRange && matchesLogicalFilter;
+                        return matchesStatus && matchesUser && matchesRange && isTaskInSelectedWeek(t.assignedDate);
                     });
-
-                    const countBadge = document.getElementById(`count-${s}`);
-                    if(countBadge) countBadge.textContent = tasks.length;
-                    
+                    document.getElementById(`count-${s}`).textContent = tasks.length;
                     tasks.forEach(t => {
                         const el = document.createElement('div');
-                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition group relative';
+                        el.className = 'task-card bg-white dark:bg-slate-800 p-3 rounded-lg border mb-3';
                         el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
                         el.innerHTML = createCardHTML(t);
                         container.appendChild(el);
@@ -2412,8 +2423,6 @@
             } else {
                 statusView.classList.add('hidden');
                 weekView.classList.remove('hidden');
-                badge.textContent = "Week View";
-                subtitle.textContent = "Scheduled task timeline";
                 renderWeekView();
             }
             renderQuickTasks();
@@ -2422,52 +2431,33 @@
         function renderWeekView() {
             const container = document.getElementById('week-columns-container');
             const rangeDisplay = document.getElementById('week-view-date-range');
-            if(!container) return;
             container.innerHTML = '';
-            
             const start = new Date(store.weekViewStart);
             const end = new Date(start);
             end.setDate(start.getDate() + 6);
             rangeDisplay.textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
-
             const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
             for (let i = 0; i < 7; i++) {
                 const currentDay = new Date(start);
                 currentDay.setDate(start.getDate() + i);
                 const dateKey = getLocalISOString(currentDay);
                 const isToday = getLocalISOString(new Date()) === dateKey;
-
                 const col = document.createElement('div');
                 col.className = `glass-panel rounded-xl flex flex-col h-full border-t-4 ${isToday ? 'border-jokerGreen' : 'border-purple-600/30'}`;
-                
                 col.innerHTML = `
-                    <div class="p-3 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
-                        <h3 class="font-bold text-xs ${isToday ? 'text-jokerGreen' : 'text-slate-500'}">${days[currentDay.getDay()]}</h3>
+                    <div class="p-3 bg-white/50 dark:bg-slate-800/50">
+                        <h3 class="font-bold text-xs">${days[currentDay.getDay()]}</h3>
                         <p class="text-[10px] opacity-60">${currentDay.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</p>
                     </div>
                     <div class="column-body p-2 flex-1 overflow-y-auto space-y-3" ondrop="drop(event, '${dateKey}', 'date')" ondragover="allowDrop(event)"></div>
                 `;
-
-                const body = col.querySelector('.column-body');
                 const tasks = store.kanbanTasks.filter(t => t.assignedDate === dateKey && (!store.currentUser || t.assignee === store.currentUser));
-                
                 tasks.forEach(t => {
                     const el = document.createElement('div');
-                    el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
+                    el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
-                    
-                    el.innerHTML = `
-                        <div class="flex justify-between items-start gap-1">
-                            <span class="font-bold truncate">${t.title}</span>
-                            <span class="text-[8px] px-1 rounded ${t.status === 'done' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-400'}">${t.status[0].toUpperCase()}</span>
-                        </div>
-                        <div class="flex justify-between mt-2 opacity-60">
-                             <span>${t.assignee || 'Any'}</span>
-                             <span>${formatTime(t.log.inprogress)}</span>
-                        </div>
-                    `;
-                    body.appendChild(el);
+                    el.innerHTML = `<b>${t.title}</b><div class="mt-1 opacity-60">${t.status}</div>`;
+                    col.querySelector('.column-body').appendChild(el);
                 });
                 container.appendChild(col);
             }
@@ -2477,95 +2467,50 @@
             const list = document.getElementById('quick-task-list'); 
             if(!list) return;
             list.innerHTML = '';
-            
-            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
-
             store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
             .forEach(t => {
                 const li = document.createElement('li');
-                li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
-                const statusColors = { 'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400', 'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300' };
-                
+                li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border mb-2';
                 li.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2 truncate">
-                            <i class="fas fa-flag ${priorityColors[t.priority] || 'text-slate-300'} text-[10px]"></i>
-                            <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
-                        </div>
-                        <div class="flex gap-2 shrink-0 ml-2">
-                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button>
-                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
-                        </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="font-bold truncate">${t.title}</span>
+                        <button onclick="updateTaskStatus('${t.id}', 'done')" class="text-green-500"><i class="fas fa-check"></i></button>
                     </div>
-
-                    <div class="flex wrap items-center justify-between gap-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
-                            <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50">
-                            <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
-                        </div>
+                    <div class="flex justify-between text-[9px] uppercase font-bold text-slate-400">
+                        <span>${t.status}</span>
+                        <span>${t.assignee}</span>
                     </div>`;
                 list.appendChild(li);
             });
         }
 
         function formatTime(s) { const h = Math.floor(s/3600), m = Math.floor((s%3600)/60); return h>0 ? `${h}h ${m}m` : `${m}m ${s%60}s`; }
-        function updateClock() { const n = new Date(); const c = document.getElementById('clock'); if(c) c.textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); const d = document.getElementById('date'); if(d) d.textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
+        function updateClock() { const n = new Date(); document.getElementById('clock').textContent = n.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hourCycle:'h23'}); document.getElementById('date').textContent = n.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'}); }
         function updateKanbanTimers() { if(store.kanbanMode === 'status') renderKanbanBoard(); }
-        function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); const ti = document.getElementById('theme-icon'); if(ti) ti.className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; document.body.style.background = store.theme === 'dark' ? 'linear-gradient(135deg, #10002b, #004b23)' : 'linear-gradient(135deg, #9d4edd, #70e000)'; }
+        function loadTheme() { document.body.classList.toggle('dark', store.theme === 'dark'); const ti = document.getElementById('theme-icon'); if(ti) ti.className = store.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
-        
-        function switchView(v) { 
-            ['dashboard', 'kanban', 'analytics'].forEach(x => { 
-                const view = document.getElementById(`view-${x}`); 
-                const nav = document.getElementById(`nav-${x}`); 
-                if(view) view.classList.add('hidden'); 
-                if(nav) nav.classList.remove('active'); 
-            }); 
-            const targetView = document.getElementById(`view-${v}`); 
-            const targetNav = document.getElementById(`nav-${v}`); 
-            if(targetView) targetView.classList.remove('hidden'); 
-            if(targetNav) targetNav.classList.add('active'); 
-            if(v === 'kanban') renderKanbanBoard(); 
-            if(v === 'analytics') renderAnalytics(); 
-        }
-
+        function switchView(v) { ['dashboard', 'kanban', 'analytics'].forEach(x => { document.getElementById(`view-${x}`)?.classList.add('hidden'); document.getElementById(`nav-${x}`)?.classList.remove('active'); }); document.getElementById(`view-${v}`)?.classList.remove('hidden'); document.getElementById(`nav-${v}`)?.classList.add('active'); if(v === 'kanban') renderKanbanBoard(); if(v === 'analytics') renderAnalytics(); }
         function openTaskModal(id) { 
             document.getElementById('task-modal').classList.remove('hidden'); 
+            document.getElementById('duplicate-panel').classList.add('hidden');
             const t = store.kanbanTasks.find(x => x.id === id) || {title:'', description:'', assignee:'', priority:1, assignedDate:'', blocker:'', note:''}; 
-            
             document.getElementById('task-id').value = id || ''; 
             document.getElementById('task-title').value = t.title; 
             document.getElementById('task-desc').value = t.description; 
             document.getElementById('task-assignee').value = t.assignee || (store.currentUser || ''); 
             document.getElementById('task-date').value = t.assignedDate || ''; 
-            
             document.getElementById('task-blocker').value = t.blocker || '';
             document.getElementById('task-note').value = t.note || '';
-            
             document.getElementById('member-only-fields').classList.toggle('hidden', !store.currentUser);
-            
             setPriority(t.priority); 
-            const dbel = document.getElementById('btn-delete'); 
-            if(dbel) dbel.classList.toggle('hidden', !id); 
+            document.getElementById('btn-delete').classList.toggle('hidden', !id); 
         }
-
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function setPriority(v) { const tp = document.getElementById('task-priority'); if(tp) tp.value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
-        function addMember() { const nInput = document.getElementById('new-member-name'); const n = nInput.value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); nInput.value=''; } }
+        function setPriority(v) { document.getElementById('task-priority').value = v; document.querySelectorAll('.flag-btn').forEach((f, i) => f.classList.toggle('active', i < v)); }
+        function addMember() { const n = document.getElementById('new-member-name').value.trim(); if(n && !store.users.includes(n)) { store.users.push(n); pushToCloud(); document.getElementById('new-member-name').value=''; } }
         function removeMember(i) { if(confirm('Remove?')) { store.users.splice(i, 1); pushToCloud(); } }
-        function clearFilters() { const drp = document.getElementById('date-range-picker'); if(drp && drp._flatpickr) drp._flatpickr.clear(); renderKanbanBoard(); }
-        
-        function switchKanbanView(m) { 
-            store.kanbanMode = m; 
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            const targetBtn = document.getElementById(`btn-view-${m}`);
-            if(targetBtn) targetBtn.classList.add('active');
-            renderKanbanBoard(); 
-        }
-
+        function clearFilters() { document.getElementById('date-range-picker')._flatpickr.clear(); renderKanbanBoard(); }
+        function switchKanbanView(m) { store.kanbanMode = m; document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`btn-view-${m}`).classList.add('active'); renderKanbanBoard(); }
         function changeWeek(d) { store.weekViewStart.setDate(store.weekViewStart.getDate() + (d*7)); renderKanbanBoard(); }
         function jumpToWeek(d) { store.weekViewStart = d; renderKanbanBoard(); }
         function clearAllData() { if(confirm('Nuke everything?')) { db.ref('projectData').remove(); location.reload(); } }
