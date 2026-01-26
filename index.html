@@ -1132,6 +1132,9 @@
                     updateUIForUser();
                     updateLoginDropdown();
                     
+                    // Trigger automated Friday cleanup logic
+                    autoCleanupExecutedTasks();
+
                     const savedUser = localStorage.getItem('ps_session_user');
                     if (savedUser && !store.currentUser) {
                         switchUser(savedUser === "Admin" ? "" : savedUser);
@@ -1150,6 +1153,41 @@
                 }
             });
         });
+
+        // --- ADDED: TASK DUPLICATION ---
+        window.duplicateTask = function(id) {
+            const t = store.kanbanTasks.find(x => x.id === id);
+            if (!t) return;
+
+            const clonedTask = { 
+                ...t, 
+                id: Date.now().toString() + Math.floor(Math.random() * 1000), 
+                title: t.title + " (Copy)",
+                status: 'todo',
+                lastMoved: Date.now(),
+                log: { inprogress: 0 },
+                isPaused: false
+            };
+
+            store.kanbanTasks.push(clonedTask);
+            pushToCloud();
+            alert("Task duplicated successfully!");
+        };
+
+        // --- ADDED: AUTO CLEANUP ---
+        function autoCleanupExecutedTasks() {
+            const today = new Date();
+            // 5 is Friday
+            if (today.getDay() === 5) {
+                const executedTasks = store.kanbanTasks.filter(t => t.status === 'done');
+                if (executedTasks.length > 0) {
+                    console.log("Friday Cleanup: Removing executed tasks.");
+                    store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
+                    pushToCloud();
+                    renderKanbanBoard();
+                }
+            }
+        }
 
         // --- NEW FILTERING LOGIC ---
         function isTaskInSelectedWeek(taskDateStr) {
@@ -1649,7 +1687,6 @@
             const endTime = new Date().toLocaleTimeString();
             const totalSeconds = store.globalTimerSeconds;
             
-            // Apply Night Shift Logic to Attendance Logging
             const shiftDate = getLogicalShiftDate();
 
             const logEntry = {
@@ -1754,7 +1791,7 @@
                 if (logDate.getTime() >= startCompare && logDate.getTime() <= endCompare) {
                     report += `DATE: ${dateStr}\n`;
                     report += `----------------------------------------------------------------------\n`;
-                    report += `MEMBER      | IN       | OUT      | BREAKS | DURATION\n`;
+                    report += `MEMBER      | IN        | OUT      | BREAKS | DURATION\n`;
                     
                     const userLogs = attendanceData[dateStr];
                     Object.keys(userLogs).forEach(uk => {
@@ -2320,6 +2357,7 @@
             });
         }
 
+        // --- UPDATED: CARD HTML WITH DUPLICATE ICON ---
         function createCardHTML(t) {
             const inProgTime = t.log ? t.log.inprogress || 0 : 0;
             let timerStr = formatTime(inProgTime);
@@ -2348,6 +2386,9 @@
                         <h4 class="font-bold text-sm truncate ${t.isPaused ? 'text-slate-400 italic' : ''}">${t.title}</h4>
                         <div class="flex items-center">
                             ${pauseBtn}
+                            <button onclick="event.stopPropagation(); duplicateTask('${t.id}')" class="text-slate-300 hover:text-green-500 ml-2" title="Duplicate Task">
+                                <i class="fas fa-copy text-xs"></i>
+                            </button>
                             <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2">
                                 <i class="fas fa-pen text-xs"></i>
                             </button>
@@ -2386,7 +2427,6 @@
                         const matchesStatus = t.status === s;
                         const matchesUser = !store.currentUser || t.assignee === store.currentUser;
                         
-                        // Apply Range, Month, and Week filtering
                         let matchesRange = true;
                         if(filterRange.length === 2 && t.assignedDate) {
                             const d = new Date(t.assignedDate);
@@ -2473,14 +2513,20 @@
             }
         }
 
+        // --- UPDATED: QUICK TASKS DATE FILTERING ---
         function renderQuickTasks() {
             const list = document.getElementById('quick-task-list'); 
             if(!list) return;
             list.innerHTML = '';
             
             const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
+            const todayStr = getLocalISOString(new Date());
 
-            store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser))
+            store.kanbanTasks.filter(t => 
+                t.status !== 'done' && 
+                (!store.currentUser || t.assignee === store.currentUser) &&
+                t.assignedDate === todayStr // ONLY SHOW TODAY'S ASSIGNED TASKS
+            )
             .forEach(t => {
                 const li = document.createElement('li');
                 li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
