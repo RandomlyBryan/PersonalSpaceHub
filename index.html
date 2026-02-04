@@ -90,7 +90,6 @@
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Calendar Styles */
         .calendar-grid { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
@@ -172,7 +171,6 @@
             color: #e2e8f0;
         }
 
-        /* Urgency Colors */
         .cal-urgency-low { border-left-color: #39ff14 !important; background: rgba(57, 255, 20, 0.1); }
         .cal-urgency-medium { border-left-color: #9d4edd !important; background: rgba(157, 78, 221, 0.1); }
         .cal-urgency-high { border-left-color: #ef4444 !important; background: rgba(239, 68, 68, 0.1); }
@@ -285,7 +283,6 @@
 
     <div id="login-overlay" class="fixed inset-0 flex items-center justify-center transition-opacity duration-500">
         <div class="glass-panel p-8 rounded-3xl w-full max-sm:w-[90%] max-w-sm border-2 border-jokerPurple shadow-[0_0_50px_rgba(157,78,221,0.3)]">
-            
             <div class="flex justify-center mb-6">
                 <div class="w-20 h-20 bg-jokerPurple rounded-2xl flex items-center justify-center border-2 border-jokerGreen shadow-[0_0_20px_rgba(57,255,20,0.3)] logo-glow">
                     <i class="fas fa-user-astronaut text-jokerGreen text-4xl"></i>
@@ -325,7 +322,7 @@
         </div>
     </div>
 
-    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg shadow-lg z-50 font-bold opacity-90 border border-t-0 border-green-400" id="connection-status">
+    <div id="connection-status" class="absolute top-0 left-1/2 transform -translate-x-1/2 bg-purple-900 text-white px-3 py-1 text-[10px] rounded-b-lg shadow-lg z-50 font-bold opacity-90 border border-t-0 border-green-400">
         <i class="fas fa-circle-notch fa-spin mr-1 text-yellow-400"></i> Connecting to Cloud...
     </div>
 
@@ -360,6 +357,18 @@
                 </button>
                 <button onclick="switchView('kanban')" id="nav-kanban" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
                     <i class="fas fa-tasks w-5"></i> Task Tracker
+                </button>
+                <button onclick="switchView('oneOnOne')" id="nav-oneOnOne" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
+                    <i class="fas fa-comments w-5"></i> 1 on 1 Sync
+                </button>
+                <button onclick="switchView('huddle')" id="nav-huddle" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
+                    <i class="fas fa-users w-5"></i> Weekly Huddle
+                </button>
+                <button onclick="switchView('library')" id="nav-library" class="nav-item w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-white/10">
+                    <i class="fas fa-book-open w-5"></i> Resource Library
+                </button>
+                <button onclick="generateAttendanceReport()" class="w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-amber-500/20 text-sm font-bold border-l-4 border-transparent hover:border-amber-400">
+                    <i class="fas fa-history w-5 text-amber-400"></i> Attendance Report
                 </button>
                 <button onclick="generateDailyReport()" class="w-full flex items-center gap-3 text-white px-4 py-3 rounded-r-lg transition hover:bg-green-500/20 text-sm font-bold border-l-4 border-transparent hover:border-jokerGreen">
                     <i class="fas fa-file-alt w-5 text-jokerGreen"></i> Daily Summary
@@ -482,7 +491,7 @@
                         <div class="flex items-center gap-4">
                             <div class="text-right">
                                 <p class="text-lg font-bold text-white leading-tight" id="greeting">Connecting...</p>
-                                <span id="dashboard-owner-badge" class="bg-green-50 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
+                                <span id="dashboard-owner-badge" class="bg-green-5 text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider hidden shadow-lg border border-white/20">Secret Lair</span>
                             </div>
                             <div id="header-avatar" class="w-14 h-14 rounded-full bg-purple-900 border-2 border-green-400 shadow-lg flex items-center justify-center overflow-hidden shrink-0 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('Admin')">
                                 <i class="fas fa-user text-white/50 text-2xl"></i>
@@ -702,6 +711,124 @@
 
             </div>
 
+            <div id="view-oneOnOne" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex flex-col h-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-green-400 tracking-wide">Monthly 1 on 1 Sync</h2>
+                        <p class="text-sm text-white/70">Reflect on progress, challenges, and goals.</p>
+                    </div>
+                    <div class="flex gap-3 bg-black/40 p-2 rounded-xl border border-purple-500/30">
+                        <select id="one-on-one-month" onchange="loadOneOnOneData()" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer">
+                            <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                            <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                            <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                            <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+                        </select>
+                        <select id="one-on-one-year" onchange="loadOneOnOneData()" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer">
+                            <option value="2026">2026</option><option value="2027">2027</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="admin-1on1-selector" class="admin-only hidden-tool mb-6 bg-purple-900/20 p-4 rounded-2xl border border-purple-500/30">
+                    <label class="text-[10px] text-green-400 font-black uppercase mb-2 block">Review Team Member Answers</label>
+                    <select id="one-on-one-member-select" onchange="loadOneOnOneData()" class="w-full max-w-xs bg-slate-800 border border-white/20 rounded-lg p-2 text-white text-sm outline-none">
+                        <option value="">Select a member...</option>
+                    </select>
+                </div>
+
+                <div id="one-on-one-form" class="grid grid-cols-1 gap-6 pb-10">
+                    </div>
+                
+                <div id="member-1on1-actions" class="mt-4 flex gap-4 items-center">
+                    <button onclick="saveOneOnOne()" class="bg-jokerGreen hover:bg-green-400 text-black font-black px-8 py-3 rounded-xl transition transform active:scale-95 shadow-lg">
+                        SAVE SYNC DATA
+                    </button>
+                    <p id="save-1on1-status" class="text-green-400 text-xs hidden"><i class="fas fa-check-circle"></i> Changes saved to cloud!</p>
+                </div>
+            </div>
+            
+            <div id="view-huddle" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex flex-col h-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-green-400 tracking-wide">Weekly Huddle</h2>
+                        <p class="text-sm text-white/70" id="huddle-week-label">Team strategy and alignment notes.</p>
+                    </div>
+                    <button onclick="saveHuddleManual()" class="bg-jokerGreen hover:bg-green-400 text-black text-xs font-black px-8 py-3 rounded-xl transition shadow-lg">
+                        SAVE WEEKLY HUDDLE
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-10">
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-jokerPurple">
+                        <label class="text-[10px] font-black text-purple-400 uppercase mb-2 block">Meeting Details</label>
+                        <div class="space-y-3">
+                            <input type="date" id="huddle-date" class="w-full bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen">
+                            <input type="text" id="huddle-attendees" placeholder="Attendees List..." class="w-full bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen">
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-blue-500">
+                        <label class="text-[10px] font-black text-blue-400 uppercase mb-2 block">Agenda</label>
+                        <textarea id="huddle-agenda" class="w-full h-24 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="Primary topics for today..."></textarea>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500">
+                        <label class="text-[10px] font-black text-amber-400 uppercase mb-2 block">Prepared By</label>
+                        <input type="text" id="huddle-prepared-by" placeholder="Name..." class="w-full bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen">
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-jokerGreen lg:col-span-2">
+                        <label class="text-[10px] font-black text-jokerGreen uppercase mb-2 block">Progress Update from Last Meeting</label>
+                        <textarea id="huddle-progress" class="w-full h-24 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="Status of previous action items..."></textarea>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-purple-500">
+                        <label class="text-[10px] font-black text-purple-400 uppercase mb-2 block">Team Wins</label>
+                        <textarea id="huddle-wins" class="w-full h-24 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="Share milestones and successes..."></textarea>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-red-500">
+                        <label class="text-[10px] font-black text-red-500 uppercase mb-2 block">Feedback / Concern</label>
+                        <textarea id="huddle-concerns" class="w-full h-32 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="Address roadblocks or team issues..."></textarea>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-jokerGreen lg:col-span-2">
+                        <label class="text-[10px] font-black text-jokerGreen uppercase mb-2 block">Target Goals for Next Week</label>
+                        <textarea id="huddle-targets" class="w-full h-32 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="What are we focusing on next?"></textarea>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl border-l-4 border-slate-400 lg:col-span-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-2 block">Notes / Highlight</label>
+                        <textarea id="huddle-notes" class="w-full h-24 bg-slate-900/50 border border-white/10 rounded-lg p-2 text-xs text-white outline-none focus:border-jokerGreen resize-none" placeholder="Summary of discussion..."></textarea>
+                        
+                        <textarea id="huddle-manual-input" class="hidden"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-library" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex flex-col h-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-green-400 tracking-wide">Resource Library</h2>
+                        <p class="text-sm text-white/70">SOPs, Guidelines, and Shared Links</p>
+                    </div>
+                    <button onclick="openLibraryModal()" class="bg-jokerGreen hover:bg-green-400 text-black font-black px-5 py-2 rounded-xl transition flex items-center gap-2 text-sm shadow-lg">
+                        <i class="fas fa-plus"></i> ADD RESOURCE
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <div class="relative max-w-md">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="library-search" onkeyup="filterLibrary()" placeholder="Search SOPs or links..." class="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-12 pr-4 text-white outline-none focus:border-jokerGreen">
+                    </div>
+                </div>
+
+                <div id="library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </div>
+
             <div id="view-analytics" class="flex-1 overflow-y-auto p-4 md:p-6 fade-in hidden flex flex-col h-full">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
@@ -732,6 +859,46 @@
             <div class="mt-8 flex gap-3">
                 <button onclick="copyReportToClipboard()" class="flex-1 bg-jokerPurple text-white font-bold py-3 rounded-xl hover:bg-purple-700 transition">Copy to Clipboard</button>
                 <button onclick="closeModal('report-modal')" class="px-6 py-3 text-white/50 font-bold">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="library-add-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-[110] p-4">
+        <div class="glass-panel rounded-3xl w-full max-w-md p-6 border-2 border-jokerPurple">
+            <h2 class="text-xl font-bold mb-4 text-green-400" id="lib-modal-title">Add New Resource</h2>
+            <input type="hidden" id="editing-lib-key" value="">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-purple-400 font-bold uppercase">Resource Title</label>
+                    <input type="text" id="lib-title" placeholder="e.g., Client Onboarding SOP" class="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] text-purple-400 font-bold uppercase">Category</label>
+                        <select id="lib-category" class="w-full bg-slate-800 border border-white/20 rounded-lg p-2 text-white outline-none text-xs">
+                            <option value="SOP">SOP</option>
+                            <option value="Link">Useful Link</option>
+                            <option value="Doc">Documentation</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-purple-400 font-bold uppercase">Visibility</label>
+                        <select id="lib-visibility" class="w-full bg-slate-800 border border-white/20 rounded-lg p-2 text-white outline-none text-[10px]" multiple size="3">
+                            <option value="Public" selected>Everyone (Public)</option>
+                        </select>
+                        <p class="text-[8px] text-slate-400 mt-1">Hold Ctrl to select multiple members.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-purple-400 font-bold uppercase">URL / Link</label>
+                    <input type="text" id="lib-url" placeholder="https://..." class="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-white outline-none">
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button onclick="closeLibraryModal()" class="flex-1 px-4 py-2 text-white/50">Cancel</button>
+                    <button onclick="addLibraryItem()" class="flex-1 bg-jokerGreen text-black font-bold py-2 rounded-lg">Save Resource</button>
+                </div>
             </div>
         </div>
     </div>
@@ -905,6 +1072,16 @@
         let uploadingUser = null;
         let editingEventIdx = null; 
 
+        // 1-on-1 Configuration
+        const oneOnOneQuestions = [
+            { id: 'checkIn', label: 'Check-in', sub: 'How are you feeling lately?' },
+            { id: 'progress', label: 'Progress Update', sub: "How is the current work load?" },
+            { id: 'challenges', label: 'Challenges and Roadblocks', sub: 'Any challenges on current tasks?' },
+            { id: 'goals', label: 'Goals and Development', sub: 'What are your goals for next month?' },
+            { id: 'feedback', label: 'Feedback and Concerns', sub: 'Anything for Management?' },
+            { id: 'action', label: 'Action Items', sub: 'What do you need from Team Lead to achieve goals?' }
+        ];
+
         // --- HELPERS ---
         function getLocalISOString(date) {
             const y = date.getFullYear();
@@ -913,7 +1090,6 @@
             return `${y}-${m}-${d}`;
         }
 
-        // Night Shift Helper: Adjusts the date if call happens before 10:00 AM
         function getLogicalShiftDate() {
             const now = new Date();
             if (now.getHours() < 10) { 
@@ -987,6 +1163,10 @@
         window.generateDailyReport = generateDailyReport;
         window.copyReportToClipboard = copyReportToClipboard;
 
+        // Manual Board Actions
+        window.saveOneOnOne = saveOneOnOne;
+        window.saveHuddleManual = saveHuddleManual;
+
         window.dragStart = (e, id) => { draggedItem = id; e.target.classList.add('dragging'); };
         window.dragEnd = (e) => { e.target.classList.remove('dragging'); document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over')); };
         window.allowDrop = (e) => { e.preventDefault(); e.target.closest('.column-body')?.classList.add('drag-over'); };
@@ -1017,7 +1197,7 @@
                 content += "========================================================\n\n";
 
                 content += "[SECTION: ATTENDANCE & TIME CLOCK]\n";
-                content += "Date        | Member     | In        | Out      | Duration | B1 | B2\n";
+                content += "Date         | Member     | In          | Out      | Duration | B1 | B2\n";
                 content += "-----------|------------|----------|----------|----------|----|----\n";
 
                 let hasAttendance = false;
@@ -1132,9 +1312,6 @@
                     updateUIForUser();
                     updateLoginDropdown();
                     
-                    // Trigger automated Friday cleanup logic
-                    autoCleanupExecutedTasks();
-
                     const savedUser = localStorage.getItem('ps_session_user');
                     if (savedUser && !store.currentUser) {
                         switchUser(savedUser === "Admin" ? "" : savedUser);
@@ -1154,7 +1331,7 @@
             });
         });
 
-        // --- ADDED: TASK DUPLICATION ---
+        // --- TASK DUPLICATION ---
         window.duplicateTask = function(id) {
             const t = store.kanbanTasks.find(x => x.id === id);
             if (!t) return;
@@ -1174,22 +1351,7 @@
             alert("Task duplicated successfully!");
         };
 
-        // --- ADDED: AUTO CLEANUP ---
-        function autoCleanupExecutedTasks() {
-            const today = new Date();
-            // 5 is Friday
-            if (today.getDay() === 5) {
-                const executedTasks = store.kanbanTasks.filter(t => t.status === 'done');
-                if (executedTasks.length > 0) {
-                    console.log("Friday Cleanup: Removing executed tasks.");
-                    store.kanbanTasks = store.kanbanTasks.filter(t => t.status !== 'done');
-                    pushToCloud();
-                    renderKanbanBoard();
-                }
-            }
-        }
-
-        // --- NEW FILTERING LOGIC ---
+        // --- FILTERING LOGIC ---
         function isTaskInSelectedWeek(taskDateStr) {
             const monthVal = document.getElementById('filter-month').value;
             const weekVal = document.getElementById('filter-week').value;
@@ -1200,16 +1362,13 @@
             const targetYear = store.calendarYear;
             const targetMonth = monthVal !== "" ? parseInt(monthVal) : new Date(taskDateStr).getMonth();
             
-            // If month is selected but task is in different month, hide it
             if(monthVal !== "" && new Date(taskDateStr).getMonth() !== targetMonth) return false;
             
-            // If no week selected, just month match is enough
             if(weekVal === "") return true;
 
             const weekNum = parseInt(weekVal);
             const firstDayOfMonth = new Date(targetYear, targetMonth, 1);
             
-            // Sunday-Saturday logic: Find the Sunday of the week containing the 1st
             const firstSunday = new Date(firstDayOfMonth);
             firstSunday.setDate(firstDayOfMonth.getDate() - firstDayOfMonth.getDay());
 
@@ -1715,14 +1874,17 @@
 
         async function generateAttendanceReport() {
             const picker = document.getElementById('date-range-picker')._flatpickr;
-            if (!picker.selectedDates.length) {
-                alert("Please select a date range using the calendar filter first!");
+            if (!picker || !picker.selectedDates.length) {
+                alert("Please select a date range using the calendar filter in the Task Tracker first!");
+                switchView('kanban'); 
                 return;
             }
 
             const startDate = picker.selectedDates[0];
             const endDate = picker.selectedDates[1] || startDate;
-            
+            const startCompare = new Date(startDate).setHours(0,0,0,0);
+            const endCompare = new Date(endDate).setHours(23,59,59,999);
+
             const snap = await db.ref('projectData/attendance').once('value');
             const attendanceData = snap.val() || {};
             
@@ -1730,7 +1892,7 @@
 
             Object.keys(attendanceData).forEach(dateStr => {
                 const logDate = new Date(dateStr);
-                if (logDate >= startDate && logDate <= endDate) {
+                if (logDate.getTime() >= startCompare && logDate.getTime() <= endCompare) {
                     const userLogs = attendanceData[dateStr];
                     Object.keys(userLogs).forEach(uk => {
                         const logs = userLogs[uk];
@@ -1742,15 +1904,14 @@
                 }
             });
 
-            let report = `CONSOLIDATED ATTENDANCE REPORT\n`;
-            report += `Range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}\n`;
+            let report = `ATTENDANCE SUMMARY REPORT\n`;
+            report += `Range: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n`;
             report += `==========================================\n\n`;
             report += `MEMBER NAME          | TOTAL TIME\n`;
             report += `--------------------|--------------------\n`;
 
             Object.keys(summary).forEach(name => {
-                const hours = (summary[name] / 3600).toFixed(2);
-                report += `${name.padEnd(20)} | ${hours} Hrs (${formatTime(summary[name])})\n`;
+                report += `${name.padEnd(20)} | ${formatTime(summary[name])}\n`;
             });
 
             if (Object.keys(summary).length === 0) report += "No records found for this range.";
@@ -2223,13 +2384,11 @@
             const user = store.currentUser || "Admin";
             const userKey = user.replace(/[^a-zA-Z0-9]/g, '_');
             
-            // --- NIGHT SHIFT LOGIC: Determine Logical shiftDate ---
             const shiftDate = getLogicalShiftDate();
             
             const tomorrow = new Date(shiftDate);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = getLocalISOString(tomorrow);
-            // ----------------------------------------------------
 
             const attendanceSnap = await db.ref(`projectData/attendance/${shiftDate}/${userKey}`).once('value');
             const logs = attendanceSnap.val() || {};
@@ -2238,12 +2397,10 @@
             
             const allUserTasks = store.kanbanTasks.filter(t => t.assignee === user);
             
-            // Filter everything by the logical shift date
             const completedTasks = allUserTasks.filter(t => t.status === 'done' && t.assignedDate === shiftDate);
             const updateItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.note && t.note.trim() !== "");
             const blockerItems = allUserTasks.filter(t => t.assignedDate === shiftDate && t.blocker && t.blocker.trim() !== "");
 
-            // Strategy pulls from the logical "next day"
             const strategy = allUserTasks.filter(t => 
                 t.status !== 'done' && (t.assignedDate === tomorrowStr || t.priority >= 4)
             ).sort((a, b) => b.priority - a.priority).slice(0, 3);
@@ -2340,17 +2497,42 @@
             if(mCount) mCount.textContent = store.users.length;
             if(!list) return;
             list.innerHTML = '';
+            
             document.getElementById('task-assignee').innerHTML = '<option value="">Unassigned</option>';
             document.getElementById('quick-task-assignee').innerHTML = '<option value="">Assign to...</option>';
+            
+            const isUserAdmin = store.currentUser === null;
+
             store.users.forEach((u, i) => {
                 const li = document.createElement('li');
                 li.className = 'flex justify-between items-center text-sm text-white/80 bg-white/5 px-2 py-1 rounded hover:bg-white/10 group';
-                const avatar = store.avatars[u] ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px]">${u[0]}</div>`;
                 
-                const resetBtn = !store.currentUser ? `<button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white ml-auto mr-2 opacity-0 group-hover:opacity-100" title="Reset Password"><i class="fas fa-undo-alt"></i></button>` : '';
-                const removeBtn = !store.currentUser ? `<button onclick="removeMember(${i})" class="text-red-400 hover:text-white opacity-0 group-hover:opacity-100"><i class="fas fa-times"></i></button>` : '';
+                const avatar = store.avatars[u] 
+                    ? `<div class="w-5 h-5 rounded-full bg-cover" style="background-image:url('${store.avatars[u]}')"></div>` 
+                    : `<div class="w-5 h-5 rounded-full bg-purple-500 text-center text-[10px] flex items-center justify-center">${u[0]}</div>`;
                 
-                li.innerHTML = `<div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">${avatar} <span>${u}</span></div>${resetBtn} ${removeBtn}`;
+                let adminActions = '';
+                if (isUserAdmin) {
+                    adminActions = `
+                        <div class="flex gap-2 ml-auto opacity-0 group-hover:opacity-100 transition">
+                            <button onclick="resetMemberPassword('${u}')" class="text-amber-400 hover:text-white" title="Reset Password">
+                                <i class="fas fa-undo-alt text-[10px]"></i>
+                            </button>
+                            <button onclick="removeMember(${i})" class="text-red-400 hover:text-white" title="Remove Member">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                li.innerHTML = `
+                    <div class="flex items-center gap-2 cursor-pointer avatar-container relative" onclick="triggerAvatarUpload('${u}')">
+                        ${avatar} 
+                        <span>${u}</span>
+                    </div>
+                    ${adminActions}
+                `;
+                
                 list.appendChild(li);
                 document.getElementById('task-assignee').add(new Option(u, u));
                 document.getElementById('quick-task-assignee').add(new Option(u, u));
@@ -2369,14 +2551,7 @@
             if (t.status === 'inprogress') {
                 const icon = t.isPaused ? 'fa-play' : 'fa-pause';
                 const color = t.isPaused ? 'text-green-500' : 'text-amber-500';
-                const title = t.isPaused ? 'Resume Task' : 'Pause Task';
-                
-                pauseBtn = `
-                    <button onclick="event.stopPropagation(); toggleTaskPause('${t.id}')" 
-                            class="${color} hover:scale(1.1) transition ml-2" title="${title}">
-                        <i class="fas ${icon} text-xs"></i>
-                    </button>
-                `;
+                pauseBtn = `<button onclick="event.stopPropagation(); toggleTaskPause('${t.id}')" class="${color} hover:scale(1.1) transition ml-2"><i class="fas ${icon} text-xs"></i></button>`;
             }
 
             return `
@@ -2385,12 +2560,8 @@
                         <h4 class="font-bold text-sm truncate ${t.isPaused ? 'text-slate-400 italic' : ''}">${t.title}</h4>
                         <div class="flex items-center">
                             ${pauseBtn}
-                            <button onclick="event.stopPropagation(); duplicateTask('${t.id}')" class="text-slate-300 hover:text-green-500 ml-2" title="Duplicate Task">
-                                <i class="fas fa-copy text-xs"></i>
-                            </button>
-                            <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2">
-                                <i class="fas fa-pen text-xs"></i>
-                            </button>
+                            <button onclick="event.stopPropagation(); duplicateTask('${t.id}')" class="text-slate-300 hover:text-green-500 ml-2"><i class="fas fa-copy text-xs"></i></button>
+                            <button onclick="openTaskModal('${t.id}')" class="text-slate-300 hover:text-purple-500 ml-2"><i class="fas fa-pen text-xs"></i></button>
                         </div>
                     </div>
                     <div class="flex justify-between items-end mt-2">
@@ -2426,27 +2597,17 @@
                     const tasks = store.kanbanTasks.filter(t => {
                         const matchesStatus = t.status === s;
                         const matchesUser = !store.currentUser || t.assignee === store.currentUser;
-                        
-                        // Check if manual filters are active
-                        const isManualFilterActive = filterRange.length > 0 || 
-                                                   document.getElementById('filter-month').value !== "" || 
-                                                   document.getElementById('filter-week').value !== "";
+                        const isManualFilterActive = filterRange.length > 0 || document.getElementById('filter-month').value !== "" || document.getElementById('filter-week').value !== "";
 
                         let matchesDate = true;
-
-                        // Constraint: If no filters active, strictly show Today's tasks
-                        if (!isManualFilterActive) {
-                            matchesDate = t.assignedDate === todayStr;
-                        } else {
-                            // If filters ARE active, use standard range/week logic
+                        if (!isManualFilterActive) { matchesDate = t.assignedDate === todayStr; } 
+                        else {
                             if(filterRange.length === 2 && t.assignedDate) {
                                 const d = new Date(t.assignedDate);
                                 matchesDate = d >= filterRange[0] && d <= filterRange[1];
                             }
-                            const matchesLogicalFilter = isTaskInSelectedWeek(t.assignedDate);
-                            matchesDate = matchesDate && matchesLogicalFilter;
+                            matchesDate = matchesDate && isTaskInSelectedWeek(t.assignedDate);
                         }
-                        
                         return matchesStatus && matchesUser && matchesDate;
                     });
 
@@ -2508,17 +2669,7 @@
                     const el = document.createElement('div');
                     el.className = 'task-card bg-white dark:bg-slate-800 p-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition text-xs';
                     el.draggable = true; el.ondragstart = (e) => window.dragStart(e, t.id);
-                    
-                    el.innerHTML = `
-                        <div class="flex justify-between items-start gap-1">
-                            <span class="font-bold truncate">${t.title}</span>
-                            <span class="text-[8px] px-1 rounded ${t.status === 'done' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-400'}">${t.status[0].toUpperCase()}</span>
-                        </div>
-                        <div class="flex justify-between mt-2 opacity-60">
-                             <span>${t.assignee || 'Any'}</span>
-                             <span>${formatTime(t.log.inprogress)}</span>
-                        </div>
-                    `;
+                    el.innerHTML = `<div class="flex justify-between items-start gap-1"><span class="font-bold truncate">${t.title}</span><span class="text-[8px] px-1 rounded ${t.status === 'done' ? 'bg-green-500/20 text-green-500' : 'bg-purple-500/20 text-purple-400'}">${t.status[0].toUpperCase()}</span></div><div class="flex justify-between mt-2 opacity-60"><span>${t.assignee || 'Any'}</span><span>${formatTime(t.log.inprogress)}</span></div>`;
                     body.appendChild(el);
                 });
                 container.appendChild(col);
@@ -2529,41 +2680,14 @@
             const list = document.getElementById('quick-task-list'); 
             if(!list) return;
             list.innerHTML = '';
-            
-            const priorityColors = { 1: 'text-green-500', 2: 'text-green-400', 3: 'text-purple-500', 4: 'text-orange-500', 5: 'text-red-500' };
+            const priorityColors = { 1: 'text-green-500', 3: 'text-purple-500', 5: 'text-red-500' };
             const todayStr = getLocalISOString(new Date());
 
-            store.kanbanTasks.filter(t => 
-                t.status !== 'done' && 
-                (!store.currentUser || t.assignee === store.currentUser) &&
-                t.assignedDate === todayStr
-            )
+            store.kanbanTasks.filter(t => t.status !== 'done' && (!store.currentUser || t.assignee === store.currentUser) && t.assignedDate === todayStr)
             .forEach(t => {
                 const li = document.createElement('li');
                 li.className = 'flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm transition hover:border-purple-300';
-                const statusColors = { 'todo': 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400', 'inprogress': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300' };
-                
-                li.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2 truncate">
-                            <i class="fas fa-flag ${priorityColors[t.priority] || 'text-slate-300'} text-[10px]"></i>
-                            <span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span>
-                        </div>
-                        <div class="flex gap-2 shrink-0 ml-2">
-                            <button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition" title="Complete"><i class="fas fa-check text-[10px]"></i></button>
-                            <button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
-                        </div>
-                    </div>
-
-                    <div class="flex wrap items-center justify-between gap-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusColors[t.status]}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span>
-                            <span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50">
-                            <i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}
-                        </div>
-                    </div>`;
+                li.innerHTML = `<div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 truncate"><i class="fas fa-flag ${priorityColors[t.priority] || 'text-slate-300'} text-[10px]"></i><span class="truncate font-bold text-slate-700 dark:text-slate-200">${t.title}</span></div><div class="flex gap-2 shrink-0 ml-2"><button onclick="updateTaskStatus('${t.id}', 'done')" class="w-6 h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-600 hover:text-white transition"><i class="fas fa-check text-[10px]"></i></button><button onclick="deleteQuickTask('${t.id}')" class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition"><i class="fas fa-trash text-[10px]"></i></button></div></div><div class="flex wrap items-center justify-between gap-y-2"><div class="flex items-center gap-2"><span class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${t.status === 'inprogress' ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-600'}">${t.status === 'inprogress' ? 'Doing' : 'To Do'}</span><span class="text-[9px] text-slate-400 flex items-center gap-1 font-medium"><i class="fas fa-calendar-alt"></i> ${t.assignedDate || 'No Date'}</span></div><div class="flex items-center gap-1 text-[9px] font-bold text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-100 dark:border-purple-800/50"><i class="fas fa-user-circle"></i> ${t.assignee || 'Unassigned'}</div></div>`;
                 list.appendChild(li);
             });
         }
@@ -2575,7 +2699,7 @@
         function toggleTheme() { store.theme = store.theme === 'light' ? 'dark' : 'light'; localStorage.setItem('nexus_theme', store.theme); loadTheme(); }
         
         function switchView(v) { 
-            ['dashboard', 'kanban', 'analytics'].forEach(x => { 
+            ['dashboard', 'kanban', 'analytics', 'library', 'oneOnOne', 'huddle'].forEach(x => { 
                 const view = document.getElementById(`view-${x}`); 
                 const nav = document.getElementById(`nav-${x}`); 
                 if(view) view.classList.add('hidden'); 
@@ -2587,6 +2711,9 @@
             if(targetNav) targetNav.classList.add('active'); 
             if(v === 'kanban') renderKanbanBoard(); 
             if(v === 'analytics') renderAnalytics(); 
+            if(v === 'library') renderLibrary();
+            if(v === 'oneOnOne') initOneOnOne();
+            if(v === 'huddle') initHuddle();
         }
 
         function openTaskModal(id) { 
@@ -2629,6 +2756,261 @@
         function backupData() { const blob = new Blob([JSON.stringify(store)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='backup.json'; a.click(); }
         function triggerRestore() { alert('Restore disabled in cloud mode.'); }
         function handleRestore() {}
+
+        // --- LIBRARY FUNCTIONS ---
+        window.openLibraryModal = function() {
+            const modal = document.getElementById('library-add-modal');
+            const visSelect = document.getElementById('lib-visibility');
+            document.getElementById('lib-modal-title').textContent = "Add New Resource";
+            document.getElementById('editing-lib-key').value = "";
+            document.getElementById('lib-title').value = "";
+            document.getElementById('lib-url').value = "";
+            visSelect.innerHTML = '<option value="Public" selected>Everyone (Public)</option>';
+            store.users.forEach(u => visSelect.add(new Option(u, u)));
+            modal.classList.remove('hidden');
+        };
+
+        window.closeLibraryModal = function() { document.getElementById('library-add-modal').classList.add('hidden'); };
+
+        window.initEditLibrary = function(key, item) {
+            window.openLibraryModal();
+            document.getElementById('lib-modal-title').textContent = "Edit Resource";
+            document.getElementById('editing-lib-key').value = key;
+            document.getElementById('lib-title').value = item.title;
+            document.getElementById('lib-url').value = item.url;
+            document.getElementById('lib-category').value = item.category;
+            const visSelect = document.getElementById('lib-visibility');
+            const allowed = item.visibility || ["Public"];
+            Array.from(visSelect.options).forEach(opt => opt.selected = allowed.includes(opt.value));
+        };
+
+        window.addLibraryItem = function() {
+            const title = document.getElementById('lib-title').value.trim();
+            const category = document.getElementById('lib-category').value;
+            const url = document.getElementById('lib-url').value.trim();
+            const editingKey = document.getElementById('editing-lib-key').value;
+            const user = store.currentUser || "Admin";
+            const visSelect = document.getElementById('lib-visibility');
+            const visibility = Array.from(visSelect.selectedOptions).map(opt => opt.value);
+            if(!title || !url) return alert("Please fill in Title and URL");
+            const item = { title, category, url, visibility, addedBy: user, date: new Date().toLocaleDateString() };
+            if (editingKey) {
+                db.ref(`projectData/library/${editingKey}`).update(item).then(() => {
+                    closeLibraryModal();
+                    alert("Resource updated.");
+                });
+            } else {
+                item.id = Date.now().toString();
+                db.ref('projectData/library').push(item).then(() => {
+                    closeLibraryModal();
+                    alert("Resource added to cloud.");
+                });
+            }
+        };
+
+        window.deleteLibraryItem = function(key) {
+            if(!store.currentUser && confirm("Admin: Remove this resource permanently?")) {
+                db.ref(`projectData/library/${key}`).remove();
+            } else if (store.currentUser) {
+                alert("Only Admin can delete library resources.");
+            }
+        };
+
+        window.renderLibrary = function() {
+            const grid = document.getElementById('library-grid');
+            if(!grid) return;
+            db.ref('projectData/library').on('value', snap => {
+                const data = snap.val() || {};
+                grid.innerHTML = '';
+                const currentUser = store.currentUser || "Admin";
+                Object.keys(data).forEach(key => {
+                    const item = data[key];
+                    const allowed = item.visibility || ["Public"];
+                    const hasAccess = !store.currentUser || allowed.includes("Public") || allowed.includes(currentUser);
+                    if (hasAccess) {
+                        const icon = item.category === 'Link' ? 'fa-link' : 'fa-file-alt';
+                        const color = item.category === 'SOP' ? 'text-green-400' : 'text-blue-400';
+                        const isRestricted = !allowed.includes("Public");
+                        const card = document.createElement('div');
+                        card.className = "glass-panel rounded-2xl p-4 border-l-4 border-jokerPurple hover:scale-[1.02] transition cursor-pointer flex flex-col justify-between";
+                        card.setAttribute('data-title', item.title.toLowerCase());
+                        card.innerHTML = `<div><div class="flex justify-between items-start mb-2"><div class="flex items-center gap-2"><i class="fas ${icon} ${color} text-xl"></i>${isRestricted ? '<i class="fas fa-lock text-[10px] text-amber-500" title="Restricted Access"></i>' : ''}</div><div class="flex gap-3">${!store.currentUser ? `<button onclick="event.stopPropagation(); initEditLibrary('${key}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="text-amber-400 text-xs hover:text-amber-600"><i class="fas fa-edit"></i></button><button onclick="event.stopPropagation(); deleteLibraryItem('${key}')" class="text-red-400 text-xs hover:text-red-600"><i class="fas fa-trash"></i></button>` : ''}</div></div><h3 class="font-bold text-slate-800 dark:text-white mb-1">${item.title}</h3><p class="text-[10px] text-purple-500 uppercase font-bold tracking-widest">${item.category}</p></div><div class="mt-4 flex justify-between items-center"><span class="text-[9px] text-slate-400">By ${item.addedBy}</span><a href="${item.url}" target="_blank" class="bg-white/10 dark:bg-white/5 hover:bg-jokerGreen hover:text-black text-slate-600 dark:text-white px-3 py-1 rounded-lg text-[10px] font-bold transition border border-black/5 dark:border-white/5">OPEN LINK</a></div>`;
+                        grid.appendChild(card);
+                    }
+                });
+                if(grid.innerHTML === '') grid.innerHTML = '<p class="text-white/30 italic">No resources available.</p>';
+            });
+        };
+
+        window.filterLibrary = function() {
+            const term = document.getElementById('library-search').value.toLowerCase();
+            const cards = document.querySelectorAll('#library-grid > div');
+            cards.forEach(card => {
+                const title = card.getAttribute('data-title');
+                card.style.display = title.includes(term) ? 'flex' : 'none';
+            });
+        };
+
+        // --- 1-ON-1 FUNCTIONS (UPDATED FOR MANUAL BOARDS) ---
+        function initOneOnOne() {
+            const now = new Date();
+            const monthSelect = document.getElementById('one-on-one-month');
+            const yearSelect = document.getElementById('one-on-one-year');
+            
+            if (monthSelect.value === "") monthSelect.value = now.getMonth();
+            if (yearSelect.value === "") yearSelect.value = now.getFullYear();
+            
+            const container = document.getElementById('one-on-one-form');
+            // Template: Board for Member Answer + Board for Admin/TL Note
+            container.innerHTML = oneOnOneQuestions.map(q => `
+                <div class="glass-panel p-6 rounded-2xl border border-white/10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-black text-jokerGreen uppercase tracking-tighter mb-1">${q.label}</label>
+                        <p class="text-[10px] text-slate-400 mb-3 font-bold">${q.sub}</p>
+                        <textarea id="1on1-${q.id}" class="w-full bg-white dark:bg-black/20 border border-purple-100 dark:border-white/10 rounded-xl p-3 text-slate-700 dark:text-white text-sm focus:ring-2 focus:ring-jokerGreen outline-none h-32 resize-none" placeholder="Member response..."></textarea>
+                    </div>
+                    <div class="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20">
+                        <label class="block text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2"><i class="fas fa-user-shield"></i> TL / Admin Perspective</label>
+                        <textarea id="1on1-admin-${q.id}" class="w-full bg-transparent border border-purple-500/20 rounded-lg p-3 text-slate-700 dark:text-slate-300 text-xs italic focus:ring-1 focus:ring-purple-400 outline-none h-24 resize-none" placeholder="Add Admin/TL notes here..."></textarea>
+                    </div>
+                </div>
+            `).join('');
+
+            const memberSelect = document.getElementById('one-on-one-member-select');
+            const currentSelected = memberSelect.value;
+            memberSelect.innerHTML = '<option value="">Select a member to review...</option>';
+            store.users.forEach(u => memberSelect.add(new Option(u, u)));
+            memberSelect.value = currentSelected;
+            
+            loadOneOnOneData();
+        }
+
+        function loadOneOnOneData() {
+            const isUserAdmin = !store.currentUser;
+            const selectedMember = document.getElementById('one-on-one-member-select').value;
+            const targetUser = isUserAdmin ? selectedMember : store.currentUser;
+            const month = document.getElementById('one-on-one-month').value;
+            const year = document.getElementById('one-on-one-year').value;
+            
+            if (!targetUser) {
+                oneOnOneQuestions.forEach(q => {
+                    document.getElementById(`1on1-${q.id}`).value = "";
+                    document.getElementById(`1on1-admin-${q.id}`).value = "";
+                });
+                return;
+            }
+
+            const userKey = targetUser.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            oneOnOneQuestions.forEach(q => {
+                const memberField = document.getElementById(`1on1-${q.id}`);
+                const adminField = document.getElementById(`1on1-admin-${q.id}`);
+                
+                // Permission logic: Members edit responses, Admin edits both
+                memberField.disabled = isUserAdmin;
+                adminField.disabled = !isUserAdmin;
+            });
+
+            db.ref(`projectData/oneOnOne/${year}/${month}/${userKey}`).once('value').then(snap => {
+                const data = snap.val() || {};
+                oneOnOneQuestions.forEach(q => {
+                    document.getElementById(`1on1-${q.id}`).value = data[q.id] || "";
+                    document.getElementById(`1on1-admin-${q.id}`).value = data[`admin_${q.id}`] || "";
+                });
+            });
+        }
+
+        function saveOneOnOne() {
+            const isUserAdmin = !store.currentUser;
+            const selectedMember = document.getElementById('one-on-one-member-select').value;
+            const targetUser = isUserAdmin ? selectedMember : store.currentUser;
+            
+            if (!targetUser) return alert("Please select a target member first.");
+
+            const month = document.getElementById('one-on-one-month').value;
+            const year = document.getElementById('one-on-one-year').value;
+            const userKey = targetUser.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const data = { lastUpdated: Date.now() };
+            
+            oneOnOneQuestions.forEach(q => {
+                if (!isUserAdmin) {
+                    data[q.id] = document.getElementById(`1on1-${q.id}`).value;
+                } else {
+                    data[`admin_${q.id}`] = document.getElementById(`1on1-admin-${q.id}`).value;
+                }
+            });
+
+            db.ref(`projectData/oneOnOne/${year}/${month}/${userKey}`).update(data).then(() => {
+                const status = document.getElementById('save-1on1-status');
+                status.classList.remove('hidden');
+                setTimeout(() => status.classList.add('hidden'), 3000);
+            });
+        }
+
+        // --- WEEKLY HUDDLE FUNCTIONS (UPDATED FOR CARD LAYOUT) ---
+        function initHuddle() {
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const weekNum = Math.ceil((((now - startOfYear) / 86400000) + startOfYear.getDay() + 1) / 7);
+            const dateKey = `${now.getFullYear()}_W${weekNum}`;
+            
+            document.getElementById('huddle-week-label').textContent = `Strategy and team alignment for Week ${weekNum}, ${now.getFullYear()}`;
+
+            db.ref(`projectData/huddleLogs/${dateKey}`).on('value', snap => {
+                const data = snap.val();
+                if (data && data.summary) {
+                    // Split the consolidated data back into the card fields
+                    try {
+                        const parsed = JSON.parse(data.summary);
+                        document.getElementById('huddle-date').value = parsed.date || "";
+                        document.getElementById('huddle-attendees').value = parsed.attendees || "";
+                        document.getElementById('huddle-agenda').value = parsed.agenda || "";
+                        document.getElementById('huddle-progress').value = parsed.progress || "";
+                        document.getElementById('huddle-targets').value = parsed.targets || "";
+                        document.getElementById('huddle-wins').value = parsed.wins || "";
+                        document.getElementById('huddle-concerns').value = parsed.concerns || "";
+                        document.getElementById('huddle-notes').value = parsed.notes || "";
+                        document.getElementById('huddle-prepared-by').value = parsed.preparedBy || "";
+                    } catch (e) {
+                        // Fallback: If it's old plain text data, put it in the Notes section
+                        document.getElementById('huddle-notes').value = data.summary;
+                    }
+                }
+            });
+        }
+
+        async function saveHuddleManual() {
+            // Collect all card inputs into a JSON object
+            const huddleData = {
+                date: document.getElementById('huddle-date').value,
+                attendees: document.getElementById('huddle-attendees').value,
+                agenda: document.getElementById('huddle-agenda').value,
+                progress: document.getElementById('huddle-progress').value,
+                targets: document.getElementById('huddle-targets').value,
+                wins: document.getElementById('huddle-wins').value,
+                concerns: document.getElementById('huddle-concerns').value,
+                notes: document.getElementById('huddle-notes').value,
+                preparedBy: document.getElementById('huddle-prepared-by').value
+            };
+
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const weekNum = Math.ceil((((now - startOfYear) / 86400000) + startOfYear.getDay() + 1) / 7);
+            const dateKey = `${now.getFullYear()}_W${weekNum}`;
+
+            try {
+                await db.ref(`projectData/huddleLogs/${dateKey}`).set({
+                    summary: JSON.stringify(huddleData), // Consolidate into the existing "summary" field
+                    timestamp: Date.now(),
+                    savedBy: store.currentUser || "Admin"
+                });
+                alert("Weekly Huddle saved successfully for the team.");
+            } catch (error) {
+                console.error("Firebase Save Error:", error);
+                alert("Failed to save. Check cloud connection.");
+            }
+        }
     </script>
 </body>
 </html>
