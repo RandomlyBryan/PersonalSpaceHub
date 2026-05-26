@@ -421,21 +421,47 @@ with left_panel:
         st.text_area(label="EOD Report Copy Output", value=compiled_report, height=160, disabled=True, label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # FIXED UPGRADE: Direct window execution bypasses document selector arrays entirely!
+        # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
         escaped_eod = base64.b64encode(compiled_report.encode('utf-8')).decode('utf-8')
-        js_eod_copy = f"""
-        <script>
-        function runEodCopy() {{
-            var rawText = atob("{escaped_eod}");
-            navigator.clipboard.writeText(rawText);
-        }}
-        </script>
+        html_eod_btn = f"""
+        <html>
+        <body style='margin:0; padding:0; background:transparent;'>
+            <button onclick="copyToClipboard()" style="
+                background-color: #0284C7;
+                color: #FFFFFF;
+                border: 1px solid #0369A1;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-family: 'Georgia', serif;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                width: 100%;
+                box-sizing: border-box;
+                transition: background-color 0.2s;">
+                📋 Copy EOD Block
+            </button>
+            <script>
+            function copyToClipboard() {{
+                var text = atob("{escaped_eod}");
+                navigator.clipboard.writeText(text).then(function() {{
+                    alert("Copied EOD Summary to clipboard!");
+                }}).catch(function(err) {{
+                    // Fallback mechanism for legacy browser layouts
+                    var textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                    alert("Copied EOD Summary to clipboard!");
+                }});
+            }}
+            </script>
+        </body>
+        </html>
         """
-        col_c1, _ = st.columns([1, 3])
-        with col_c1:
-            if st.button("📋 Copy EOD Block", key="manual_eod_copy_btn", use_container_width=True):
-                components.html(f"{js_eod_copy}<script>runEodCopy();</script>", height=0, width=0)
-                st.toast("Copied EOD Summary to clipboard!")
+        components.html(html_eod_btn, height=38)
         
         if active_links_stager:
             st.markdown("🔗 **Quick-Open Staged Task Links:**")
@@ -464,21 +490,46 @@ with left_panel:
         st.text_area(label="Priorities Copy Output", value=compiled_prio_report, height=140, disabled=True, label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # FIXED UPGRADE: Direct window execution bypasses document selector arrays entirely!
+        # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
         escaped_prio = base64.b64encode(compiled_prio_report.encode('utf-8')).decode('utf-8')
-        js_prio_copy = f"""
-        <script>
-        function runPrioCopy() {{
-            var rawText = atob("{escaped_prio}");
-            navigator.clipboard.writeText(rawText);
-        }}
-        </script>
+        html_prio_btn = f"""
+        <html>
+        <body style='margin:0; padding:0; background:transparent;'>
+            <button onclick="copyToClipboard()" style="
+                background-color: #0284C7;
+                color: #FFFFFF;
+                border: 1px solid #0369A1;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-family: 'Georgia', serif;
+                font-weight: bold;
+                font-size: 14px;
+                cursor: pointer;
+                width: 100%;
+                box-sizing: border-box;
+                transition: background-color 0.2s;">
+                📋 Copy Priorities
+            </button>
+            <script>
+            function copyToClipboard() {{
+                var text = atob("{escaped_prio}");
+                navigator.clipboard.writeText(text).then(function() {{
+                    alert("Copied Priorities to clipboard!");
+                }}).catch(function(err) {{
+                    var textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                    alert("Copied Priorities to clipboard!");
+                }});
+            }}
+            </script>
+        </body>
+        </html>
         """
-        col_c2, _ = st.columns([1, 3])
-        with col_c2:
-            if st.button("📋 Copy Priorities", key="manual_prio_copy_btn", use_container_width=True):
-                components.html(f"{js_prio_copy}<script>runPrioCopy();</script>", height=0, width=0)
-                st.toast("Copied Priorities to clipboard!")
+        components.html(html_prio_btn, height=38)
         
         st.markdown(" ")
         col_space, col_clear_w, col_clear_p = st.columns([2, 1, 1])
@@ -490,7 +541,7 @@ with left_panel:
                 save_and_push(eod_df, EOD_FILE)
                 st.rerun()
         with col_clear_p:
-            if not prio_df.empty and st.button("🗑️ Clear Staged Priorities", use_container_width=True):
+            if not prio_df.empty && st.button("🗑️ Clear Staged Priorities", use_container_width=True):
                 prio_df = pd.DataFrame(columns=["prio_id", "item_text"])
                 save_and_push(prio_df, PRIORITIES_FILE)
                 st.rerun()
@@ -548,21 +599,46 @@ with left_panel:
                 st.text_area(label="Archive Log View", value="\n".join(output_lines), height=240, disabled=True, key="archive_txt_area")
                 st.markdown("</div>", unsafe_allow_html=True)
                 
-                # FIXED UPGRADE: Direct window execution bypasses document selector arrays entirely!
+                # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
                 escaped_archive = base64.b64encode(("\n".join(output_lines)).encode('utf-8')).decode('utf-8')
-                js_archive_copy = f"""
-                <script>
-                function runArchiveCopy() {{
-                    var rawText = atob("{escaped_archive}");
-                    navigator.clipboard.writeText(rawText);
-                }}
-                </script>
+                html_archive_btn = f"""
+                <html>
+                <body style='margin:0; padding:0; background:transparent;'>
+                    <button onclick="copyToClipboard()" style="
+                        background-color: #0284C7;
+                        color: #FFFFFF;
+                        border: 1px solid #0369A1;
+                        border-radius: 6px;
+                        padding: 8px 16px;
+                        font-family: 'Georgia', serif;
+                        font-weight: bold;
+                        font-size: 14px;
+                        cursor: pointer;
+                        width: 100%;
+                        box-sizing: border-box;
+                        transition: background-color 0.2s;">
+                        📋 Copy History Block
+                    </button>
+                    <script>
+                    function copyToClipboard() {{
+                        var text = atob("{escaped_archive}");
+                        navigator.clipboard.writeText(text).then(function() {{
+                            alert("Copied Archive Log to clipboard!");
+                        }}).catch(function(err) {{
+                            var textArea = document.createElement("textarea");
+                            textArea.value = text;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(textArea);
+                            alert("Copied Archive Log to clipboard!");
+                        }});
+                    }}
+                    </script>
+                </body>
+                </html>
                 """
-                col_c3, _ = st.columns([1, 3])
-                with col_c3:
-                    if st.button("📋 Copy History Block", key="manual_archive_copy_btn", use_container_width=True):
-                        components.html(f"{js_archive_copy}<script>runArchiveCopy();</script>", height=0, width=0)
-                        st.toast("Copied Archive Log to clipboard!")
+                components.html(html_archive_btn, height=38)
                 
                 if archive_links_stager:
                     st.markdown("🔗 **Quick-Open Archived Task Links:**")
