@@ -64,15 +64,7 @@ st.markdown(
             box-shadow: 0 0 4px #0284C7 !important;
         }
         
-        /* TARGETED LOOK FOR REPORT TEXT AREAS */
-        div.report-box div[data-baseweb="textarea"] textarea[disabled] {
-            color: #38BDF8 !important; 
-            background-color: #090B0E !important;
-            -webkit-text-fill-color: #38BDF8 !important;
-            opacity: 1 !important;
-        }
-        
-        /* CLEAN INLINE QUICK COPY CONTAINERS */
+        /* CLEAN INLINE QUICK COPY CONTAINERS (Brings back standard copy clips without shadows) */
         div.clean-copy code {
             background-color: transparent !important;
             border: none !important;
@@ -86,6 +78,23 @@ st.markdown(
             border-radius: 6px;
             margin-bottom: 6px !important;
             padding: 2px 10px !important;
+        }
+        
+        /* NEW STYLING ENGINE FOR THE COMPACT SUMMARY CODE MODULES */
+        div.clean-report-block [data-testid="stCodeBlock"] {
+            background-color: #090B0E !important;
+            border: 1px solid #2D3748 !important;
+            border-radius: 6px;
+            padding: 8px 12px !important;
+        }
+        div.clean-report-block code {
+            background-color: transparent !important;
+            border: none !important;
+            color: #38BDF8 !important;
+            font-family: 'Georgia', serif !important;
+            font-size: 1.1em !important;
+            line-height: 1.5 !important;
+            white-space: pre-wrap !important;
         }
         
         button[kind="secondary"] {
@@ -417,52 +426,10 @@ with left_panel:
         else: compiled_report = f"{emp_header}• (No work logged yet today.)"
             
         st.markdown("**EOD Summary Block:**")
-        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.text_area(label="EOD Report Copy Output", value=compiled_report, height=160, disabled=True, label_visibility="collapsed")
+        # NATIVE UPGRADE: Swapped to custom clean-report-block wrappers using st.code. Zero highlights, zero browser blocker glitches!
+        st.markdown("<div class='clean-report-block'>", unsafe_allow_html=True)
+        st.code(compiled_report, language=None)
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
-        escaped_eod = base64.b64encode(compiled_report.encode('utf-8')).decode('utf-8')
-        html_eod_btn = f"""
-        <html>
-        <body style='margin:0; padding:0; background:transparent;'>
-            <button onclick="copyToClipboard()" style="
-                background-color: #0284C7;
-                color: #FFFFFF;
-                border: 1px solid #0369A1;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-family: 'Georgia', serif;
-                font-weight: bold;
-                font-size: 14px;
-                cursor: pointer;
-                width: 100%;
-                box-sizing: border-box;
-                transition: background-color 0.2s;">
-                📋 Copy EOD Block
-            </button>
-            <script>
-            function copyToClipboard() {{
-                var text = atob("{escaped_eod}");
-                var tArea = document.createElement("textarea");
-                tArea.value = text;
-                tArea.style.position = "fixed"; 
-                tArea.style.left = "-9999px";
-                document.body.appendChild(tArea);
-                tArea.select();
-                try {{
-                    document.execCommand("copy");
-                    alert("Copied EOD Summary to clipboard!");
-                }} catch (err) {{
-                    alert("Copy function failed. Please select manually.");
-                }}
-                document.body.removeChild(tArea);
-            }}
-            </script>
-        </body>
-        </html>
-        """
-        components.html(html_eod_btn, height=38)
         
         if active_links_stager:
             st.markdown("🔗 **Quick-Open Staged Task Links:**")
@@ -487,52 +454,10 @@ with left_panel:
         compiled_prio_report = f"Next Day Priorities / Agenda ({tomorrow.strftime(DATE_FORMAT)}):\n----------------------------------------\n" + ("\n".join(auto_priorities) if auto_priorities else "• No priorities scheduled for tomorrow.")
         
         st.markdown("**Next Day Priorities:**")
-        st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-        st.text_area(label="Priorities Copy Output", value=compiled_prio_report, height=140, disabled=True, label_visibility="collapsed")
+        # NATIVE UPGRADE: Swapped to custom clean-report-block wrappers using st.code. Zero highlights, zero browser blocker glitches!
+        st.markdown("<div class='clean-report-block'>", unsafe_allow_html=True)
+        st.code(compiled_prio_report, language=None)
         st.markdown("</div>", unsafe_allow_html=True)
-        
-        # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
-        escaped_prio = base64.b64encode(compiled_prio_report.encode('utf-8')).decode('utf-8')
-        html_prio_btn = f"""
-        <html>
-        <body style='margin:0; padding:0; background:transparent;'>
-            <button onclick="copyToClipboard()" style="
-                background-color: #0284C7;
-                color: #FFFFFF;
-                border: 1px solid #0369A1;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-family: 'Georgia', serif;
-                font-weight: bold;
-                font-size: 14px;
-                cursor: pointer;
-                width: 100%;
-                box-sizing: border-box;
-                transition: background-color 0.2s;">
-                📋 Copy Priorities
-            </button>
-            <script>
-            function copyToClipboard() {{
-                var text = atob("{escaped_prio}");
-                var tArea = document.createElement("textarea");
-                tArea.value = text;
-                tArea.style.position = "fixed";
-                tArea.style.left = "-9999px";
-                document.body.appendChild(tArea);
-                tArea.select();
-                try {{
-                    document.execCommand("copy");
-                    alert("Copied Priorities to clipboard!");
-                }} catch (err) {{
-                    alert("Copy function failed. Please select manually.");
-                }}
-                document.body.removeChild(tArea);
-            }}
-            </script>
-        </body>
-        </html>
-        """
-        components.html(html_prio_btn, height=38)
         
         st.markdown(" ")
         col_space, col_clear_w, col_clear_p = st.columns([2, 1, 1])
@@ -544,7 +469,6 @@ with left_panel:
                 save_and_push(eod_df, EOD_FILE)
                 st.rerun()
         with col_clear_p:
-            # FIXED LOGIC: Changed broken '&&' JavaScript operator to a valid Python 'and' keyword token on line 427
             if not prio_df.empty and st.button("🗑️ Clear Staged Priorities", use_container_width=True):
                 prio_df = pd.DataFrame(columns=["prio_id", "item_text"])
                 save_and_push(prio_df, PRIORITIES_FILE)
@@ -599,52 +523,10 @@ with left_panel:
                                     for lk in extra_links_str.split(","): output_lines.append(f"    🔗 {lk}")
                     output_lines.append("\n")
                 
-                st.markdown("<div class='report-box'>", unsafe_allow_html=True)
-                st.text_area(label="Archive Log View", value="\n".join(output_lines), height=240, disabled=True, key="archive_txt_area")
+                # NATIVE UPGRADE: Historic archive log section converted to the new zero-glitch text layout
+                st.markdown("<div class='clean-report-block'>", unsafe_allow_html=True)
+                st.code("\n".join(output_lines), language=None)
                 st.markdown("</div>", unsafe_allow_html=True)
-                
-                # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
-                escaped_archive = base64.b64encode(("\n".join(output_lines)).encode('utf-8')).decode('utf-8')
-                html_archive_btn = f"""
-                <html>
-                <body style='margin:0; padding:0; background:transparent;'>
-                    <button onclick="copyToClipboard()" style="
-                        background-color: #0284C7;
-                        color: #FFFFFF;
-                        border: 1px solid #0369A1;
-                        border-radius: 6px;
-                        padding: 8px 16px;
-                        font-family: 'Georgia', serif;
-                        font-weight: bold;
-                        font-size: 14px;
-                        cursor: pointer;
-                        width: 100%;
-                        box-sizing: border-box;
-                        transition: background-color 0.2s;">
-                        📋 Copy History Block
-                    </button>
-                    <script>
-                    function copyToClipboard() {{
-                        var text = atob("{escaped_archive}");
-                        var tArea = document.createElement("textarea");
-                        tArea.value = text;
-                        tArea.style.position = "fixed";
-                        tArea.style.left = "-9999px";
-                        document.body.appendChild(tArea);
-                        tArea.select();
-                        try {{
-                            document.execCommand("copy");
-                            alert("Copied Archive Log to clipboard!");
-                        }} catch (err) {{
-                            alert("Copy function failed. Please select manually.");
-                        }}
-                        document.body.removeChild(tArea);
-                    }}
-                    </script>
-                </body>
-                </html>
-                """
-                components.html(html_archive_btn, height=38)
                 
                 if archive_links_stager:
                     st.markdown("🔗 **Quick-Open Archived Task Links:**")
