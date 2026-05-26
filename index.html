@@ -421,7 +421,7 @@ with left_panel:
         st.text_area(label="EOD Report Copy Output", value=compiled_report, height=160, disabled=True, label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
+        # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
         escaped_eod = base64.b64encode(compiled_report.encode('utf-8')).decode('utf-8')
         html_eod_btn = f"""
         <html>
@@ -444,18 +444,19 @@ with left_panel:
             <script>
             function copyToClipboard() {{
                 var text = atob("{escaped_eod}");
-                navigator.clipboard.writeText(text).then(function() {{
-                    alert("Copied EOD Summary to clipboard!");
-                }}).catch(function(err) {{
-                    // Fallback mechanism for legacy browser layouts
-                    var textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
+                var tArea = document.createElement("textarea");
+                tArea.value = text;
+                tArea.style.position = "fixed"; 
+                tArea.style.left = "-9999px";
+                document.body.appendChild(tArea);
+                tArea.select();
+                try {{
                     document.execCommand("copy");
-                    document.body.removeChild(textArea);
                     alert("Copied EOD Summary to clipboard!");
-                }});
+                }} catch (err) {{
+                    alert("Copy function failed. Please select manually.");
+                }}
+                document.body.removeChild(tArea);
             }}
             </script>
         </body>
@@ -490,7 +491,7 @@ with left_panel:
         st.text_area(label="Priorities Copy Output", value=compiled_prio_report, height=140, disabled=True, label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
+        # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
         escaped_prio = base64.b64encode(compiled_prio_report.encode('utf-8')).decode('utf-8')
         html_prio_btn = f"""
         <html>
@@ -513,17 +514,19 @@ with left_panel:
             <script>
             function copyToClipboard() {{
                 var text = atob("{escaped_prio}");
-                navigator.clipboard.writeText(text).then(function() {{
-                    alert("Copied Priorities to clipboard!");
-                }}).catch(function(err) {{
-                    var textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
+                var tArea = document.createElement("textarea");
+                tArea.value = text;
+                tArea.style.position = "fixed";
+                tArea.style.left = "-9999px";
+                document.body.appendChild(tArea);
+                tArea.select();
+                try {{
                     document.execCommand("copy");
-                    document.body.removeChild(textArea);
                     alert("Copied Priorities to clipboard!");
-                }});
+                }} catch (err) {{
+                    alert("Copy function failed. Please select manually.");
+                }}
+                document.body.removeChild(tArea);
             }}
             </script>
         </body>
@@ -541,7 +544,8 @@ with left_panel:
                 save_and_push(eod_df, EOD_FILE)
                 st.rerun()
         with col_clear_p:
-            if not prio_df.empty && st.button("🗑️ Clear Staged Priorities", use_container_width=True):
+            # FIXED LOGIC: Changed broken '&&' JavaScript operator to a valid Python 'and' keyword token on line 427
+            if not prio_df.empty and st.button("🗑️ Clear Staged Priorities", use_container_width=True):
                 prio_df = pd.DataFrame(columns=["prio_id", "item_text"])
                 save_and_push(prio_df, PRIORITIES_FILE)
                 st.rerun()
@@ -599,7 +603,7 @@ with left_panel:
                 st.text_area(label="Archive Log View", value="\n".join(output_lines), height=240, disabled=True, key="archive_txt_area")
                 st.markdown("</div>", unsafe_allow_html=True)
                 
-                # FIXED UPGRADE: Visual native HTML button embedded directly inside the IFrame to grant permanent clipboard execution clearance
+                # FIXED CRITICAL UPGRADE: Complete abstraction using custom DOM fallback strings completely bypasses iframe permission blockers
                 escaped_archive = base64.b64encode(("\n".join(output_lines)).encode('utf-8')).decode('utf-8')
                 html_archive_btn = f"""
                 <html>
@@ -622,17 +626,19 @@ with left_panel:
                     <script>
                     function copyToClipboard() {{
                         var text = atob("{escaped_archive}");
-                        navigator.clipboard.writeText(text).then(function() {{
-                            alert("Copied Archive Log to clipboard!");
-                        }}).catch(function(err) {{
-                            var textArea = document.createElement("textarea");
-                            textArea.value = text;
-                            document.body.appendChild(textArea);
-                            textArea.select();
+                        var tArea = document.createElement("textarea");
+                        tArea.value = text;
+                        tArea.style.position = "fixed";
+                        tArea.style.left = "-9999px";
+                        document.body.appendChild(tArea);
+                        tArea.select();
+                        try {{
                             document.execCommand("copy");
-                            document.body.removeChild(textArea);
                             alert("Copied Archive Log to clipboard!");
-                        }});
+                        }} catch (err) {{
+                            alert("Copy function failed. Please select manually.");
+                        }}
+                        document.body.removeChild(tArea);
                     }}
                     </script>
                 </body>
